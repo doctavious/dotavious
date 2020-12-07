@@ -5,9 +5,7 @@ use std;
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::io;
-use std::io::{
-    Write
-};
+use std::io::prelude::*;
 use std::marker::PhantomData;
 
 static INDENT: &str = "    ";
@@ -190,45 +188,45 @@ impl GraphType {
 // TODO: probably dont need this struct and can move impl methods into lib module
 pub struct Dot<'a> {
     graph: Graph<'a>,
-    config: Config,
+    //config: Config,
 }
 
 impl<'a> Dot<'a> {
 
     /// Renders directed graph `g` into the writer `w` in DOT syntax.
     /// (Simple wrapper around `render_opts` that passes a default set of options.)
-    pub fn render<W>(self, g: Graph, w: &mut W) -> io::Result<()>
+    //pub fn render<W>(self, g: Graph, w: &mut W) -> io::Result<()>
+    pub fn render<W>(self, w: &mut W) -> io::Result<()>
     where
         W: Write,
     {
         // TODO: use default_options?
-        self.render_opts(g, w, &[])
+        self.render_opts(w, &[])
     }
 
     // io::Result<()> vs Result<(), Box<dyn Error>>
     // https://doc.rust-lang.org/book/ch09-02-recoverable-errors-with-result.html#the--operator-can-be-used-in-functions-that-return-result
     /// Renders directed graph `g` into the writer `w` in DOT syntax.
     /// (Main entry point for the library.)
-    pub fn render_opts<W>(self, graph: Graph, w: &mut W, options: &[RenderOption]) -> io::Result<()>
+    // pub fn render_opts<W>(self, graph: Graph, w: &mut W, options: &[RenderOption]) -> io::Result<()>
+    pub fn render_opts<W>(self, w: &mut W, options: &[RenderOption]) -> io::Result<()>
     where
         W: Write,
     {
-        writeln!(w, "{}", graph.comment.unwrap_or_default())?;
-
-        let strict = if graph.strict { "strict " } else { "" }; 
-        let id = graph.id.unwrap_or_default();
-        
-        // TODO: implement
-        // writeln!(w, "{}{} {}{{", strict, graph.graph_type.as_slice(), id)?;
-
-        // Global graph properties
-        if options.contains(&RenderOption::Monospace) {
-            writeln!(w, r#"    graph[fontname="monospace"];"#)?;
-            writeln!(w, r#"    node[fontname="monospace"];"#)?;
-            writeln!(w, r#"    edge[fontname="monospace"];"#)?;
+        if self.graph.comment.is_some() {
+            writeln!(w, "{}", self.graph.comment.unwrap_or_default())?;
         }
+        
+        let strict = if self.graph.strict { "strict " } else { "" }; 
+        let id = self.graph.id.unwrap_or_default();
+        
+        // TODO: fix hard coded graph type
+        // writeln!(w, "{}{} {}{{", strict, graph.graph_type.as_slice(), id)?;
+        writeln!(w, "{}{} {} {{", strict, "digraph", id)?;
 
-        for n in graph.nodes {
+        // TODO: add global graph attributes
+
+        for n in self.graph.nodes {
             // TODO: handle render options
             // Are render options something we need?
             // we could clone the node or and remove the attributes based on render options
@@ -236,33 +234,9 @@ impl<'a> Dot<'a> {
             write!(w, "{}", n.to_dot_string());
         }
 
-        for e in graph.edges {
+        for e in self.graph.edges {
 
         }
-
-        // for e in graph.edges.iter() {
-        //     let escaped_label = &graph.edge_label(e).to_dot_string();
-        //     write!(w, "{}", INDENT)?;
-        //     let source = graph.source(e);
-        //     let target = graph.target(e);
-        //     let source_id = graph.node_id(&source);
-        //     let target_id = graph.node_id(&target);
-
-        //     let mut text = Vec::new();
-        //     write!(text, "{} -> {}", source_id.as_slice(), target_id.as_slice()).unwrap();
-
-        //     if !options.contains(&RenderOption::NoEdgeLabels) {
-        //         write!(text, "[label={}]", escaped_label).unwrap();
-        //     }
-
-        //     let style = graph.edge_style(e);
-        //     if !options.contains(&RenderOption::NoEdgeStyles) && style != Style::None {
-        //         write!(text, "[style=\"{}\"]", style.as_slice()).unwrap();
-        //     }
-
-        //     writeln!(text, ";").unwrap();
-        //     w.write_all(&text[..])?;
-        // }
 
         writeln!(w, "}}")
     }
@@ -395,9 +369,9 @@ pub struct Graph<'a, Ty = Directed> {
 }
 
 impl<'a> Graph<'a, Directed> {
-    pub fn new() -> Self {
+    pub fn new(id: Option<String>) -> Self {
         Graph {
-            id: None,
+            id: id,
             strict: false,
             comment: None,
             graph_attributes: None,
@@ -606,9 +580,22 @@ impl Style {
 
 #[test]
 fn empty_digraph() {
-    let g = Graph::new();
-    //let mut writer = Vec::new();
-    //let dot = Dot::
+    let g = Graph::new(Some("empty_graph".to_string()));
+    let mut writer = Vec::new();
+    let dot = Dot {
+        graph: g
+    };
+
+    dot.render(&mut writer).unwrap();
+    let mut s = String::new();
+    Read::read_to_string(&mut &*writer, &mut s).unwrap();
+    assert_eq!(
+        s,
+        r#"digraph empty_graph {
+}
+"#
+    );
+
 //     let r = test_input(dot);
 //     assert_eq!(
 //         r.unwrap(),
