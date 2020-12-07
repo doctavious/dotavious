@@ -1,6 +1,8 @@
 //! Simple graphviz dot file format output.
 
+use AttributeText::*;
 use std;
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::io;
 use std::io::{
@@ -9,6 +11,126 @@ use std::io::{
 use std::marker::PhantomData;
 
 static INDENT: &str = "    ";
+
+/// Most of this comes from core rust. Where to provide attribution?
+/// The text for a graphviz label on a node or edge.
+pub enum AttributeText<'a> {
+
+    /// Preserves the text directly as is but wrapped in quotes.
+    AttrStr(Cow<'a, str>),
+
+    /// This kind of label uses the graphviz label escString type:
+    /// <http://www.graphviz.org/doc/info/attrs.html#k:escString>
+    ///
+    /// Occurrences of backslashes (`\`) are not escaped; instead they
+    /// are interpreted as initiating an escString escape sequence.
+    ///
+    /// Escape sequences of particular interest: in addition to `\n`
+    /// to break a line (centering the line preceding the `\n`), there
+    /// are also the escape sequences `\l` which left-justifies the
+    /// preceding line and `\r` which right-justifies it.
+    EscStr(Cow<'a, str>),
+
+    /// This uses a graphviz [HTML string label][html]. 
+    /// The string is printed exactly as given, but between `<` and `>`. 
+    /// **No escaping is performed.**
+    ///
+    /// [html]: https://graphviz.org/doc/info/shapes.html#html
+    HtmlStr(Cow<'a, str>),
+
+    /// Preserves the text directly as is but wrapped in quotes.
+    ///
+    /// Occurrences of backslashes (`\`) are escaped, and thus appear
+    /// as backslashes in the rendered label.
+    QuottedStr(Cow<'a, str>),
+}
+
+impl<'a> AttributeText<'a> {
+    pub fn attr<S: Into<Cow<'a, str>>>(s: S) -> AttributeText<'a> {
+        AttrStr(s.into())
+    }
+
+    pub fn escaped<S: Into<Cow<'a, str>>>(s: S) -> AttributeText<'a> {
+        EscStr(s.into())
+    }
+
+    pub fn html<S: Into<Cow<'a, str>>>(s: S) -> AttributeText<'a> {
+        HtmlStr(s.into())
+    }
+
+    pub fn quotted<S: Into<Cow<'a, str>>>(s: S) -> AttributeText<'a> {
+        QuottedStr(s.into())
+    }
+
+    fn escape_char<F>(c: char, mut f: F)
+    where
+        F: FnMut(char),
+    {
+        match c {
+            // not escaping \\, since Graphviz escString needs to
+            // interpret backslashes; see EscStr above.
+            '\\' => f(c),
+            _ => {
+                for c in c.escape_default() {
+                    f(c)
+                }
+            }
+        }
+    }
+
+    fn escape_str(s: &str) -> String {
+        let mut out = String::with_capacity(s.len());
+        for c in s.chars() {
+            AttributeText::escape_char(c, |c| out.push(c));
+        }
+        out
+    }
+
+    /// Renders text as string suitable for a attribute in a .dot file.
+    /// This includes quotes or suitable delimiters.
+    pub fn to_dot_string(&self) -> String {
+        match *self {
+            AttrStr(ref s) => format!("{}", s),
+            EscStr(ref s) => format!("\"{}\"", AttributeText::escape_str(&s)),
+            HtmlStr(ref s) => format!("<{}>", s),
+            QuottedStr(ref s) => format!("\"{}\"", s.escape_default()),
+        }
+    }
+
+    /// Decomposes content into string suitable for making EscStr that
+    /// yields same content as self. The result obeys the law
+    /// render(`lt`) == render(`EscStr(lt.pre_escaped_content())`) for
+    /// all `lt: LabelText`.
+    fn pre_escaped_content(self) -> Cow<'a, str> {
+        match self {
+            AttrStr(s) => s,
+            EscStr(s) => s,
+            HtmlStr(s) => s,
+            QuottedStr(s) => {
+                if s.contains('\\') {
+                    (&*s).escape_default().to_string().into()
+                } else {
+                    s
+                }
+            }
+            
+        }
+    }
+
+    /// Puts `prefix` on a line above this label, with a blank line separator.
+    pub fn prefix_line(self, prefix: AttributeText<'_>) -> AttributeText<'static> {
+        prefix.suffix_line(self)
+    }
+
+    /// Puts `suffix` on a line below this label, with a blank line separator.
+    pub fn suffix_line(self, suffix: AttributeText<'_>) -> AttributeText<'static> {
+        let mut prefix = self.pre_escaped_content().into_owned();
+        let suffix = suffix.pre_escaped_content();
+        prefix.push_str(r"\n\n");
+        prefix.push_str(&suffix);
+        EscStr(prefix.into())
+    }
+}
 
 // TODO: need a way to print out values
 // TODO: not sure we need this enum but should support setting nodeport either via
@@ -65,12 +187,13 @@ impl GraphType {
     }
 }
 
-pub struct Dot {
-    graph: Graph,
+// TODO: probably dont need this struct and can move impl methods into lib module
+pub struct Dot<'a> {
+    graph: Graph<'a>,
     config: Config,
 }
 
-impl Dot {
+impl<'a> Dot<'a> {
 
     /// Renders directed graph `g` into the writer `w` in DOT syntax.
     /// (Simple wrapper around `render_opts` that passes a default set of options.)
@@ -86,20 +209,15 @@ impl Dot {
     // https://doc.rust-lang.org/book/ch09-02-recoverable-errors-with-result.html#the--operator-can-be-used-in-functions-that-return-result
     /// Renders directed graph `g` into the writer `w` in DOT syntax.
     /// (Main entry point for the library.)
-    pub fn render_opts<'a, W>(self, graph: Graph, w: &mut W, options: &[RenderOption]) -> io::Result<()>
+    pub fn render_opts<W>(self, graph: Graph, w: &mut W, options: &[RenderOption]) -> io::Result<()>
     where
         W: Write,
     {
         writeln!(w, "{}", graph.comment.unwrap_or_default())?;
 
         let strict = if graph.strict { "strict " } else { "" }; 
-
-        // TODO: can we use unwrap_or_default?
-        let id = match graph.id {
-            Some(v) => v,
-            None => String::new()
-        };
-
+        let id = graph.id.unwrap_or_default();
+        
         // TODO: implement
         // writeln!(w, "{}{} {}{{", strict, graph.graph_type.as_slice(), id)?;
 
@@ -111,37 +229,15 @@ impl Dot {
         }
 
         for n in graph.nodes {
-            write!(w, "{}", INDENT)?;
-            // let id = graph.node_id(n);
-            // let id = n.id;
+            // TODO: handle render options
+            // Are render options something we need?
+            // we could clone the node or and remove the attributes based on render options
+            // or maybe we keep a set of attributes to ignore based on the options
+            write!(w, "{}", n.to_dot_string());
+        }
 
-            let mut text = Vec::new();
-            write!(text, "{}", n.id).unwrap();
+        for e in graph.edges {
 
-            if !options.contains(&RenderOption::NoNodeLabels) {
-                // TODO: implement
-                // let label = &graph.node_label(n).to_dot_string();
-                let label = "";
-                write!(text, "[label={}]", label).unwrap();
-            }
-
-            // TODO: implement
-            // let style = graph.node_style(n);
-            // let style = n.style;
-            // if !options.contains(&RenderOption::NoNodeStyles) && style != Style::None {
-            //     write!(text, "[style=\"{}\"]", style.as_slice()).unwrap();
-            // }
-
-            // if let Some(s) = graph.node_shape(n) {
-            //     write!(text, "[shape={}]", &s.to_dot_string()).unwrap();
-            // }
-            // if let Some(s) = n.shape {
-            //     TODO: implement
-            //     write!(text, "[shape={}]", &s.to_dot_string()).unwrap();
-            // }
-
-            writeln!(text, ";").unwrap();
-            w.write_all(&text[..])?;
         }
 
         // for e in graph.edges.iter() {
@@ -271,11 +367,11 @@ impl EdgeType for Undirected {
     }
 }
 
-pub type DiGraph = Graph<Directed>;
+pub type DiGraph<'a> = Graph<'a, Directed>;
 
-pub type UnGraph = Graph<Undirected>;
+pub type UnGraph<'a> = Graph<'a, Undirected>;
 
-pub struct Graph<Ty = Directed> {
+pub struct Graph<'a, Ty = Directed> {
 
     pub id: Option<String>,
     
@@ -286,7 +382,7 @@ pub struct Graph<Ty = Directed> {
 
     pub graph_attributes: Option<Vec<String>>,
 
-    pub nodes: Vec<Node>,
+    pub nodes: Vec<Node<'a>>,
 
     pub edges: Vec<String>,
 
@@ -298,7 +394,7 @@ pub struct Graph<Ty = Directed> {
     // pub graph_type: Ty,
 }
 
-impl Graph<Directed> {
+impl<'a> Graph<'a, Directed> {
     pub fn new() -> Self {
         Graph {
             id: None,
@@ -312,7 +408,7 @@ impl Graph<Directed> {
     }
 }
 
-impl Graph<Undirected> {
+impl<'a> Graph<'a, Undirected> {
     /// Create a new `Graph` with undirected edges.
     ///
     /// This is a convenience method. Use `Graph::with_capacity` or `Graph::default` for
@@ -330,7 +426,7 @@ impl Graph<Undirected> {
     }
 }
 
-impl<Ty> Graph<Ty> 
+impl<'a, Ty> Graph<'a, Ty> 
 where Ty: EdgeType
 {
     /// Whether the graph has directed edges or not.
@@ -344,7 +440,7 @@ where Ty: EdgeType
     }
 }
 
-pub struct UndirectedGraph {
+pub struct UndirectedGraph<'a> {
 
     pub id: Option<String>,
 
@@ -355,7 +451,7 @@ pub struct UndirectedGraph {
 
     pub graph_attributes: Option<Vec<String>>,
 
-    pub nodes: Vec<Node>,
+    pub nodes: Vec<Node<'a>>,
 
     pub edges: Vec<String>,
 
@@ -363,7 +459,7 @@ pub struct UndirectedGraph {
 
 
 // TODO: add node builder using "with" convention
-pub struct Node {
+pub struct Node<'a> {
 
     pub id: String,
 
@@ -374,29 +470,29 @@ pub struct Node {
     // // TODO: enum?
     // shape: Option<String>,
 
-    label: Option<String>,
+    // label: Option<String>,
     
-    pub attributes: HashMap<String, String>,
+    pub attributes: HashMap<String, AttributeText<'a>>,
 
     // style
 
 }
 
-impl Node {
+impl<'a> Node<'a> {
 
-    pub fn new(id: String) -> Node {
+    pub fn new(id: String) -> Node<'a> {
         Node {
             id: id,
             port: None,
             // compass: None,
             // shape: None,
-            label: None,
+            // label: None,
             attributes: HashMap::new(),
         }
     }
 
     /// Set the port for the node.
-    pub fn port<'a>(&'a mut self, port: String) -> &'a mut Node {
+    pub fn port(&'a mut self, port: String) -> &'a mut Node {
         self.port = Some(port);
         self
     }
@@ -406,9 +502,9 @@ impl Node {
     //     self
     // }
 
-    pub fn label<'a>(&'a mut self, text: String) -> &'a mut Node {
-        self.label = Some(text);
-        //self.attributes.insert("label".to_string(), text);
+    pub fn label(&'a mut self, text: String) -> &'a mut Node {
+        // self.label = Some(text);
+        self.attributes.insert("label".to_string(), QuottedStr(text.into()));
         self
     }
 
@@ -419,30 +515,27 @@ impl Node {
     // }
 
     /// Add an attribute to the node.
-    pub fn attribute<'a>(&'a mut self, key: String, value: String) -> &'a mut Node {
+    pub fn attribute(&'a mut self, key: String, value: AttributeText<'a>) -> &'a mut Node {
         self.attributes.insert(key, value);
         self
     }
 
     /// Add multiple attribures to the node.
-    pub fn attributes<'a>(&'a mut self, attributes: HashMap<String, String>) -> &'a mut Node {
+    pub fn attributes(&'a mut self, attributes: HashMap<String, AttributeText<'a>>) -> &'a mut Node {
         self.attributes.extend(attributes);
         self
     }
 
     pub fn to_dot_string(&self) -> String {
-        let mut dot_string = String::from(&self.id);
+        let mut dot_string = format!("{}{}", INDENT, &self.id);
         // TODO: I dont love this logic. I would like to find away to not have a special case.
         // I think we introduce a AttributeText enum which encodes how to write out the attribute value
-        if self.label.is_some() || !self.attributes.is_empty() {
-            dot_string.push_str("[");
-            if self.label.is_some() {
-                dot_string.push_str(format!("label={}", self.label.as_ref().unwrap()).as_str());
-            }
+        if !self.attributes.is_empty() {
+            dot_string.push_str(" [");
             for (key, value) in &self.attributes {
-                dot_string.push_str(format!("{}=\"{}\"", key, value).as_str());
+                dot_string.push_str(format!("{}=\"{}\"", key, value.to_dot_string()).as_str());
             }
-            dot_string.push_str("]")
+            dot_string.push_str("];")
         }
 
         return dot_string.to_string();
@@ -466,6 +559,8 @@ pub enum RenderOption {
     NoNodeLabels,
     NoEdgeStyles,
     NoNodeStyles,
+
+    // TODO: replace with Fontname(String),
     Monospace,
 }
 
