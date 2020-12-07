@@ -372,7 +372,9 @@ pub struct Node {
     // pub compass: Option<Compass>,
 
     // // TODO: enum?
-    // pub shape: Option<String>,
+    // shape: Option<String>,
+
+    label: Option<String>,
     
     pub attributes: HashMap<String, String>,
 
@@ -388,6 +390,7 @@ impl Node {
             port: None,
             // compass: None,
             // shape: None,
+            label: None,
             attributes: HashMap::new(),
         }
     }
@@ -404,15 +407,16 @@ impl Node {
     // }
 
     pub fn label<'a>(&'a mut self, text: String) -> &'a mut Node {
-        self.attributes.insert("label".to_string(), text);
+        self.label = Some(text);
+        //self.attributes.insert("label".to_string(), text);
         self
     }
 
     // TODO: create enum for shape at some point
-    pub fn shape<'a>(&'a mut self, shape: String) -> &'a mut Node {
-        self.attributes.insert("shape".to_string(), shape);
-        self
-    }
+    // pub fn shape<'a>(&'a mut self, shape: String) -> &'a mut Node {
+    //     self.attributes.insert("shape".to_string(), shape);
+    //     self
+    // }
 
     /// Add an attribute to the node.
     pub fn attribute<'a>(&'a mut self, key: String, value: String) -> &'a mut Node {
@@ -428,13 +432,15 @@ impl Node {
 
     pub fn to_dot_string(&self) -> String {
         let mut dot_string = String::from(&self.id);
-        if !self.attributes.is_empty() {
+        // TODO: I dont love this logic. I would like to find away to not have a special case.
+        // I think we introduce a AttributeText enum which encodes how to write out the attribute value
+        if self.label.is_some() || !self.attributes.is_empty() {
             dot_string.push_str("[");
+            if self.label.is_some() {
+                dot_string.push_str(format!("label={}", self.label.as_ref().unwrap()).as_str());
+            }
             for (key, value) in &self.attributes {
-                // TODO: most attributes outside of label dont need wrapping quotes
-                // but right now label is in the dictionary with the other attributes
-                // We can split it out
-                dot_string.push_str(format!("{}=\"{}\"", key, value));
+                dot_string.push_str(format!("{}=\"{}\"", key, value).as_str());
             }
             dot_string.push_str("]")
         }
@@ -447,7 +453,7 @@ impl Node {
     // pub fn to_dot_string(&self) -> String {
     //     match *self {
     //         LabelStr(ref s) => format!("\"{}\"", s.escape_default()),
-    //         EscStr(ref s) => format!("\"{}\"", LabelText::escape_str(&s)),
+    //         EscStr(ref s) =>  format!("\"{}\"", LabelText::escape_str(&s)),
     //         HtmlStr(ref s) => format!("<{}>", s),
     //     }
     // }
