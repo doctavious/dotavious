@@ -163,27 +163,62 @@ impl Compass {
     }
 }
 
-enum GraphType {
-    Graph,
-    Digraph
+/// A graph's edge type determines whether it has directed edges or not.
+pub trait GraphType {
+    fn is_directed() -> bool;
+
+    // TODO: maybe this doesnt below here
+    fn as_slice() -> &'static str;
+
+    fn edge_slice() -> &'static str;
 }
 
-impl GraphType {
-    pub fn as_slice(self) -> &'static str {
-        match self {
-            GraphType::Graph => "graph",
-            GraphType::Digraph => "digraph",
-        }
+impl GraphType for Directed {
+    fn is_directed() -> bool {
+        true
     }
 
-    // TODO: not sure if I like this or not
-    pub fn edge_slice(self) -> &'static str {
-        match self {
-            GraphType::Graph => "--",
-            GraphType::Digraph => "->",
-        }
+    fn as_slice() -> &'static str {
+        "digraph"
+    }
+
+    fn edge_slice() -> &'static str {
+        "->"
     }
 }
+
+impl GraphType for Undirected {
+    fn is_directed() -> bool {
+        false
+    }
+
+    fn as_slice() -> &'static str {
+        "graph"
+    }
+
+    fn edge_slice() -> &'static str {
+        "--"
+    }
+}
+
+// impl GraphType {
+//     pub fn as_slice(self) -> &'static str {
+//         match self {
+//             GraphType::Graph => "graph",
+//             GraphType::Digraph => "digraph",
+//         }
+//     }
+
+//     // TODO: not sure if I like this or not
+//     pub fn edge_slice(self) -> &'static str {
+//         match self {
+//             GraphType::Graph => "--",
+//             GraphType::Digraph => "->",
+//         }
+//     }
+// }
+
+
 
 // TODO: probably dont need this struct and can move impl methods into lib module
 pub struct Dot<'a> {
@@ -214,15 +249,13 @@ impl<'a> Dot<'a> {
         W: Write,
     {
         if self.graph.comment.is_some() {
-            writeln!(w, "{}", self.graph.comment.unwrap_or_default())?;
+            writeln!(w, "{}", self.graph.comment.as_deref().unwrap_or_default())?;
         }
         
         let strict = if self.graph.strict { "strict " } else { "" }; 
-        let id = self.graph.id.unwrap_or_default();
-        
-        // TODO: fix hard coded graph type
-        // writeln!(w, "{}{} {}{{", strict, graph.graph_type.as_slice(), id)?;
-        writeln!(w, "{}{} {} {{", strict, "digraph", id)?;
+        let id = self.graph.id.as_deref().unwrap_or_default();
+
+        writeln!(w, "{}{} {} {{", strict, self.graph.as_slice(), id)?;
 
         // TODO: add global graph attributes
 
@@ -401,7 +434,7 @@ impl<'a> Graph<'a, Undirected> {
 }
 
 impl<'a, Ty> Graph<'a, Ty> 
-where Ty: EdgeType
+where Ty: GraphType
 {
     /// Whether the graph has directed edges or not.
     #[inline]
@@ -409,8 +442,16 @@ where Ty: EdgeType
         Ty::is_directed()
     }
 
-    pub fn edge_type(&self) -> &'static str {
+    // pub fn edge_type(&self) -> &'static str {
+    //     Ty::as_slice()
+    // }
+
+    pub fn as_slice(&self) -> &'static str {
         Ty::as_slice()
+    }
+
+    pub fn edge_type(&self) -> &'static str {
+        Ty::edge_slice()
     }
 }
 
