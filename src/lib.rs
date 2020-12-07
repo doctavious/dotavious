@@ -1,6 +1,7 @@
 //! Simple graphviz dot file format output.
 
 use std;
+use std::collections::HashMap;
 use std::io;
 use std::io::{
     Write
@@ -134,10 +135,10 @@ impl Dot {
             // if let Some(s) = graph.node_shape(n) {
             //     write!(text, "[shape={}]", &s.to_dot_string()).unwrap();
             // }
-            if let Some(s) = n.shape {
-                // TODO: implement
-                // write!(text, "[shape={}]", &s.to_dot_string()).unwrap();
-            }
+            // if let Some(s) = n.shape {
+            //     TODO: implement
+            //     write!(text, "[shape={}]", &s.to_dot_string()).unwrap();
+            // }
 
             writeln!(text, ";").unwrap();
             w.write_all(&text[..])?;
@@ -354,7 +355,7 @@ pub struct UndirectedGraph {
 
     pub graph_attributes: Option<Vec<String>>,
 
-    pub nodes: Vec<String>,
+    pub nodes: Vec<Node>,
 
     pub edges: Vec<String>,
 
@@ -368,12 +369,12 @@ pub struct Node {
 
     pub port: Option<String>,
 
-    pub compass: Option<Compass>,
+    // pub compass: Option<Compass>,
 
-    // TODO: enum?
-    pub shape: Option<String>,
+    // // TODO: enum?
+    // pub shape: Option<String>,
     
-    pub attributes: Vec<String>,
+    pub attributes: HashMap<String, String>,
 
     // style
 
@@ -385,9 +386,9 @@ impl Node {
         Node {
             id: id,
             port: None,
-            compass: None,
-            shape: None,
-            attributes: Vec::new(),
+            // compass: None,
+            // shape: None,
+            attributes: HashMap::new(),
         }
     }
 
@@ -397,26 +398,48 @@ impl Node {
         self
     }
 
-    pub fn compass<'a>(&'a mut self, compass: Compass) -> &'a mut Node {
-        self.compass = Some(compass);
+    // pub fn compass<'a>(&'a mut self, compass: Compass) -> &'a mut Node {
+    //     self.compass = Some(compass);
+    //     self
+    // }
+
+    pub fn label<'a>(&'a mut self, text: String) -> &'a mut Node {
+        self.attributes.insert("label".to_string(), text);
         self
     }
 
+    // TODO: create enum for shape at some point
     pub fn shape<'a>(&'a mut self, shape: String) -> &'a mut Node {
-        self.shape = Some(shape);
+        self.attributes.insert("shape".to_string(), shape);
         self
     }
 
     /// Add an attribute to the node.
-    pub fn attribute<'a>(&'a mut self, attribute: String) -> &'a mut Node {
-        self.attributes.push(attribute);
+    pub fn attribute<'a>(&'a mut self, key: String, value: String) -> &'a mut Node {
+        self.attributes.insert(key, value);
         self
     }
 
     /// Add multiple attribures to the node.
-    pub fn attributes<'a>(&'a mut self, attributes: &[String]) -> &'a mut Node {
-        self.attributes.extend_from_slice(attributes);
+    pub fn attributes<'a>(&'a mut self, attributes: HashMap<String, String>) -> &'a mut Node {
+        self.attributes.extend(attributes);
         self
+    }
+
+    pub fn to_dot_string(&self) -> String {
+        let mut dot_string = String::from(&self.id);
+        if !self.attributes.is_empty() {
+            dot_string.push_str("[");
+            for (key, value) in &self.attributes {
+                // TODO: most attributes outside of label dont need wrapping quotes
+                // but right now label is in the dictionary with the other attributes
+                // We can split it out
+                dot_string.push_str(format!("{}=\"{}\"", key, value));
+            }
+            dot_string.push_str("]")
+        }
+
+        return dot_string.to_string();
     }
 
     // /// Renders text as string suitable for a label in a .dot file.
