@@ -202,25 +202,6 @@ impl GraphType for Undirected {
     }
 }
 
-// impl GraphType {
-//     pub fn as_slice(self) -> &'static str {
-//         match self {
-//             GraphType::Graph => "graph",
-//             GraphType::Digraph => "digraph",
-//         }
-//     }
-
-//     // TODO: not sure if I like this or not
-//     pub fn edge_slice(self) -> &'static str {
-//         match self {
-//             GraphType::Graph => "--",
-//             GraphType::Digraph => "->",
-//         }
-//     }
-// }
-
-
-
 // TODO: probably dont need this struct and can move impl methods into lib module
 pub struct Dot<'a> {
     graph: Graph<'a>,
@@ -346,6 +327,7 @@ pub struct Graph<'a, Ty = Directed> {
     pub strict: bool,
 
     // Comment added to the first line of the source.
+    // TODO: support multiple comments
     pub comment: Option<String>,
 
     pub graph_attributes: Option<Vec<String>>,
@@ -362,6 +344,8 @@ pub struct Graph<'a, Ty = Directed> {
     // pub graph_type: Ty,
 }
 
+// TODO: i feel like default should be undirect. 
+// imo, feel more natural to say new_directed vs new_undirected. check to see if 
 impl<'a> Graph<'a, Directed> {
     pub fn new(id: Option<String>) -> Self {
         Graph {
@@ -412,24 +396,6 @@ where Ty: GraphType
         Ty::edge_slice()
     }
 }
-
-pub struct UndirectedGraph<'a> {
-
-    pub id: Option<String>,
-
-    pub strict: bool,
-
-    // Comment added to the first line of the source.
-    pub comment: String,
-
-    pub graph_attributes: Option<Vec<String>>,
-
-    pub nodes: Vec<Node<'a>>,
-
-    pub edges: Vec<String>,
-
-}
-
 
 // TODO: add node builder using "with" convention
 pub struct Node<'a> {
