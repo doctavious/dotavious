@@ -168,6 +168,7 @@ pub trait GraphType {
     fn is_directed() -> bool;
 
     // TODO: maybe this doesnt below here
+    // dont love the name
     fn as_slice() -> &'static str;
 
     fn edge_slice() -> &'static str;
@@ -275,18 +276,6 @@ impl<'a> Dot<'a> {
     }
 }
 
-// impl fmt::Display for Dot {
-//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-//         self.render(&self.graph, f)
-//     }
-// }
-
-// impl fmt::Debug for Dot {
-//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-//         self.render(&self.graph, f)
-//     }
-// }
-
 /// `Dot` configuration.
 ///
 /// This enum does not have an exhaustive definition (will be expanded)
@@ -345,34 +334,6 @@ pub enum Directed {}
 #[derive(Clone, Copy, Debug)]
 pub enum Undirected {}
 
-
-/// A graph's edge type determines whether it has directed edges or not.
-pub trait EdgeType {
-    fn is_directed() -> bool;
-
-    // TODO: maybe this doesnt below here
-    fn as_slice() -> &'static str;
-}
-
-impl EdgeType for Directed {
-    fn is_directed() -> bool {
-        true
-    }
-
-    fn as_slice() -> &'static str {
-        "->"
-    }
-}
-
-impl EdgeType for Undirected {
-    fn is_directed() -> bool {
-        false
-    }
-
-    fn as_slice() -> &'static str {
-        "--"
-    }
-}
 
 pub type DiGraph<'a> = Graph<'a, Directed>;
 
@@ -442,14 +403,11 @@ where Ty: GraphType
         Ty::is_directed()
     }
 
-    // pub fn edge_type(&self) -> &'static str {
-    //     Ty::as_slice()
-    // }
-
     pub fn as_slice(&self) -> &'static str {
         Ty::as_slice()
     }
 
+    // graphviz calls this edgeop
     pub fn edge_type(&self) -> &'static str {
         Ty::edge_slice()
     }
@@ -555,17 +513,6 @@ impl<'a> Node<'a> {
 
         return dot_string.to_string();
     }
-
-    // /// Renders text as string suitable for a label in a .dot file.
-    // /// This includes quotes or suitable delimiters.
-    // pub fn to_dot_string(&self) -> String {
-    //     match *self {
-    //         LabelStr(ref s) => format!("\"{}\"", s.escape_default()),
-    //         EscStr(ref s) =>  format!("\"{}\"", LabelText::escape_str(&s)),
-    //         HtmlStr(ref s) => format!("<{}>", s),
-    //     }
-    // }
-
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
