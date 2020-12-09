@@ -203,12 +203,14 @@ impl GraphType for Undirected {
 }
 
 // TODO: probably dont need this struct and can move impl methods into lib module
-pub struct Dot<'a> {
-    graph: Graph<'a>,
+pub struct Dot<'a, Ty> {
+    graph: Graph<'a, Ty>,
     //config: Config,
 }
 
-impl<'a> Dot<'a> {
+impl<'a, Ty> Dot<'a, Ty> 
+where Ty: GraphType
+{
 
     /// Renders directed graph `g` into the writer `w` in DOT syntax.
     /// (Simple wrapper around `render_opts` that passes a default set of options.)
@@ -246,7 +248,7 @@ impl<'a> Dot<'a> {
             // Are render options something we need?
             // we could clone the node or and remove the attributes based on render options
             // or maybe we keep a set of attributes to ignore based on the options
-            write!(w, "{}", n.to_dot_string());
+            writeln!(w, "{}", n.to_dot_string());
         }
 
         for e in self.graph.edges {
@@ -365,9 +367,9 @@ impl<'a> Graph<'a, Undirected> {
     ///
     /// This is a convenience method. Use `Graph::with_capacity` or `Graph::default` for
     /// a constructor that is generic in all the type parameters of `Graph`.
-    pub fn new_undirected() -> Self {
+    pub fn new_undirected(id: Option<String>) -> Self {
         Graph {
-            id: None,
+            id: id,
             strict: false,
             comment: None,
             graph_attributes: None,
@@ -394,6 +396,10 @@ where Ty: GraphType
     // graphviz calls this edgeop
     pub fn edge_type(&self) -> &'static str {
         Ty::edge_slice()
+    }
+
+    fn add_node(&mut self, id: &str) {
+        self.nodes.push(Node::new(id.to_string()));
     }
 }
 
@@ -474,9 +480,9 @@ impl<'a> Node<'a> {
             for (key, value) in &self.attributes {
                 dot_string.push_str(format!("{}=\"{}\"", key, value.to_dot_string()).as_str());
             }
-            dot_string.push_str("];")
+            dot_string.push_str("]");
         }
-
+        dot_string.push_str(";");
         return dot_string.to_string();
     }
 }
@@ -532,9 +538,9 @@ impl Style {
     }
 }
 
-#[test]
-fn empty_digraph() {
-    let g = Graph::new(Some("empty_graph".to_string()));
+fn test_input<Ty>(g: Graph<Ty>) -> io::Result<String> 
+where Ty: GraphType
+{
     let mut writer = Vec::new();
     let dot = Dot {
         graph: g
@@ -542,19 +548,46 @@ fn empty_digraph() {
 
     dot.render(&mut writer).unwrap();
     let mut s = String::new();
-    Read::read_to_string(&mut &*writer, &mut s).unwrap();
+    Read::read_to_string(&mut &*writer, &mut s)?;
+    Ok(s)
+}
+
+#[test]
+fn empty_digraph() {
+    // TODO: support both String and &str
+    let g = Graph::new(Some("empty_graph".to_string()));
+    let r = test_input(g);
     assert_eq!(
-        s,
+        r.unwrap(),
         r#"digraph empty_graph {
 }
 "#
     );
+}
 
-//     let r = test_input(dot);
-//     assert_eq!(
-//         r.unwrap(),
-//         r#"digraph empty_graph {
-// }
-// "#
-//     );
+#[test]
+fn empty_graph() {
+    // TODO: support both String and &str
+    let g = Graph::new_undirected(Some("empty_graph".to_string()));
+    let r = test_input(g);
+    assert_eq!(
+        r.unwrap(),
+        r#"graph empty_graph {
+}
+"#
+    );
+}
+
+#[test]
+fn single_node() {
+    let mut g = Graph::new(Some("single_node".to_string()));
+    g.add_node("N0");
+    let r = test_input(g);
+    assert_eq!(
+        r.unwrap(),
+        r#"digraph single_node {
+    N0;
+}
+"#
+    );
 }
