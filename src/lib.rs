@@ -12,6 +12,7 @@ static INDENT: &str = "    ";
 
 /// Most of this comes from core rust. Where to provide attribution?
 /// The text for a graphviz label on a node or edge.
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub enum AttributeText<'a> {
 
     /// Preserves the text directly as is but wrapped in quotes.
@@ -334,6 +335,8 @@ pub struct Graph<'a, Ty = Directed> {
 
     pub graph_attributes: Option<Vec<String>>,
 
+    // pub nodes: Vec<&'a Node<'a>>,
+
     pub nodes: Vec<Node<'a>>,
 
     pub edges: Vec<String>,
@@ -398,9 +401,23 @@ where Ty: GraphType
         Ty::edge_slice()
     }
 
-    fn add_node(&mut self, id: &str) {
-        self.nodes.push(Node::new(id.to_string()));
+    // fn add_node(&mut self, node: &'a Node<'a>) {
+    //     self.nodes.push(node);
+    // }
+
+    fn add_node(&mut self, node: Node<'a>) {
+        self.nodes.push(node);
     }
+
+    // fn add_node_mut(&mut self, node: &mut Node<'a>) {
+    //     self.nodes.push(node);
+    // }
+
+    // fn create_node(&mut self, id: &str) -> Node {
+    //     let node = Node::new(id.to_string());
+    //     self.nodes.push(node);
+    //     node
+    // }
 }
 
 // TODO: add node builder using "with" convention
@@ -437,7 +454,7 @@ impl<'a> Node<'a> {
     }
 
     /// Set the port for the node.
-    pub fn port(&'a mut self, port: String) -> &'a mut Node {
+    pub fn port(mut self, port: String) -> Self {
         self.port = Some(port);
         self
     }
@@ -447,7 +464,7 @@ impl<'a> Node<'a> {
     //     self
     // }
 
-    pub fn label(&'a mut self, text: String) -> &'a mut Node {
+    pub fn label(mut self, text: String) -> Self {
         // self.label = Some(text);
         self.attributes.insert("label".to_string(), QuottedStr(text.into()));
         self
@@ -460,13 +477,13 @@ impl<'a> Node<'a> {
     // }
 
     /// Add an attribute to the node.
-    pub fn attribute(&'a mut self, key: String, value: AttributeText<'a>) -> &'a mut Node {
+    pub fn attribute(mut self, key: String, value: AttributeText<'a>) -> Self {
         self.attributes.insert(key, value);
         self
     }
 
     /// Add multiple attribures to the node.
-    pub fn attributes(&'a mut self, attributes: HashMap<String, AttributeText<'a>>) -> &'a mut Node {
+    pub fn attributes(mut self, attributes: HashMap<String, AttributeText<'a>>) -> Self {
         self.attributes.extend(attributes);
         self
     }
@@ -478,12 +495,78 @@ impl<'a> Node<'a> {
         if !self.attributes.is_empty() {
             dot_string.push_str(" [");
             for (key, value) in &self.attributes {
-                dot_string.push_str(format!("{}=\"{}\"", key, value.to_dot_string()).as_str());
+                dot_string.push_str(format!("{}={}", key, value.to_dot_string()).as_str());
             }
             dot_string.push_str("]");
         }
         dot_string.push_str(";");
         return dot_string.to_string();
+    }
+}
+
+
+pub struct NodeBuilder<'a> {
+    id: String,
+
+    port: Option<String>,
+    
+    attributes: HashMap<String, AttributeText<'a>>,
+}
+
+impl<'a> NodeBuilder<'a> {
+    pub fn new(id: String) -> NodeBuilder<'a> {
+        NodeBuilder {
+            id: id,
+            port: None,
+            // compass: None,
+            // shape: None,
+            // label: None,
+            attributes: HashMap::new(),
+        }
+    }
+
+    /// Set the port for the node.
+    pub fn port<S: Into<String>>(&mut self, port: S) -> &mut Self {
+        self.port = Some(port.into());
+        self
+    }
+
+    // pub fn compass<'a>(&'a mut self, compass: Compass) -> &'a mut Node {
+    //     self.compass = Some(compass);
+    //     self
+    // }
+
+    pub fn label<S: Into<Cow<'a, str>>>(&mut self, text: S) -> &mut Self {
+        // self.label = Some(text);
+        self.attributes.insert("label".to_string(), QuottedStr(text.into()));
+        self
+    }
+
+    // TODO: create enum for shape at some point
+    // pub fn shape<'a>(&'a mut self, shape: String) -> &'a mut Node {
+    //     self.attributes.insert("shape".to_string(), shape);
+    //     self
+    // }
+
+    /// Add an attribute to the node.
+    pub fn attribute<S: Into<String>>(&mut self, key: S, value: AttributeText<'a>) -> &mut Self {
+        self.attributes.insert(key.into(), value);
+        self
+    }
+
+    /// Add multiple attribures to the node.
+    pub fn attributes(&'a mut self, attributes: HashMap<String, AttributeText<'a>>) -> &mut Self {
+        self.attributes.extend(attributes);
+        self
+    }
+
+    pub fn build(&self) -> Node<'a> {
+        Node {
+            // TODO: are these to_owned and clones necessary?
+            id: self.id.to_owned(),
+            port: self.port.to_owned(),
+            attributes: self.attributes.clone()
+        }
     }
 }
 
@@ -581,7 +664,7 @@ fn empty_graph() {
 #[test]
 fn single_node() {
     let mut g = Graph::new(Some("single_node".to_string()));
-    g.add_node("N0");
+    g.add_node(Node::new("N0".to_string()));
     let r = test_input(g);
     assert_eq!(
         r.unwrap(),
@@ -591,3 +674,86 @@ fn single_node() {
 "#
     );
 }
+
+#[test]
+fn single_node_with_style() {
+    let mut g = Graph::new(Some("single_node".to_string()));
+    let mut nb = NodeBuilder::new("N0".to_string());
+    let node = nb.attribute("style", AttributeText::quotted("dashed")).build();
+
+    g.add_node(node);
+
+    let r = test_input(g);
+    assert_eq!(
+        r.unwrap(),
+        r#"digraph single_node {
+    N0 [style="dashed"];
+}
+"#
+    );
+}
+
+// #[test]
+// fn support_non_inline_builder() {
+//     let mut g = Graph::new(Some("single_node".to_string()));
+
+//     // TODO: having to split this is stupid. am i doing something wrong?
+//     let mut node_builder = NodeBuilder::new("N0".to_string());
+//     node_builder.attribute("style", AttributeText::quotted("dashed"));
+
+//     if true {
+//         node_builder.attribute("", AttributeText::quotted(""));
+//     }
+
+//     let node = node_builder.build();
+//     g.add_node(node);
+
+//     let r = test_input(g);
+//     assert_eq!(
+//         r.unwrap(),
+//         r#"digraph single_node {
+//     N0 [style="dashed"];
+// }
+// "#
+//     );
+// }
+
+// #[test]
+// fn single_edge() {
+//     let labels: Trivial = UnlabelledNodes(2);
+//     let result = test_input(LabelledGraph::new(
+//         "single_edge",
+//         labels,
+//         vec![edge(0, 1, "E", Style::None)],
+//         None,
+//     ));
+//     assert_eq!(
+//         result.unwrap(),
+//         r#"digraph single_edge {
+//     N0[label="N0"];
+//     N1[label="N1"];
+//     N0 -> N1[label="E"];
+// }
+// "#
+//     );
+// }
+
+// #[test]
+// fn single_edge_with_style() {
+//     let labels: Trivial = UnlabelledNodes(2);
+//     let result = test_input(LabelledGraph::new(
+//         "single_edge",
+//         labels,
+//         vec![edge(0, 1, "E", Style::Bold)],
+//         None,
+//     ));
+//     assert_eq!(
+//         result.unwrap(),
+//         r#"digraph single_edge {
+//     N0[label="N0"];
+//     N1[label="N1"];
+//     N0 -> N1[label="E"][style="bold"];
+// }
+// "#
+//     );
+// }
