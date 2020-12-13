@@ -10,6 +10,8 @@ use std::marker::PhantomData;
 
 static INDENT: &str = "    ";
 
+// TODO: should we use a hashmap that retains insertion order?
+
 /// Most of this comes from core rust. Where to provide attribution?
 /// The text for a graphviz label on a node or edge.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -495,8 +497,12 @@ impl<'a> Node<'a> {
         if !self.attributes.is_empty() {
             dot_string.push_str(" [");
             for (key, value) in &self.attributes {
-                dot_string.push_str(format!("{}={}", key, value.to_dot_string()).as_str());
+                dot_string.push_str(format!("{}={}, ", key, value.to_dot_string()).as_str());
             }
+            // remove trailing comma and spae
+            // TODO: make this less shitty
+            dot_string.pop();
+            dot_string.pop();
             dot_string.push_str("]");
         }
         dot_string.push_str(";");
@@ -542,11 +548,10 @@ impl<'a> NodeBuilder<'a> {
         self
     }
 
-    // TODO: create enum for shape at some point
-    // pub fn shape<'a>(&'a mut self, shape: String) -> &'a mut Node {
-    //     self.attributes.insert("shape".to_string(), shape);
-    //     self
-    // }
+    pub fn shape(&mut self, shape: Shape) -> &mut Self {
+        self.attributes.insert("shape".to_string(), AttrStr(shape.as_slice().into()));
+        self
+    }
 
     /// Add an attribute to the node.
     pub fn attribute<S: Into<String>>(&mut self, key: S, value: AttributeText<'a>) -> &mut Self {
@@ -569,6 +574,135 @@ impl<'a> NodeBuilder<'a> {
         }
     }
 }
+
+pub enum Shape {
+    Box,
+    Polygon,
+    Ellipse,
+    Oval,
+    Circle,
+    Point,
+    Egg,
+    Triangle,
+    Plaintext,
+    Plain,
+    Diamond,
+    Trapezium,
+    Parallelogram,
+    House,
+    Pentagon,
+    Hexagon,
+    Septagon,
+    Octagon,
+    DoubleCircle,
+    DoubleOctagon,
+    TripleOctagon,
+    Invtriangle,
+    Invtrapezium,
+    Invhouse,
+    Mdiamond,
+    Msquare,
+    Mcircle,
+    Rect,
+    Rectangle,
+    Square,
+    Star,
+    None,
+    Underline,
+    Cylinder,
+    Note,
+    Tab,
+    Folder,
+    Box3D,
+    Component,
+    Promoter,
+    Cds,
+    Terminator,
+    Utr,
+    Primersite,
+    Restrictionsite,
+    FivePoverHang,
+    ThreePoverHang,
+    NoverHang,
+    Assemply,
+    Signature,
+    Insulator,
+    Ribosite,
+    Rnastab,
+    Proteasesite,
+    Proteinstab,
+    Rpromotor,
+    Rarrow,
+    Larrow,
+    Lpromotor,
+}
+
+impl Shape {
+    pub fn as_slice(self) -> &'static str {
+        match self {
+            Shape::Box => "box",
+            Shape::Polygon => "polygon",
+            Shape::Ellipse => "ellipse",
+            Shape::Oval => "oval",
+            Shape::Circle => "circle",
+            Shape::Point => "point",
+            Shape::Egg => "egg",
+            Shape::Triangle => "triangle",
+            Shape::Plaintext => "plaintext",
+            Shape::Plain => "plain",
+            Shape::Diamond => "diamond",
+            Shape::Trapezium => "trapezium",
+            Shape::Parallelogram => "parallelogram",
+            Shape::House => "house",
+            Shape::Pentagon => "pentagon",
+            Shape::Hexagon => "hexagon",
+            Shape::Septagon => "septagon",
+            Shape::Octagon => "octagon",
+            Shape::DoubleCircle => "doublecircle",
+            Shape::DoubleOctagon => "doubleoctagon",
+            Shape::TripleOctagon => "tripleocctagon",
+            Shape::Invtriangle => "invtriangle",
+            Shape::Invtrapezium => "invtrapezium",
+            Shape::Invhouse => "invhouse",
+            Shape::Mdiamond => "mdiamond",
+            Shape::Msquare => "msquare",
+            Shape::Mcircle => "mcircle",
+            Shape::Rect => "rect",
+            Shape::Rectangle => "rectangle",
+            Shape::Square => "square",
+            Shape::Star => "star",
+            Shape::None => "none",
+            Shape::Underline => "underline",
+            Shape::Cylinder => "cylinder",
+            Shape::Note => "note",
+            Shape::Tab => "tab",
+            Shape::Folder => "folder",
+            Shape::Box3D => "box3D",
+            Shape::Component => "component",
+            Shape::Promoter => "promoter",
+            Shape::Cds => "cds",
+            Shape::Terminator => "terminator",
+            Shape::Utr => "utr",
+            Shape::Primersite => "primersite",
+            Shape::Restrictionsite => "restrictionsite",
+            Shape::FivePoverHang => "fivepoverhang",
+            Shape::ThreePoverHang => "threepoverhang",
+            Shape::NoverHang => "noverhang",
+            Shape::Assemply => "assemply",
+            Shape::Signature => "signature",
+            Shape::Insulator => "insulator",
+            Shape::Ribosite => "ribosite",
+            Shape::Rnastab => "rnastab",
+            Shape::Proteasesite => "proteasesite",
+            Shape::Proteinstab => "proteinstab",
+            Shape::Rpromotor => "rpromotor",
+            Shape::Rarrow => "rarrow",
+            Shape::Larrow => "larrow",
+            Shape::Lpromotor => "lpromotor",
+        }
+    }
+}
+
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum RenderOption {
@@ -693,67 +827,47 @@ fn single_node_with_style() {
     );
 }
 
-// #[test]
-// fn support_non_inline_builder() {
-//     let mut g = Graph::new(Some("single_node".to_string()));
+#[test]
+fn support_non_inline_builder() {
+    let mut g = Graph::new(Some("single_node".to_string()));
 
-//     // TODO: having to split this is stupid. am i doing something wrong?
-//     let mut node_builder = NodeBuilder::new("N0".to_string());
-//     node_builder.attribute("style", AttributeText::quotted("dashed"));
+    // TODO: having to split this is stupid. am i doing something wrong?
+    let mut node_builder = NodeBuilder::new("N0".to_string());
+    node_builder.attribute("style", AttributeText::quotted("dashed"));
 
-//     if true {
-//         node_builder.attribute("", AttributeText::quotted(""));
-//     }
+    if true {
+        node_builder.attribute("foo", AttributeText::quotted("baz"));
+    }
 
-//     let node = node_builder.build();
-//     g.add_node(node);
+    let node = node_builder.build();
+    g.add_node(node);
 
-//     let r = test_input(g);
-//     assert_eq!(
-//         r.unwrap(),
-//         r#"digraph single_node {
-//     N0 [style="dashed"];
-// }
-// "#
-//     );
-// }
+    let r = test_input(g);
+    assert_eq!(
+        r.unwrap(),
+        r#"digraph single_node {
+    N0 [style="dashed", foo="baz"];
+}
+"#
+    );
+}
 
-// #[test]
-// fn single_edge() {
-//     let labels: Trivial = UnlabelledNodes(2);
-//     let result = test_input(LabelledGraph::new(
-//         "single_edge",
-//         labels,
-//         vec![edge(0, 1, "E", Style::None)],
-//         None,
-//     ));
-//     assert_eq!(
-//         result.unwrap(),
-//         r#"digraph single_edge {
-//     N0[label="N0"];
-//     N1[label="N1"];
-//     N0 -> N1[label="E"];
-// }
-// "#
-//     );
-// }
+#[test]
+fn builder_support_shape() {
+    let mut g = Graph::new(Some("node_shape".to_string()));
 
-// #[test]
-// fn single_edge_with_style() {
-//     let labels: Trivial = UnlabelledNodes(2);
-//     let result = test_input(LabelledGraph::new(
-//         "single_edge",
-//         labels,
-//         vec![edge(0, 1, "E", Style::Bold)],
-//         None,
-//     ));
-//     assert_eq!(
-//         result.unwrap(),
-//         r#"digraph single_edge {
-//     N0[label="N0"];
-//     N1[label="N1"];
-//     N0 -> N1[label="E"][style="bold"];
-// }
-// "#
-//     );
-// }
+    // TODO: having to split this is stupid. am i doing something wrong?
+    let mut node_builder = NodeBuilder::new("N0".to_string());
+    node_builder.shape(Shape::Note);
+
+    g.add_node(node_builder.build());
+
+    let r = test_input(g);
+    assert_eq!(
+        r.unwrap(),
+        r#"digraph node_shape {
+    N0 [shape=note];
+}
+"#
+    );
+}
