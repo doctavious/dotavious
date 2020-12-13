@@ -520,13 +520,10 @@ pub struct NodeBuilder<'a> {
 }
 
 impl<'a> NodeBuilder<'a> {
-    pub fn new(id: String) -> NodeBuilder<'a> {
-        NodeBuilder {
+    pub fn new(id: String) -> Self {
+        Self {
             id: id,
             port: None,
-            // compass: None,
-            // shape: None,
-            // label: None,
             attributes: HashMap::new(),
         }
     }
@@ -812,8 +809,9 @@ fn single_node() {
 #[test]
 fn single_node_with_style() {
     let mut g = Graph::new(Some("single_node".to_string()));
-    let mut nb = NodeBuilder::new("N0".to_string());
-    let node = nb.attribute("style", AttributeText::quotted("dashed")).build();
+    let node = NodeBuilder::new("N0".to_string())
+        .attribute("style", AttributeText::quotted("dashed"))
+        .build();
 
     g.add_node(node);
 
