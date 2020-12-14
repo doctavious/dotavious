@@ -12,6 +12,9 @@ static INDENT: &str = "    ";
 
 // TODO: should we use a hashmap that retains insertion order?
 
+// TODO: support adding edge based on index of nodes?
+
+
 /// Most of this comes from core rust. Where to provide attribution?
 /// The text for a graphviz label on a node or edge.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -246,6 +249,9 @@ where Ty: GraphType
         writeln!(w, "{}{} {} {{", strict, self.graph.as_slice(), id)?;
 
         // TODO: add global graph attributes
+        for a in self.graph.attributes {
+
+        }
 
         for n in self.graph.nodes {
             // TODO: handle render options
@@ -327,9 +333,7 @@ pub struct Graph<'a, Ty = Directed> {
     // TODO: support multiple comments
     pub comment: Option<String>,
 
-    pub graph_attributes: Option<Vec<String>>,
-
-    // pub nodes: Vec<&'a Node<'a>>,
+    pub attributes: HashMap<String, AttributeText<'a>>,
 
     pub nodes: Vec<Node<'a>>,
 
@@ -351,7 +355,7 @@ impl<'a> Graph<'a, Directed> {
             id: id,
             strict: false,
             comment: None,
-            graph_attributes: None,
+            attributes: HashMap::new(),
             nodes: Vec::new(),
             edges: Vec::new(),
             ty: PhantomData,
@@ -369,7 +373,7 @@ impl<'a> Graph<'a, Undirected> {
             id: id,
             strict: false,
             comment: None,
-            graph_attributes: None,
+            attributes: HashMap::new(),
             nodes: Vec::new(),
             edges: Vec::new(),
             ty: PhantomData,
@@ -470,13 +474,14 @@ impl<'a> Node<'a> {
         // I think we introduce a AttributeText enum which encodes how to write out the attribute value
         if !self.attributes.is_empty() {
             dot_string.push_str(" [");
-            for (key, value) in &self.attributes {
-                dot_string.push_str(format!("{}={}, ", key, value.to_dot_string()).as_str());
+            let mut iter = self.attributes.iter();
+            let first = iter.next().unwrap();
+            dot_string.push_str(format!("{}={}", first.0, first.1.to_dot_string()).as_str());
+            for (key, value) in iter {
+                dot_string.push_str(", ");
+                dot_string.push_str(format!("{}={}", key, value.to_dot_string()).as_str());
             }
-            // remove trailing comma and spae
-            // TODO: make this less shitty
-            dot_string.pop();
-            dot_string.pop();
+
             dot_string.push_str("]");
         }
         dot_string.push_str(";");
