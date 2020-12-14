@@ -241,6 +241,7 @@ where Ty: GraphType
         
         let strict = if self.graph.strict { "strict " } else { "" }; 
         let id = self.graph.id.as_deref().unwrap_or_default();
+        let edge_op = self.graph.edge_type();
 
         writeln!(w, "{}{} {} {{", strict, self.graph.as_slice(), id)?;
 
@@ -255,7 +256,22 @@ where Ty: GraphType
         }
 
         for e in self.graph.edges {
+            write!(w, "{}", INDENT);
+            write!(w, "{} {} {}", e.source, edge_op, e.target);
+            // TODO: render ops
+            if !e.attributes.is_empty() {
+                write!(w, " [");
 
+                let mut iter = e.attributes.iter();
+                let first = iter.next().unwrap();
+                write!(w, "{}={}", first.0, first.1.to_dot_string());
+                for (key, value) in iter {
+                    write!(w, ", ");
+                    write!(w, "{}={}", key, value.to_dot_string());
+                }
+                write!(w, "]");
+            }
+            writeln!(w, ";");
         }
 
         writeln!(w, "}}")
@@ -288,30 +304,6 @@ enum AttributeType {
     None
 }
 
-
-// TODO: better name for this trait?
-pub trait GraphTraits {
-
-    /// Add a general or graph/node/edge attribute statement.
-    /// ``None`` or ``'graph'``, ``'node'``, ``'edge'`
-    fn add_attribute();
-
-    fn add_node(label: &str);
-
-    // fn add_edge(a: NodeIndex, b: NodeIndex, label: &str);
-
-    // <(), i32>
-    /// deps.extend_with_edges(&[
-    ///     (pg, fb), (pg, qc),
-    ///     (qc, rand), (rand, libc), (qc, libc),
-    /// ]);
-    /// pub fn from_edges<I>(iterable: I) -> Self
-    fn add_edges();
-
-    fn add_subgraph();
-}
-
-
 /// Marker type for a directed graph.
 #[derive(Clone, Copy, Debug)]
 pub enum Directed {}
@@ -341,7 +333,7 @@ pub struct Graph<'a, Ty = Directed> {
 
     pub nodes: Vec<Node<'a>>,
 
-    pub edges: Vec<String>,
+    pub edges: Vec<Edge<'a>>,
 
     ty: PhantomData<Ty>,
 
@@ -403,23 +395,13 @@ where Ty: GraphType
         Ty::edge_slice()
     }
 
-    // fn add_node(&mut self, node: &'a Node<'a>) {
-    //     self.nodes.push(node);
-    // }
-
-    fn add_node(&mut self, node: Node<'a>) {
+    pub fn add_node(&mut self, node: Node<'a>) {
         self.nodes.push(node);
     }
 
-    // fn add_node_mut(&mut self, node: &mut Node<'a>) {
-    //     self.nodes.push(node);
-    // }
-
-    // fn create_node(&mut self, id: &str) -> Node {
-    //     let node = Node::new(id.to_string());
-    //     self.nodes.push(node);
-    //     node
-    // }
+    pub fn add_edge(&mut self, edge: Edge<'a>) {
+        self.edges.push(edge);
+    }
 }
 
 // TODO: add node builder using "with" convention
@@ -445,12 +427,10 @@ pub struct Node<'a> {
 impl<'a> Node<'a> {
 
     pub fn new(id: String) -> Node<'a> {
+        // TODO: constrain id
         Node {
             id: id,
             port: None,
-            // compass: None,
-            // shape: None,
-            // label: None,
             attributes: HashMap::new(),
         }
     }
@@ -471,12 +451,6 @@ impl<'a> Node<'a> {
         self.attributes.insert("label".to_string(), QuottedStr(text.into()));
         self
     }
-
-    // TODO: create enum for shape at some point
-    // pub fn shape<'a>(&'a mut self, shape: String) -> &'a mut Node {
-    //     self.attributes.insert("shape".to_string(), shape);
-    //     self
-    // }
 
     /// Add an attribute to the node.
     pub fn attribute(mut self, key: String, value: AttributeText<'a>) -> Self {
@@ -571,6 +545,66 @@ impl<'a> NodeBuilder<'a> {
         }
     }
 }
+
+pub struct Edge<'a> {
+
+    pub source: String,
+
+    pub target: String,
+
+    pub attributes: HashMap<String, AttributeText<'a>>,
+}
+
+impl<'a> Edge<'a> {
+
+    pub fn new(source: String, target: String) -> Edge<'a> {
+        Edge {
+            source,
+            target,
+            attributes: HashMap::new(),
+        }
+    }
+}
+
+pub struct EdgeBuilder<'a> {
+    pub source: String,
+
+    pub target: String,
+    
+    attributes: HashMap<String, AttributeText<'a>>,
+}
+
+impl<'a> EdgeBuilder<'a> {
+    pub fn new(source: String, target: String) -> EdgeBuilder<'a> {
+        EdgeBuilder {
+            source,
+            target,
+            attributes: HashMap::new(),
+        }
+    }
+
+    /// Add an attribute to the edge.
+    pub fn attribute<S: Into<String>>(&mut self, key: S, value: AttributeText<'a>) -> &mut Self {
+        self.attributes.insert(key.into(), value);
+        self
+    }
+
+    /// Add multiple attribures to the edge.
+    pub fn attributes(&'a mut self, attributes: HashMap<String, AttributeText<'a>>) -> &mut Self {
+        self.attributes.extend(attributes);
+        self
+    }
+
+    pub fn build(&self) -> Edge<'a> {
+        Edge {
+            // TODO: are these to_owned and clones necessary?
+            source: self.source.to_owned(),
+            target: self.target.to_owned(),
+            attributes: self.attributes.clone()
+        }
+    }
+}
+
 
 pub enum Shape {
     Box,
@@ -865,6 +899,54 @@ fn builder_support_shape() {
         r.unwrap(),
         r#"digraph node_shape {
     N0 [shape=note];
+}
+"#
+    );
+}
+
+
+#[test]
+fn single_edge() {
+    let mut g = Graph::new(Some("single_edge".to_string()));
+    g.add_node(Node::new("N0".to_string()));
+    g.add_node(Node::new("N1".to_string()));
+
+    g.add_edge(Edge::new("N0".to_string(), "N1".to_string()));
+
+    let r = test_input(g);
+    
+    assert_eq!(
+        r.unwrap(),
+        r#"digraph single_edge {
+    N0;
+    N1;
+    N0 -> N1;
+}
+"#
+    );
+}
+
+#[test]
+fn single_edge_with_style() {
+
+    let mut g = Graph::new(Some("single_edge".to_string()));
+    g.add_node(Node::new("N0".to_string()));
+    g.add_node(Node::new("N1".to_string()));
+
+    let edge = EdgeBuilder::new("N0".to_string(), "N1".to_string())
+        .attribute("style", AttributeText::quotted("bold"))
+        .build();
+
+    g.add_edge(edge);
+
+    let r = test_input(g);
+
+    assert_eq!(
+        r.unwrap(),
+        r#"digraph single_edge {
+    N0;
+    N1;
+    N0 -> N1 [style="bold"];
 }
 "#
     );
