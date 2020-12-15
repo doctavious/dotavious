@@ -11,9 +11,12 @@ use std::marker::PhantomData;
 static INDENT: &str = "    ";
 
 // TODO: should we use a hashmap that retains insertion order?
-
 // TODO: support adding edge based on index of nodes?
-
+// TODO: support fluent graph builder methods
+// TODO: handle render options
+// TODO: explicit attribute methods wit type safety and enforce constraints
+// i'm thinking we have NodeTraits/GraphTraints/EdgeTraits (what about none? is that a graph trait?)
+// which will have default methods that use an associated type field called "state" or "attribtues" etc
 
 /// Most of this comes from core rust. Where to provide attribution?
 /// The text for a graphviz label on a node or edge.
@@ -248,9 +251,68 @@ where Ty: GraphType
 
         writeln!(w, "{}{} {} {{", strict, self.graph.as_slice(), id)?;
 
-        // TODO: add global graph attributes
-        for a in self.graph.attributes {
+        println!("graph has attributes: {}", !self.graph.attributes.is_empty());
 
+        // TODO: clean this up
+        for (key, value) in self.graph.attributes {
+            write!(w, "{}", INDENT);
+            match key {
+                AttributeType::Edge => {
+                    write!(w, "edge");
+                    if !value.is_empty() {
+                        write!(w, " [");
+        
+                        let mut iter = value.iter();
+                        let first = iter.next().unwrap();
+                        write!(w, "{}={}", first.0, first.1.to_dot_string());
+                        for (key, value) in iter {
+                            write!(w, ", ");
+                            write!(w, "{}={}", key, value.to_dot_string());
+                        }
+                        write!(w, "]");
+                    }
+                    writeln!(w, ";");
+                },
+                AttributeType::Graph => {
+                    write!(w, "graph");
+                    if !value.is_empty() {
+                        write!(w, " [");
+        
+                        let mut iter = value.iter();
+                        let first = iter.next().unwrap();
+                        write!(w, "{}={}", first.0, first.1.to_dot_string());
+                        for (key, value) in iter {
+                            write!(w, ", ");
+                            write!(w, "{}={}", key, value.to_dot_string());
+                        }
+                        write!(w, "]");
+                    }
+                    writeln!(w, ";");
+                },
+                AttributeType::Node => {
+                    write!(w, "node");
+                    if !value.is_empty() {
+                        write!(w, " [");
+        
+                        let mut iter = value.iter();
+                        let first = iter.next().unwrap();
+                        write!(w, "{}={}", first.0, first.1.to_dot_string());
+                        for (key, value) in iter {
+                            write!(w, ", ");
+                            write!(w, "{}={}", key, value.to_dot_string());
+                        }
+                        write!(w, "]");
+                    }
+                    writeln!(w, ";");
+                },
+                AttributeType::None => {
+                    if !value.is_empty() {        
+                        for (key, value) in value.iter() {
+                            writeln!(w, "{}={};", key, value.to_dot_string());
+                        }
+                    }
+                }
+            }
         }
 
         for n in self.graph.nodes {
@@ -303,7 +365,8 @@ pub enum Config {
     _Incomplete(()),
 }
 
-enum AttributeType {
+#[derive(Hash, Eq, PartialEq, Debug, Clone)]
+pub enum AttributeType {
     Graph,
     Node,
     Edge,
@@ -333,7 +396,7 @@ pub struct Graph<'a, Ty = Directed> {
     // TODO: support multiple comments
     pub comment: Option<String>,
 
-    pub attributes: HashMap<String, AttributeText<'a>>,
+    pub attributes: HashMap<AttributeType, HashMap<String, AttributeText<'a>>>,
 
     pub nodes: Vec<Node<'a>>,
 
@@ -405,6 +468,12 @@ where Ty: GraphType
 
     pub fn add_edge(&mut self, edge: Edge<'a>) {
         self.edges.push(edge);
+    }
+
+    pub fn attribute(&mut self, attribute_type: AttributeType, key: String, value: AttributeText<'a>) {
+        println!("attribute type: {:?}", attribute_type);
+        self.attributes.entry(attribute_type).or_insert(HashMap::new())
+            .insert(key, value);
     }
 }
 
@@ -952,6 +1021,28 @@ fn single_edge_with_style() {
     N0;
     N1;
     N0 -> N1 [style="bold"];
+}
+"#
+    );
+}
+
+#[test]
+fn graph_attributes() {
+    let mut g = Graph::new(Some("graph_attributes".to_string()));
+    g.attribute(AttributeType::None, "ranksep".to_string(), AttributeText::attr("0.5"));
+    g.attribute(AttributeType::Graph, "rankdir".to_string(), AttributeText::attr("LR"));
+    g.attribute(AttributeType::Edge, "minlen".to_string(), AttributeText::attr("1"));
+    g.attribute(AttributeType::Node, "style".to_string(), AttributeText::attr("filled"));
+
+    let r = test_input(g);
+
+    assert_eq!(
+        r.unwrap(),
+        r#"digraph graph_attributes {
+    edge [minlen=1];
+    graph [rankdir=LR];
+    node [style=filled];
+    ranksep=0.5;
 }
 "#
     );
