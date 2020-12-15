@@ -1,6 +1,7 @@
 //! Simple graphviz dot file format output.
 
 use AttributeText::*;
+use indexmap::IndexMap;
 use std;
 use std::borrow::Cow;
 use std::collections::HashMap;
@@ -10,7 +11,6 @@ use std::marker::PhantomData;
 
 static INDENT: &str = "    ";
 
-// TODO: should we use a hashmap that retains insertion order?
 // TODO: support adding edge based on index of nodes?
 // TODO: support fluent graph builder methods
 // TODO: handle render options
@@ -251,7 +251,6 @@ where Ty: GraphType
 
         writeln!(w, "{}{} {} {{", strict, self.graph.as_slice(), id)?;
 
-        println!("graph has attributes: {}", !self.graph.attributes.is_empty());
 
         // TODO: clean this up
         for (key, value) in self.graph.attributes {
@@ -365,7 +364,7 @@ pub enum Config {
     _Incomplete(()),
 }
 
-#[derive(Hash, Eq, PartialEq, Debug, Clone)]
+#[derive(Hash, Eq, PartialEq, PartialOrd, Ord, Debug, Clone)]
 pub enum AttributeType {
     Graph,
     Node,
@@ -396,7 +395,7 @@ pub struct Graph<'a, Ty = Directed> {
     // TODO: support multiple comments
     pub comment: Option<String>,
 
-    pub attributes: HashMap<AttributeType, HashMap<String, AttributeText<'a>>>,
+    pub attributes: IndexMap<AttributeType, IndexMap<String, AttributeText<'a>>>,
 
     pub nodes: Vec<Node<'a>>,
 
@@ -418,7 +417,7 @@ impl<'a> Graph<'a, Directed> {
             id: id,
             strict: false,
             comment: None,
-            attributes: HashMap::new(),
+            attributes: IndexMap::new(),
             nodes: Vec::new(),
             edges: Vec::new(),
             ty: PhantomData,
@@ -436,7 +435,7 @@ impl<'a> Graph<'a, Undirected> {
             id: id,
             strict: false,
             comment: None,
-            attributes: HashMap::new(),
+            attributes: IndexMap::new(),
             nodes: Vec::new(),
             edges: Vec::new(),
             ty: PhantomData,
@@ -472,7 +471,7 @@ where Ty: GraphType
 
     pub fn attribute(&mut self, attribute_type: AttributeType, key: String, value: AttributeText<'a>) {
         println!("attribute type: {:?}", attribute_type);
-        self.attributes.entry(attribute_type).or_insert(HashMap::new())
+        self.attributes.entry(attribute_type).or_insert(IndexMap::new())
             .insert(key, value);
     }
 }
@@ -491,7 +490,7 @@ pub struct Node<'a> {
 
     // label: Option<String>,
     
-    pub attributes: HashMap<String, AttributeText<'a>>,
+    pub attributes: IndexMap<String, AttributeText<'a>>,
 
     // style
 
@@ -504,7 +503,7 @@ impl<'a> Node<'a> {
         Node {
             id: id,
             port: None,
-            attributes: HashMap::new(),
+            attributes: IndexMap::new(),
         }
     }
 
@@ -564,7 +563,7 @@ pub struct NodeBuilder<'a> {
 
     port: Option<String>,
     
-    attributes: HashMap<String, AttributeText<'a>>,
+    attributes: IndexMap<String, AttributeText<'a>>,
 }
 
 impl<'a> NodeBuilder<'a> {
@@ -572,7 +571,7 @@ impl<'a> NodeBuilder<'a> {
         Self {
             id: id,
             port: None,
-            attributes: HashMap::new(),
+            attributes: IndexMap::new(),
         }
     }
 
@@ -1039,10 +1038,10 @@ fn graph_attributes() {
     assert_eq!(
         r.unwrap(),
         r#"digraph graph_attributes {
-    edge [minlen=1];
-    graph [rankdir=LR];
-    node [style=filled];
     ranksep=0.5;
+    graph [rankdir=LR];
+    edge [minlen=1];
+    node [style=filled];
 }
 "#
     );
