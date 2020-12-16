@@ -14,9 +14,11 @@ static INDENT: &str = "    ";
 // TODO: support adding edge based on index of nodes?
 // TODO: support fluent graph builder methods
 // TODO: handle render options
-// TODO: explicit attribute methods wit type safety and enforce constraints
+// TODO: explicit attribute methods with type safety and enforce constraints
 // i'm thinking we have NodeTraits/GraphTraints/EdgeTraits (what about none? is that a graph trait?)
 // which will have default methods that use an associated type field called "state" or "attribtues" etc
+// TODO: implement Clone for Graph
+
 
 /// Most of this comes from core rust. Where to provide attribution?
 /// The text for a graphviz label on a node or edge.
@@ -183,42 +185,45 @@ pub trait GraphType {
     fn edge_slice() -> &'static str;
 }
 
-impl GraphType for Directed {
-    fn is_directed() -> bool {
-        true
-    }
+// impl GraphType for Directed {
+//     fn is_directed() -> bool {
+//         true
+//     }
 
-    fn as_slice() -> &'static str {
-        "digraph"
-    }
+//     fn as_slice() -> &'static str {
+//         "digraph"
+//     }
 
-    fn edge_slice() -> &'static str {
-        "->"
-    }
-}
+//     fn edge_slice() -> &'static str {
+//         "->"
+//     }
+// }
 
-impl GraphType for Undirected {
-    fn is_directed() -> bool {
-        false
-    }
+// impl GraphType for Undirected {
+//     fn is_directed() -> bool {
+//         false
+//     }
 
-    fn as_slice() -> &'static str {
-        "graph"
-    }
+//     fn as_slice() -> &'static str {
+//         "graph"
+//     }
 
-    fn edge_slice() -> &'static str {
-        "--"
-    }
-}
+//     fn edge_slice() -> &'static str {
+//         "--"
+//     }
+// }
 
 // TODO: probably dont need this struct and can move impl methods into lib module
-pub struct Dot<'a, Ty> {
-    graph: Graph<'a, Ty>,
+// pub struct Dot<'a, Ty> {
+pub struct Dot<'a> {
+    // graph: Graph<'a, Ty>,
+    graph: Graph<'a>
     //config: Config,
 }
 
-impl<'a, Ty> Dot<'a, Ty> 
-where Ty: GraphType
+// impl<'a, Ty> Dot<'a, Ty> 
+// where Ty: GraphType
+impl<'a> Dot<'a>
 {
 
     /// Renders directed graph `g` into the writer `w` in DOT syntax.
@@ -241,15 +246,18 @@ where Ty: GraphType
     where
         W: Write,
     {
-        if self.graph.comment.is_some() {
-            writeln!(w, "{}", self.graph.comment.as_deref().unwrap_or_default())?;
+        for comment in &self.graph.comments {
+            // TODO: split comment into lines of 80 or so characters
+            writeln!(w, "// {}", comment)?;
         }
-        
+
         let strict = if self.graph.strict { "strict " } else { "" }; 
         let id = self.graph.id.as_deref().unwrap_or_default();
-        let edge_op = self.graph.edge_type();
+        //let edge_op = self.graph.edge_type();
+        let edge_op = self.graph.edgeop();
 
-        writeln!(w, "{}{} {} {{", strict, self.graph.as_slice(), id)?;
+        //writeln!(w, "{}{} {} {{", strict, self.graph.as_slice(), id)?;
+        writeln!(w, "{}{} {} {{", strict, self.graph.graph_type(), id)?;
 
 
         // TODO: clean this up
@@ -372,111 +380,258 @@ pub enum AttributeType {
     None
 }
 
-/// Marker type for a directed graph.
-#[derive(Clone, Copy, Debug)]
-pub enum Directed {}
+// /// Marker type for a directed graph.
+// #[derive(Clone, Copy, Debug)]
+// pub enum Directed {}
 
-/// Marker type for an undirected graph.
-#[derive(Clone, Copy, Debug)]
-pub enum Undirected {}
+// /// Marker type for an undirected graph.
+// #[derive(Clone, Copy, Debug)]
+// pub enum Undirected {}
 
 
-pub type DiGraph<'a> = Graph<'a, Directed>;
+// pub type DiGraph<'a> = Graph<'a, Directed>;
 
-pub type UnGraph<'a> = Graph<'a, Undirected>;
+// pub type UnGraph<'a> = Graph<'a, Undirected>;
 
-pub struct Graph<'a, Ty = Directed> {
-
+pub struct Graph<'a> {
     pub id: Option<String>,
     
+    pub is_directed: bool,
+
     pub strict: bool,
 
     // Comment added to the first line of the source.
-    // TODO: support multiple comments
-    pub comment: Option<String>,
+    pub comments: Vec<String>,
 
     pub attributes: IndexMap<AttributeType, IndexMap<String, AttributeText<'a>>>,
 
     pub nodes: Vec<Node<'a>>,
 
     pub edges: Vec<Edge<'a>>,
-
-    ty: PhantomData<Ty>,
-
-    // TODO: should this have
-    // pub graph_type: Ty,
-    // then have Directed and Undirected enums implement fn to print graph type string?
-    // pub graph_type: Ty,
 }
 
-// TODO: i feel like default should be undirect. 
-// imo, feel more natural to say new_directed vs new_undirected. check to see if 
-impl<'a> Graph<'a, Directed> {
-    pub fn new(id: Option<String>) -> Self {
+impl<'a> Graph<'a> {
+
+    pub fn new(
+        id: Option<String>,
+        is_directed: bool,
+        strict: bool,
+        comments: Vec<String>,
+        attributes: IndexMap<AttributeType, IndexMap<String, AttributeText<'a>>>,
+        nodes: Vec<Node<'a>>,
+        edges: Vec<Edge<'a>>,
+    ) -> Self {
         Graph {
+            id,
+            is_directed,
+            strict,
+            comments,
+            attributes,
+            nodes,
+            edges,
+        }
+    }
+
+    pub fn graph_type(&self) -> &'static str {
+        if self.is_directed {
+            "digraph"
+        } else {
+            "graph"
+        }
+    }
+
+    pub fn edgeop(&self) -> &'static str {
+        if self.is_directed {
+            "->"
+        } else {
+            "--"
+        }
+    }
+
+}
+
+
+// pub struct Graph<'a, Ty = Directed> {
+
+//     pub id: Option<String>,
+    
+//     pub strict: bool,
+
+//     // Comment added to the first line of the source.
+//     // TODO: support multiple comments
+//     pub comment: Option<String>,
+
+//     pub attributes: IndexMap<AttributeType, IndexMap<String, AttributeText<'a>>>,
+
+//     pub nodes: Vec<Node<'a>>,
+
+//     pub edges: Vec<Edge<'a>>,
+
+//     ty: PhantomData<Ty>,
+
+//     // TODO: should this have
+//     // pub graph_type: Ty,
+//     // then have Directed and Undirected enums implement fn to print graph type string?
+//     // pub graph_type: Ty,
+// }
+
+// // TODO: i feel like default should be undirect. 
+// // imo, feel more natural to say new_directed vs new_undirected. check to see if 
+// impl<'a> Graph<'a, Directed> {
+//     pub fn new(id: Option<String>) -> Self {
+//         Graph {
+//             id: id,
+//             strict: false,
+//             comment: None,
+//             attributes: IndexMap::new(),
+//             nodes: Vec::new(),
+//             edges: Vec::new(),
+//             ty: PhantomData,
+//         }
+//     }
+// }
+
+// impl<'a> Graph<'a, Undirected> {
+//     /// Create a new `Graph` with undirected edges.
+//     ///
+//     /// This is a convenience method. Use `Graph::with_capacity` or `Graph::default` for
+//     /// a constructor that is generic in all the type parameters of `Graph`.
+//     pub fn new_undirected(id: Option<String>) -> Self {
+//         Graph {
+//             id: id,
+//             strict: false,
+//             comment: None,
+//             attributes: IndexMap::new(),
+//             nodes: Vec::new(),
+//             edges: Vec::new(),
+//             ty: PhantomData,
+//         }
+//     }
+// }
+
+// impl<'a, Ty> Graph<'a, Ty> 
+// where Ty: GraphType
+// {
+//     /// Whether the graph has directed edges or not.
+//     #[inline]
+//     pub fn is_directed(&self) -> bool {
+//         Ty::is_directed()
+//     }
+
+//     pub fn as_slice(&self) -> &'static str {
+//         Ty::as_slice()
+//     }
+
+//     // graphviz calls this edgeop
+//     pub fn edge_type(&self) -> &'static str {
+//         Ty::edge_slice()
+//     }
+
+//     pub fn add_node(&mut self, node: Node<'a>) -> &mut Self {
+//         self.nodes.push(node);
+//         self
+//     }
+
+//     pub fn add_edge(&mut self, edge: Edge<'a>) -> &mut Self {
+//         self.edges.push(edge);
+//         self
+//     }
+
+//     pub fn attribute(&mut self, attribute_type: AttributeType, key: String, value: AttributeText<'a>) -> &mut Self {
+//         println!("attribute type: {:?}", attribute_type);
+//         self.attributes.entry(attribute_type).or_insert(IndexMap::new())
+//             .insert(key, value);
+//         self    
+//     }
+// }
+
+pub struct GraphBuilder<'a> {
+    id: Option<String>,
+    
+    is_directed: bool,
+
+    strict: bool,
+
+    attributes: IndexMap<AttributeType, IndexMap<String, AttributeText<'a>>>,
+
+    nodes: Vec<Node<'a>>,
+    
+    edges: Vec<Edge<'a>>,
+
+    comments: Vec<String>,
+}
+
+impl<'a> GraphBuilder<'a> {
+    pub fn new_directed(id: Option<String>) -> Self {
+        Self {
             id: id,
+            is_directed: true,
             strict: false,
-            comment: None,
             attributes: IndexMap::new(),
             nodes: Vec::new(),
             edges: Vec::new(),
-            ty: PhantomData,
+            comments: Vec::new(),
         }
     }
-}
 
-impl<'a> Graph<'a, Undirected> {
-    /// Create a new `Graph` with undirected edges.
-    ///
-    /// This is a convenience method. Use `Graph::with_capacity` or `Graph::default` for
-    /// a constructor that is generic in all the type parameters of `Graph`.
     pub fn new_undirected(id: Option<String>) -> Self {
-        Graph {
+        Self {
             id: id,
+            is_directed: false,
             strict: false,
-            comment: None,
             attributes: IndexMap::new(),
             nodes: Vec::new(),
             edges: Vec::new(),
-            ty: PhantomData,
+            comments: Vec::new(),
         }
     }
-}
 
-impl<'a, Ty> Graph<'a, Ty> 
-where Ty: GraphType
-{
-    /// Whether the graph has directed edges or not.
-    #[inline]
-    pub fn is_directed(&self) -> bool {
-        Ty::is_directed()
-    }
-
-    pub fn as_slice(&self) -> &'static str {
-        Ty::as_slice()
-    }
-
-    // graphviz calls this edgeop
-    pub fn edge_type(&self) -> &'static str {
-        Ty::edge_slice()
-    }
-
-    pub fn add_node(&mut self, node: Node<'a>) {
+    pub fn add_node(&mut self, node: Node<'a>) -> &mut Self {
         self.nodes.push(node);
+        self
     }
 
-    pub fn add_edge(&mut self, edge: Edge<'a>) {
+    pub fn add_edge(&mut self, edge: Edge<'a>) -> &mut Self {
         self.edges.push(edge);
+        self
     }
 
-    pub fn attribute(&mut self, attribute_type: AttributeType, key: String, value: AttributeText<'a>) {
-        println!("attribute type: {:?}", attribute_type);
+    pub fn add_attribute(&mut self, attribute_type: AttributeType, key: String, value: AttributeText<'a>) -> &mut Self {
         self.attributes.entry(attribute_type).or_insert(IndexMap::new())
             .insert(key, value);
+        self
+    }
+
+    pub fn add_attributes(&mut self, attribute_type: AttributeType, attributes: HashMap<String, AttributeText<'a>>) -> &mut Self {
+        self.attributes.entry(attribute_type).or_insert(IndexMap::new()).extend(attributes);
+        self
+    }
+
+    pub fn add_comment(&mut self, comment: String) -> &mut Self {
+        self.comments.push(comment);
+        self
+    }
+
+    pub fn strict(&mut self) -> &mut Self {
+        self.strict = true;
+        self
+    }
+
+    pub fn build(&self) -> Graph<'a> {
+        Graph {
+            id: self.id.to_owned(),
+            is_directed: self.is_directed,
+            strict: self.strict,
+            comments: self.comments.clone(), // TODO: is clone the only option here?
+            attributes: self.attributes.clone(), // TODO: is clone the only option here?
+            nodes: self.nodes.clone(), // TODO: is clone the only option here?
+            edges: self.edges.clone(), // TODO: is clone the only option here?
+        }
     }
 }
 
 // TODO: add node builder using "with" convention
+#[derive(Clone, Debug)]
 pub struct Node<'a> {
 
     pub id: String,
@@ -619,6 +774,7 @@ impl<'a> NodeBuilder<'a> {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct Edge<'a> {
 
     pub source: String,
@@ -781,7 +937,7 @@ impl Shape {
             Shape::Note => "note",
             Shape::Tab => "tab",
             Shape::Folder => "folder",
-            Shape::Box3D => "box3D",
+            Shape::Box3D => "box3d",
             Shape::Component => "component",
             Shape::Promoter => "promoter",
             Shape::Cds => "cds",
@@ -859,8 +1015,9 @@ impl Style {
     }
 }
 
-fn test_input<Ty>(g: Graph<Ty>) -> io::Result<String> 
-where Ty: GraphType
+// fn test_input<Ty>(g: Graph<Ty>) -> io::Result<String> 
+// where Ty: GraphType
+fn test_input(g: Graph) -> io::Result<String> 
 {
     let mut writer = Vec::new();
     let dot = Dot {
@@ -873,10 +1030,12 @@ where Ty: GraphType
     Ok(s)
 }
 
+
 #[test]
 fn empty_digraph() {
     // TODO: support both String and &str
-    let g = Graph::new(Some("empty_graph".to_string()));
+    // let g = Graph::new(Some("empty_graph".to_string()));
+    let g = GraphBuilder::new_directed(Some("empty_graph".to_string())).build();
     let r = test_input(g);
     assert_eq!(
         r.unwrap(),
@@ -889,7 +1048,7 @@ fn empty_digraph() {
 #[test]
 fn empty_graph() {
     // TODO: support both String and &str
-    let g = Graph::new_undirected(Some("empty_graph".to_string()));
+    let g = GraphBuilder::new_undirected(Some("empty_graph".to_string())).build();
     let r = test_input(g);
     assert_eq!(
         r.unwrap(),
@@ -901,8 +1060,9 @@ fn empty_graph() {
 
 #[test]
 fn single_node() {
-    let mut g = Graph::new(Some("single_node".to_string()));
-    g.add_node(Node::new("N0".to_string()));
+    let g = GraphBuilder::new_directed(Some("single_node".to_string()))
+        .add_node(Node::new("N0".to_string()))
+        .build();
     let r = test_input(g);
     assert_eq!(
         r.unwrap(),
@@ -915,12 +1075,13 @@ fn single_node() {
 
 #[test]
 fn single_node_with_style() {
-    let mut g = Graph::new(Some("single_node".to_string()));
     let node = NodeBuilder::new("N0".to_string())
         .attribute("style", AttributeText::quotted("dashed"))
         .build();
 
-    g.add_node(node);
+    let g = GraphBuilder::new_directed(Some("single_node".to_string()))
+        .add_node(node)
+        .build();
 
     let r = test_input(g);
     assert_eq!(
@@ -934,7 +1095,7 @@ fn single_node_with_style() {
 
 #[test]
 fn support_non_inline_builder() {
-    let mut g = Graph::new(Some("single_node".to_string()));
+    let mut g = GraphBuilder::new_directed(Some("single_node".to_string()));
 
     // TODO: having to split this is stupid. am i doing something wrong?
     let mut node_builder = NodeBuilder::new("N0".to_string());
@@ -947,7 +1108,7 @@ fn support_non_inline_builder() {
     let node = node_builder.build();
     g.add_node(node);
 
-    let r = test_input(g);
+    let r = test_input(g.build());
     assert_eq!(
         r.unwrap(),
         r#"digraph single_node {
@@ -959,13 +1120,13 @@ fn support_non_inline_builder() {
 
 #[test]
 fn builder_support_shape() {
-    let mut g = Graph::new(Some("node_shape".to_string()));
+    let node = NodeBuilder::new("N0".to_string())
+        .shape(Shape::Note)
+        .build();
 
-    // TODO: having to split this is stupid. am i doing something wrong?
-    let mut node_builder = NodeBuilder::new("N0".to_string());
-    node_builder.shape(Shape::Note);
-
-    g.add_node(node_builder.build());
+    let g = GraphBuilder::new_directed(Some("node_shape".to_string()))
+        .add_node(node)
+        .build();
 
     let r = test_input(g);
     assert_eq!(
@@ -980,11 +1141,11 @@ fn builder_support_shape() {
 
 #[test]
 fn single_edge() {
-    let mut g = Graph::new(Some("single_edge".to_string()));
-    g.add_node(Node::new("N0".to_string()));
-    g.add_node(Node::new("N1".to_string()));
-
-    g.add_edge(Edge::new("N0".to_string(), "N1".to_string()));
+    let g = GraphBuilder::new_directed(Some("single_edge".to_string()))
+        .add_node(Node::new("N0".to_string()))
+        .add_node(Node::new("N1".to_string()))
+        .add_edge(Edge::new("N0".to_string(), "N1".to_string()))
+        .build();
 
     let r = test_input(g);
     
@@ -1001,16 +1162,15 @@ fn single_edge() {
 
 #[test]
 fn single_edge_with_style() {
-
-    let mut g = Graph::new(Some("single_edge".to_string()));
-    g.add_node(Node::new("N0".to_string()));
-    g.add_node(Node::new("N1".to_string()));
-
     let edge = EdgeBuilder::new("N0".to_string(), "N1".to_string())
         .attribute("style", AttributeText::quotted("bold"))
         .build();
 
-    g.add_edge(edge);
+    let g = GraphBuilder::new_directed(Some("single_edge".to_string()))
+        .add_node(Node::new("N0".to_string()))
+        .add_node(Node::new("N1".to_string()))
+        .add_edge(edge)
+        .build();
 
     let r = test_input(g);
 
@@ -1027,11 +1187,12 @@ fn single_edge_with_style() {
 
 #[test]
 fn graph_attributes() {
-    let mut g = Graph::new(Some("graph_attributes".to_string()));
-    g.attribute(AttributeType::None, "ranksep".to_string(), AttributeText::attr("0.5"));
-    g.attribute(AttributeType::Graph, "rankdir".to_string(), AttributeText::attr("LR"));
-    g.attribute(AttributeType::Edge, "minlen".to_string(), AttributeText::attr("1"));
-    g.attribute(AttributeType::Node, "style".to_string(), AttributeText::attr("filled"));
+    let g = GraphBuilder::new_directed(Some("graph_attributes".to_string()))
+        .add_attribute(AttributeType::None, "ranksep".to_string(), AttributeText::attr("0.5"))
+        .add_attribute(AttributeType::Graph, "rankdir".to_string(), AttributeText::attr("LR"))
+        .add_attribute(AttributeType::Edge, "minlen".to_string(), AttributeText::attr("1"))
+        .add_attribute(AttributeType::Node, "style".to_string(), AttributeText::attr("filled"))
+        .build();
 
     let r = test_input(g);
 
