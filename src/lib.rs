@@ -7,7 +7,6 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 use std::io;
 use std::io::prelude::*;
-use std::marker::PhantomData;
 
 static INDENT: &str = "    ";
 
@@ -558,6 +557,7 @@ pub struct GraphBuilder<'a> {
     
     edges: Vec<Edge<'a>>,
 
+    // Graphviz says it can only be comment
     comments: Vec<String>,
 }
 
@@ -617,6 +617,458 @@ impl<'a> GraphBuilder<'a> {
         self
     }
 
+
+    pub fn background(&mut self, background: String) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("_background"), AttributeText::attr(background))
+    }
+
+    /// color
+    /// "#%2x%2x%2x"	Red-Green-Blue (RGB)
+    /// "#%2x%2x%2x%2x"	Red-Green-Blue-Alpha (RGBA)
+    /// "H[, ]+S[, ]+V"	Hue-Saturation-Value (HSV) 0.0 <= H,S,V <= 1.0
+    /// string	color name
+    /// color list
+    /// A colon-separated list of weighted color values: WC(:WC)* where each WC has the form C(;F)? 
+    /// with C a color value and the optional F a floating-point number, 0 ≤ F ≤ 1. 
+    /// The sum of the floating-point numbers in a colorList must sum to at most 1.
+    pub fn background_color(&mut self, background_color: String) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("bgcolor"), AttributeText::quotted(background_color))
+    }
+
+    /// Type: rect which is "%f,%f,%f,%f"
+    /// The rectangle llx,lly,urx,ury gives the coordinates, in points, of the lower-left corner (llx,lly) 
+    /// and the upper-right corner (urx,ury).
+    pub fn bounding_box(&mut self, bounding_box: String) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("bb"), AttributeText::quotted(bounding_box))
+    }
+
+    pub fn center(&mut self, center: bool) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("center"), AttributeText::attr(center.to_string()))
+    }
+
+    pub fn charset(&mut self, charset: String) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("charset"), AttributeText::quotted(charset))
+    }
+
+    /// svg only
+    pub fn class(&mut self, class: String) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("class"), AttributeText::quotted(class))
+    }
+
+    pub fn cluster_rank(&mut self, cluster_rank: ClusterMode) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("clusterrank"), AttributeText::quotted(cluster_rank.as_slice()))
+    }
+
+    /// This attribute specifies a color scheme namespace: the context for interpreting color names.
+    /// In particular, if a color value has form "xxx" or "//xxx", then the color xxx will be evaluated 
+    /// according to the current color scheme. If no color scheme is set, the standard X11 naming is used.
+    /// For example, if colorscheme=bugn9, then color=7 is interpreted as color="/bugn9/7".
+    pub fn color_scheme(&mut self, color_scheme: String) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("colorscheme"), AttributeText::quotted(color_scheme))
+    }
+
+    pub fn compound(&mut self, compound: String) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("compound"), AttributeText::quotted(compound))
+    }
+
+    pub fn concentrate(&mut self, concentrate: String) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("concentrate"), AttributeText::quotted(concentrate))
+    }
+
+    /// Specifies the expected number of pixels per inch on a display device.
+    /// Also known as resolution
+    pub fn dpi(&mut self, dpi: f32) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("dpi"), AttributeText::quotted(dpi.to_string()))
+    }
+
+    // color
+    // color list
+    pub fn fill_color(&mut self, fill_color: String) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("fillcolor"), AttributeText::quotted(fill_color))
+    }
+
+    // color
+    // color list
+    pub fn font_color(&mut self, font_color: String) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("fontcolor"), AttributeText::quotted(font_color))
+    }
+
+    pub fn font_name(&mut self, font_name: String) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("fontname"), AttributeText::quotted(font_name))
+    }
+
+    pub fn font_names(&mut self, font_names: String) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("fontnames"), AttributeText::quotted(font_names))
+    }
+    
+    pub fn font_path(&mut self, font_path: String) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("fontpath"), AttributeText::quotted(font_path))
+    }
+
+    // default: 14.0, minimum: 1.0
+    pub fn font_size(&mut self, font_size: f32) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("fontsize"), AttributeText::quotted(font_size.to_string()))
+    }
+
+    pub fn force_label(&mut self, force_label: bool) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("forcelabel"), AttributeText::attr(force_label.to_string()))
+    }
+
+    pub fn gradient_angle(&mut self, gradient_angle: u32) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("gradient_angle"), AttributeText::attr(gradient_angle.to_string()))
+    }
+
+    pub fn href(&mut self, href: String) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("href"), AttributeText::escaped(href))
+    }
+
+    pub fn image_path(&mut self, image_path: String) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("imagepath"), AttributeText::escaped(image_path))
+    }
+
+    /// An escString or an HTML label.
+    pub fn label(&mut self, label: String) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("label"), AttributeText::quotted(label))
+    }
+
+    pub fn label_scheme(&mut self, label_scheme: u32) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("labelscheme"), AttributeText::attr(label_scheme.to_string()))
+    }
+
+    // If labeljust=r, the label is right-justified within bounding rectangle
+    // If labeljust=l, left-justified
+    // Else the label is centered.
+    pub fn label_just(&mut self, label_just: LabelJustification) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("labeljust"), AttributeText::attr(label_just.as_slice()))
+    }
+
+    // Vertical placement of labels for nodes, root graphs and clusters.
+    // For graphs and clusters, only labelloc=t and labelloc=b are allowed, corresponding to placement at the top and bottom, respectively.
+    // By default, root graph labels go on the bottom and cluster labels go on the top.
+    // Note that a subgraph inherits attributes from its parent. Thus, if the root graph sets labelloc=b, the subgraph inherits this value.
+    // For nodes, this attribute is used only when the height of the node is larger than the height of its label.
+    // If labelloc=t, labelloc=c, labelloc=b, the label is aligned with the top, centered, or aligned with the bottom of the node, respectively.
+    // By default, the label is vertically centered.
+    pub fn label_location(&mut self, label_location: LabelLocation) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("labelloc"), AttributeText::attr(label_location.as_slice()))
+    }
+
+    pub fn landscape(&mut self, landscape: bool) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("landscape"), AttributeText::attr(landscape.to_string()))
+    }
+
+    /// Specifies the separator characters used to split an attribute of type layerRange into a list of ranges.
+    pub fn layer_list_sep(&mut self, layer_list_sep: String) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("layerlistsep"), AttributeText::attr(layer_list_sep))
+    }
+
+    /// Specifies a linearly ordered list of layer names attached to the graph
+    /// The graph is then output in separate layers. 
+    /// Only those components belonging to the current output layer appear.
+    pub fn layers(&mut self, layers: String) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("layers"), AttributeText::attr(layers))
+    }
+
+    /// Selects a list of layers to be emitted.
+    pub fn layer_select(&mut self, layer_select: String) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("layerselect"), AttributeText::attr(layer_select))
+    }
+
+    /// Specifies the separator characters used to split the layers attribute into a list of layer names.
+    /// default: ":\t "
+    pub fn layer_sep(&mut self, layer_sep: String) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("layersep"), AttributeText::attr(layer_sep))
+    }
+
+    /// Height of graph or cluster label, in inches.
+    pub fn lheight(&mut self, lheight: f32) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("lheight"), AttributeText::attr(lheight.to_string()))
+    }
+
+    // TODO: I dont understand this...
+    /// "%f,%f('!')?" representing the point (x,y). The optional '!' indicates the node position should not change (input-only).
+    /// If dim=3, point may also have the format "%f,%f,%f('!')?" to represent the point (x,y,z).
+    pub fn lp(&mut self, lp: String) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("lp"), AttributeText::attr(lp))
+    }
+
+    /// Width of graph or cluster label, in inches.
+    pub fn lwidth(&mut self, lwidth: f32) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("lwidth"), AttributeText::attr(lwidth.to_string()))
+    }
+
+    /// For graphs, this sets x and y margins of canvas, in inches.
+    /// If the margin is a single double, both margins are set equal to the given value.
+    /// Note that the margin is not part of the drawing but just empty space left around the drawing. 
+    /// The margin basically corresponds to a translation of drawing, as would be necessary to center a drawing on a page. 
+    /// Nothing is actually drawn in the margin. To actually extend the background of a drawing, see the pad attribute.
+    /// For clusters, margin specifies the space between the nodes in the cluster and the cluster bounding box. By default, this is 8 points.
+    /// For nodes, this attribute specifies space left around the node’s label. 
+    /// By default, the value is 0.11,0.055.
+    pub fn margin(&mut self, margin: f32) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("margin"), AttributeText::attr(margin.to_string()))
+    }
+
+    /// Multiplicative scale factor used to alter the MinQuit (default = 8) and MaxIter (default = 24) parameters used during crossing minimization.
+    /// These correspond to the number of tries without improvement before quitting and the maximum number of iterations in each pass.
+    pub fn mclimit(&mut self, mclimit: f32) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("mclimit"), AttributeText::attr(mclimit.to_string()))
+    }
+
+    /// Specifies the minimum separation between all nodes.
+    pub fn mindist(&mut self, mindist: u32) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("mindist"), AttributeText::attr(mindist.to_string()))
+    }
+
+    /// Whether to use a single global ranking, ignoring clusters.
+    /// The original ranking algorithm in dot is recursive on clusters. 
+    /// This can produce fewer ranks and a more compact layout, but sometimes at the cost of a head node being place on a higher rank than the tail node. 
+    /// It also assumes that a node is not constrained in separate, incompatible subgraphs. 
+    /// For example, a node cannot be in a cluster and also be constrained by rank=same with a node not in the cluster.
+    /// This allows nodes to be subject to multiple constraints. 
+    /// Rank constraints will usually take precedence over edge constraints.
+    pub fn newrank(&mut self, newrank: bool) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("newrank"), AttributeText::attr(newrank.to_string()))
+    }
+
+    // TODO: add constraint
+    /// specifies the minimum space between two adjacent nodes in the same rank, in inches.
+    /// default: 0.25, minimum: 0.02
+    pub fn nodesep(&mut self, nodesep: f32) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("nodesep"), AttributeText::attr(nodesep.to_string()))
+    }
+
+    /// By default, the justification of multi-line labels is done within the largest context that makes sense. 
+    /// Thus, in the label of a polygonal node, a left-justified line will align with the left side of the node (shifted by the prescribed margin). 
+    /// In record nodes, left-justified line will line up with the left side of the enclosing column of fields. 
+    /// If nojustify=true, multi-line labels will be justified in the context of itself.
+    /// For example, if nojustify is set, the first label line is long, and the second is shorter and left-justified, 
+    /// the second will align with the left-most character in the first line, regardless of how large the node might be.
+    pub fn no_justify(&mut self, no_justify: bool) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("nojustify"), AttributeText::attr(no_justify.to_string()))
+    }
+
+    /// Sets number of iterations in network simplex applications.
+    /// nslimit is used in computing node x coordinates.
+    /// If defined, # iterations = nslimit * # nodes; otherwise, # iterations = MAXINT.
+    pub fn nslimit(&mut self, nslimit: f32) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("nslimit"), AttributeText::attr(nslimit.to_string()))
+    }
+
+    /// If ordering="out", then the outedges of a node, that is, edges with the node as its tail node, must appear left-to-right in the same order in which they are defined in the input.
+    /// If ordering="in", then the inedges of a node must appear left-to-right in the same order in which they are defined in the input.
+    /// If defined as a graph or subgraph attribute, the value is applied to all nodes in the graph or subgraph.
+    /// Note that the graph attribute takes precedence over the node attribute.
+    pub fn ordering(&mut self, ordering: Ordering) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("ordering"), AttributeText::attr(ordering.as_slice()))
+    }
+
+    // TODO: constrain to 0 - 360. Docs say min is 360 which should be max right?
+    /// When used on nodes: Angle, in degrees, to rotate polygon node shapes. 
+    /// For any number of polygon sides, 0 degrees rotation results in a flat base.
+    /// When used on graphs: If "[lL]*", sets graph orientation to landscape.
+    /// Used only if rotate is not defined.
+    /// Default: 0.0 and minimum: 360.0
+    pub fn orientation(&mut self, orientation: f32) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("orientation"), AttributeText::attr(orientation.to_string()))
+    }
+
+    /// Specify order in which nodes and edges are drawn.
+    /// default: breadthfirst
+    pub fn output_order(&mut self, output_order: OutputMode) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("outputorder"), AttributeText::attr(output_order.as_slice()))
+    }
+
+    /// Whether each connected component of the graph should be laid out separately, and then the graphs packed together.
+    /// If false, the entire graph is laid out together. 
+    /// The granularity and method of packing is influenced by the packmode attribute.
+    pub fn pack(&mut self, pack: bool) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("pack"), AttributeText::attr(pack.to_string()))
+    }
+
+    // TODO: constrain to non-negative integer.
+    /// Whether each connected component of the graph should be laid out separately, and then the graphs packed together.
+    /// This is used as the size, in points,of a margin around each part; otherwise, a default margin of 8 is used.
+    /// pack is treated as true if the value of pack iso a non-negative integer.
+    pub fn pack_int(&mut self, pack: u32) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("pack"), AttributeText::attr(pack.to_string()))
+    }
+
+    /// This indicates how connected components should be packed (cf. packMode). 
+    /// Note that defining packmode will automatically turn on packing as though one had set pack=true.
+    pub fn pack_mode(&mut self, pack_mode: PackMode) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("packmode"), AttributeText::attr(pack_mode.as_slice()))
+    }
+
+    /// Specifies how much, in inches, to extend the drawing area around the minimal area needed to draw the graph.
+    /// Both the x and y pad values are set equal to the given value. 
+    /// This area is part of the drawing and will be filled with the background color, if appropriate.
+    /// default: 0.0555
+    pub fn pad(&mut self, pad: f32) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("pad"), AttributeText::attr(pad.to_string()))
+    }
+
+    /// Specifies how much, in inches, to extend the drawing area around the minimal area needed to draw the graph.
+    pub fn pad_point(&mut self, pad: Point) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("pad"), AttributeText::attr(pad.to_formatted_string()))
+    }
+
+    /// Width and height of output pages, in inches.
+    /// Value given is used for both the width and height.
+    pub fn page(&mut self, page: f32) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("page"), AttributeText::attr(page.to_string()))
+    }
+
+    /// Width and height of output pages, in inches.
+    pub fn page_point(&mut self, page: Point) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("page"), AttributeText::attr(page.to_formatted_string()))
+    }
+
+    /// The order in which pages are emitted.
+    /// Used only if page is set and applicable.
+    /// Limited to one of the 8 row or column major orders.
+    pub fn page_dir(&mut self, page_dir: PageDirection) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("pagedir"), AttributeText::attr(page_dir.as_slice()))
+    }
+
+    // TODO: constrain
+    /// If quantum > 0.0, node label dimensions will be rounded to integral multiples of the quantum.
+    /// default: 0.0, minimum: 0.0
+    pub fn quantum(&mut self, quantum: f32) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("quantum"), AttributeText::attr(quantum.to_string()))
+    }
+
+    /// Sets direction of graph layout.
+    /// For example, if rankdir="LR", and barring cycles, an edge T -> H; will go from left to right. 
+    /// By default, graphs are laid out from top to bottom.
+    /// This attribute also has a side-effect in determining how record nodes are interpreted. 
+    /// See record shapes.
+    pub fn rank_dir(&mut self, rank_dir: RankDir) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("rankdir"), AttributeText::attr(rank_dir.as_slice()))
+    }
+
+    /// sets the desired rank separation, in inches.
+    /// This is the minimum vertical distance between the bottom of the nodes in one rank 
+    /// and the tops of nodes in the next. If the value contains equally, 
+    /// the centers of all ranks are spaced equally apart. 
+    /// Note that both settings are possible, e.g., ranksep="1.2 equally".
+    pub fn rank_sep(&mut self, rank_sep: String) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("ranksep"), AttributeText::attr(rank_sep))
+    }
+
+    // TODO: numeric vs string
+    // Strings: fill, compress, expand, auto
+    /// Sets the aspect ratio (drawing height/drawing width) for the drawing.
+    /// Note that this is adjusted before the size attribute constraints are enforced.
+    pub fn ratio(&mut self, ratio: String) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("ratio"), AttributeText::attr(ratio))
+    }
+
+    /// If true and there are multiple clusters, run crossing minimization a second time.
+    pub fn remincross(&mut self, remincross: bool) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("remincross"), AttributeText::attr(remincross.to_string()))
+    }
+
+    /// If rotate=90, sets drawing orientation to landscape.
+    pub fn rotate(&mut self, rotate: u32) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("rotate"), AttributeText::attr(rotate.to_string()))
+    }
+
+    // TODO: constrain
+    /// Print guide boxes in PostScript at the beginning of routesplines if showboxes=1, or at the end if showboxes=2.
+    /// (Debugging, TB mode only!)
+    /// default: 0, minimum: 0
+    pub fn show_boxes(&mut self, show_boxes: u32) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("showboxes"), AttributeText::attr(show_boxes.to_string()))
+    }
+
+    /// Maximum width and height of drawing, in inches.
+    /// Value used for both the width and the height.
+    /// If defined and the drawing is larger than the given size, the drawing 
+    /// is uniformly scaled down so that it fits within the given size.
+    /// If desired_min is true, and both both dimensions of the drawing 
+    /// are less than size, the drawing is scaled up uniformly until at 
+    /// least one dimension equals its dimension in size.
+    pub fn size(&mut self, size: u32, desired_min: bool) -> &mut Self {
+        let mut text = format!("{}", size);
+        if desired_min {
+            text.push_str("!");
+        }
+        self.add_attribute(AttributeType::Graph, String::from("size"), AttributeText::attr(text))
+    }
+
+    /// Maximum width and height of drawing, in inches.
+    /// If defined and the drawing is larger than the given size, the drawing 
+    /// is uniformly scaled down so that it fits within the given size.
+    /// If desired_min is true, and both both dimensions of the drawing 
+    /// are less than size, the drawing is scaled up uniformly until at 
+    /// least one dimension equals its dimension in size.
+    pub fn size_point(&mut self, size: Point, desired_min: bool) -> &mut Self {
+        let mut text = size.to_formatted_string();
+        if desired_min {
+            text.push_str("!");
+        }
+        self.add_attribute(AttributeType::Graph, String::from("size"), AttributeText::attr(text))
+    }
+
+    /// If packmode indicates an array packing, sortv specifies an insertion order 
+    /// among the components, with smaller values inserted first.
+    /// default: 0, minimum: 0
+    pub fn sortv(&mut self, sortv: u32) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("sortv"), AttributeText::attr(sortv.to_string()))
+    }
+
+    /// Controls how, and if, edges are represented.
+    /// If splines=true, edges are drawn as splines routed around nodes; 
+    /// if splines=false, edges are drawn as line segments.
+    pub fn splines_bool(&mut self, splines: bool) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("splines"), AttributeText::attr(splines.to_string()))
+    }
+
+    /// Controls how, and if, edges are represented.
+    pub fn splines(&mut self, splines: Splines) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("splines"), AttributeText::attr(splines.as_slice()))
+    }
+
+    /// Set style information for components of the graph.
+    pub fn style(&mut self, style: String) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("style"), AttributeText::attr(style))
+    }
+
+    /// A URL or pathname specifying an XML style sheet, used in SVG output.
+    /// Combine with class to style elements using CSS selectors.
+    pub fn stylesheet(&mut self, stylesheet: String) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("stylesheet"), AttributeText::attr(stylesheet))
+    }
+
+    /// If the object has a URL, this attribute determines which window of the browser is used for the URL.
+    pub fn target(&mut self, target: String) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("target"), AttributeText::escaped(target))
+    }
+
+    /// Whether internal bitmap rendering relies on a truecolor color model or uses a color palette.
+    /// If truecolor is unset, truecolor is not used unless there is a shapefile property for some node in the graph. The output model will use the input model when possible.
+    pub fn true_color(&mut self, true_color: bool) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("truecolor"), AttributeText::attr(true_color.to_string()))
+    }
+
+    pub fn url(&mut self, url: String) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("url"), AttributeText::escaped(url))
+    }
+
+    // TODO: add a ViewPort Struct?
+    /// Clipping window on final drawing.
+    /// viewport supersedes any size attribute. 
+    /// The width and height of the viewport specify precisely the final size of the output.
+    /// The viewPort W,H,Z,x,y or W,H,Z,N specifies a viewport for the final image. 
+    /// The pair (W,H) gives the dimensions (width and height) of the final image, in points.
+    /// The optional Z is the zoom factor, i.e., the image in the original layout will be W/Z by H/Z points in size. By default, Z is 1.
+    /// The optional last part is either a pair (x,y) giving a position in the original layout of the graph, 
+    /// in points, of the center of the viewport, or the name N of a node whose center should used as the focus.
+    pub fn viewport(&mut self, viewport: String) -> &mut Self {
+        self.add_attribute(AttributeType::Graph, String::from("viewport"), AttributeText::attr(viewport))
+    }
+
     pub fn build(&self) -> Graph<'a> {
         Graph {
             id: self.id.to_owned(),
@@ -626,6 +1078,227 @@ impl<'a> GraphBuilder<'a> {
             attributes: self.attributes.clone(), // TODO: is clone the only option here?
             nodes: self.nodes.clone(), // TODO: is clone the only option here?
             edges: self.edges.clone(), // TODO: is clone the only option here?
+        }
+    }
+}
+
+pub enum ClusterMode {
+    Local,
+    Global,
+    None
+}
+
+impl ClusterMode {
+    pub fn as_slice(self) -> &'static str {
+        match self {
+            ClusterMode::Local => "local",
+            ClusterMode::Global => "global",
+            ClusterMode::None => "none",
+        }
+    }
+}
+
+pub enum LabelJustification {
+    Left,
+    Right,
+    Center
+}
+
+impl LabelJustification {
+    pub fn as_slice(self) -> &'static str {
+        match self {
+            LabelJustification::Left => "l",
+            LabelJustification::Right => "r",
+            LabelJustification::Center => "c",
+        }
+    }
+}
+
+
+pub enum LabelLocation {
+    Top,
+    Center,
+    Bottom
+}
+
+impl LabelLocation {
+    pub fn as_slice(self) -> &'static str {
+        match self {
+            LabelLocation::Top => "t",
+            LabelLocation::Center => "c",
+            LabelLocation::Bottom => "b",
+        }
+    }
+}
+
+pub enum Ordering {
+    In,
+    Out,
+}
+
+impl Ordering {
+    pub fn as_slice(self) -> &'static str {
+        match self {
+            Ordering::In => "in",
+            Ordering::Out => "out",
+        }
+    }
+}
+
+/// These specify the order in which nodes and edges are drawn in concrete output.
+/// The default "breadthfirst" is the simplest, but when the graph layout does not avoid edge-node overlap, 
+/// this mode will sometimes have edges drawn over nodes and sometimes on top of nodes.
+/// If the mode "nodesfirst" is chosen, all nodes are drawn first, followed by the edges. 
+/// This guarantees an edge-node overlap will not be mistaken for an edge ending at a node.
+/// On the other hand, usually for aesthetic reasons, it may be desirable that all edges appear beneath nodes, 
+/// even if the resulting drawing is ambiguous. 
+/// This can be achieved by choosing "edgesfirst".
+pub enum OutputMode {
+    BreadthFirst,
+    NodesFirst,
+    EdgesFirst,
+}
+
+impl OutputMode {
+    pub fn as_slice(self) -> &'static str {
+        match self {
+            OutputMode::BreadthFirst => "breadthfirst",
+            OutputMode::NodesFirst => "nodesfirst",
+            OutputMode::EdgesFirst => "edgesfirst",
+        }
+    }
+}
+
+/// The modes "node", "clust" or "graph" specify that the components should be packed together tightly, 
+/// using the specified granularity. 
+pub enum PackMode {
+    /// causes packing at the node and edge level, with no overlapping of these objects.
+    /// This produces a layout with the least area, but it also allows interleaving, 
+    /// where a node of one component may lie between two nodes in another component.
+    Node,
+
+    /// guarantees that top-level clusters are kept intact. 
+    /// What effect a value has also depends on the layout algorithm. 
+    Cluster,
+
+    /// does a packing using the bounding box of the component. 
+    /// Thus, there will be a rectangular region around a component free of elements of any other component. 
+    Graph,
+    // TODO: array - "array(_flags)?(%d)?"
+}
+
+impl PackMode {
+    pub fn as_slice(self) -> &'static str {
+        match self {
+            PackMode::Node => "node",
+            PackMode::Cluster => "clust",
+            PackMode::Graph => "graph",
+        }
+    }
+}
+
+// The optional '!' indicates the node position should not change (input-only).
+pub struct Point {
+    pub x: f32,
+    pub y: f32,
+    pub z: Option<f32>,
+    pub can_change: bool,
+}
+
+impl Point {
+
+    pub fn new_2d(x: f32, y: f32, can_change: bool) -> Self {
+        Self {
+            x,
+            y,
+            z: None,
+            can_change,
+        }
+    }
+
+    pub fn new_3d(x: f32, y: f32, z: f32, can_change: bool) -> Self {
+        Self {
+            x,
+            y,
+            z: Some(z),
+            can_change,
+        }
+    }
+
+    pub fn to_formatted_string(self) -> String { 
+        let mut slice = format!("{},{}", self.x, self.y);
+        if self.z.is_some() {
+            slice.push_str(format!(",{}", self.z.unwrap()).as_str());
+        }
+        if !self.can_change {
+            slice.push_str("!")
+        }
+        slice.to_string()
+    }
+}
+
+pub enum PageDirection {
+    BottomLeft,
+    BottomRight,
+    TopLeft,
+    TopRight,
+    RightBottom,
+    RightTop,
+    LeftBottom,
+    LeftTop,
+}
+
+impl PageDirection {
+    pub fn as_slice(self) -> &'static str {
+        match self {
+            PageDirection::BottomLeft => "BL",
+            PageDirection::BottomRight => "BR",
+            PageDirection::TopLeft => "TL",
+            PageDirection::TopRight => "TR",
+            PageDirection::RightBottom => "RB",
+            PageDirection::RightTop => "RT",
+            PageDirection::LeftBottom => "LB",
+            PageDirection::LeftTop => "LT",
+        }
+    }
+}
+
+pub enum RankDir {
+    TopBottom,
+    LeftRight,
+    BottomTop,
+    RightLeft,
+}
+
+impl RankDir {
+    pub fn as_slice(self) -> &'static str {
+        match self {
+            RankDir::TopBottom => "TB",
+            RankDir::LeftRight => "LR",
+            RankDir::BottomTop => "BT",
+            RankDir::RightLeft => "RL",
+        }
+    }
+}
+
+pub enum Splines {
+    Line,
+    Spline,
+    None,
+    Curved,
+    Polyline,
+    Ortho,
+}
+
+impl Splines {
+    pub fn as_slice(self) -> &'static str {
+        match self {
+            Splines::Line => "line",
+            Splines::Spline => "spline",
+            Splines::None => "none",
+            Splines::Curved => "curved",
+            Splines::Polyline => "polyline",
+            Splines::Ortho => "ortho",
         }
     }
 }
