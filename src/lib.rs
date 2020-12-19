@@ -17,6 +17,7 @@ static INDENT: &str = "    ";
 // i'm thinking we have NodeTraits/GraphTraints/EdgeTraits (what about none? is that a graph trait?)
 // which will have default methods that use an associated type field called "state" or "attribtues" etc
 // TODO: implement Clone for Graph
+// TODO: remove duplicate fns
 
 
 /// Most of this comes from core rust. Where to provide attribution?
@@ -561,6 +562,7 @@ pub struct GraphBuilder<'a> {
     comments: Vec<String>,
 }
 
+// TODO: id should be an escString
 impl<'a> GraphBuilder<'a> {
     pub fn new_directed(id: Option<String>) -> Self {
         Self {
@@ -607,11 +609,6 @@ impl<'a> GraphBuilder<'a> {
         self
     }
 
-    pub fn add_comment(&mut self, comment: String) -> &mut Self {
-        self.comments.push(comment);
-        self
-    }
-
     pub fn strict(&mut self) -> &mut Self {
         self.strict = true;
         self
@@ -650,7 +647,9 @@ impl<'a> GraphBuilder<'a> {
         self.add_attribute(AttributeType::Graph, String::from("charset"), AttributeText::quotted(charset))
     }
 
-    /// svg only
+    /// Classnames to attach to the node, edge, graph, or cluster’s SVG element. 
+    /// Combine with stylesheet for styling SVG output using CSS classnames.
+    /// Multiple space-separated classes are supported.
     pub fn class(&mut self, class: String) -> &mut Self {
         self.add_attribute(AttributeType::Graph, String::from("class"), AttributeText::quotted(class))
     }
@@ -665,6 +664,12 @@ impl<'a> GraphBuilder<'a> {
     /// For example, if colorscheme=bugn9, then color=7 is interpreted as color="/bugn9/7".
     pub fn color_scheme(&mut self, color_scheme: String) -> &mut Self {
         self.add_attribute(AttributeType::Graph, String::from("colorscheme"), AttributeText::quotted(color_scheme))
+    }
+
+    /// Comments are inserted into output. Device-dependent
+    pub fn comment(&mut self, comment: String) -> &mut Self {
+        self.comments.push(comment);
+        self
     }
 
     pub fn compound(&mut self, compound: String) -> &mut Self {
@@ -683,16 +688,19 @@ impl<'a> GraphBuilder<'a> {
 
     // color
     // color list
+    /// Color used to fill the background of a node or cluster assuming style=filled, or a filled arrowhead.
     pub fn fill_color(&mut self, fill_color: String) -> &mut Self {
         self.add_attribute(AttributeType::Graph, String::from("fillcolor"), AttributeText::quotted(fill_color))
     }
 
     // color
     // color list
+    /// Color used for text.
     pub fn font_color(&mut self, font_color: String) -> &mut Self {
         self.add_attribute(AttributeType::Graph, String::from("fontcolor"), AttributeText::quotted(font_color))
     }
 
+    /// Font used for text. 
     pub fn font_name(&mut self, font_name: String) -> &mut Self {
         self.add_attribute(AttributeType::Graph, String::from("fontname"), AttributeText::quotted(font_name))
     }
@@ -705,7 +713,8 @@ impl<'a> GraphBuilder<'a> {
         self.add_attribute(AttributeType::Graph, String::from("fontpath"), AttributeText::quotted(font_path))
     }
 
-    // default: 14.0, minimum: 1.0
+    /// Font size, in points, used for text.
+    /// default: 14.0, minimum: 1.0
     pub fn font_size(&mut self, font_size: f32) -> &mut Self {
         self.add_attribute(AttributeType::Graph, String::from("fontsize"), AttributeText::quotted(font_size.to_string()))
     }
@@ -714,10 +723,13 @@ impl<'a> GraphBuilder<'a> {
         self.add_attribute(AttributeType::Graph, String::from("forcelabel"), AttributeText::attr(force_label.to_string()))
     }
 
+    /// If a gradient fill is being used, this determines the angle of the fill.
     pub fn gradient_angle(&mut self, gradient_angle: u32) -> &mut Self {
-        self.add_attribute(AttributeType::Graph, String::from("gradient_angle"), AttributeText::attr(gradient_angle.to_string()))
+        self.add_attribute(AttributeType::Graph, String::from("gradientangle"), AttributeText::attr(gradient_angle.to_string()))
     }
 
+    // TODO: delete and just use url?
+    /// Synonym for URL.
     pub fn href(&mut self, href: String) -> &mut Self {
         self.add_attribute(AttributeType::Graph, String::from("href"), AttributeText::escaped(href))
     }
@@ -797,6 +809,7 @@ impl<'a> GraphBuilder<'a> {
         self.add_attribute(AttributeType::Graph, String::from("lwidth"), AttributeText::attr(lwidth.to_string()))
     }
 
+    // TODO: point
     /// For graphs, this sets x and y margins of canvas, in inches.
     /// If the margin is a single double, both margins are set equal to the given value.
     /// Note that the margin is not part of the drawing but just empty space left around the drawing. 
@@ -1390,6 +1403,8 @@ pub struct NodeBuilder<'a> {
     id: String,
 
     port: Option<String>,
+
+    comment: Option<String>,
     
     attributes: IndexMap<String, AttributeText<'a>>,
 }
@@ -1399,6 +1414,7 @@ impl<'a> NodeBuilder<'a> {
         Self {
             id: id,
             port: None,
+            comment: None,
             attributes: IndexMap::new(),
         }
     }
@@ -1414,25 +1430,274 @@ impl<'a> NodeBuilder<'a> {
     //     self
     // }
 
-    pub fn label<S: Into<Cow<'a, str>>>(&mut self, text: S) -> &mut Self {
-        // self.label = Some(text);
-        self.attributes.insert("label".to_string(), QuottedStr(text.into()));
+    // TODO: constrain
+    /// Indicates the preferred area for a node or empty cluster when laid out by patchwork.
+    /// default: 1.0, minimum: >0
+    pub fn area(&mut self, area: f32) -> &mut Self {
+        self.attributes.insert(String::from("area"), AttributeText::attr(area.to_string()));
         self
     }
 
-    pub fn shape(&mut self, shape: Shape) -> &mut Self {
-        self.attributes.insert("shape".to_string(), AttrStr(shape.as_slice().into()));
+    /// Classnames to attach to the node, edge, graph, or cluster’s SVG element. 
+    /// Combine with stylesheet for styling SVG output using CSS classnames.
+    /// Multiple space-separated classes are supported.
+    pub fn class(&mut self, class: String) -> &mut Self {
+        self.add_attribute(String::from("class"), AttributeText::quotted(class))
+    }
+
+    // color / color list
+    /// Basic drawing color for graphics, not text. For the latter, use the fontcolor attribute.
+    pub fn color(&mut self, color: String) -> &mut Self {
+        self.add_attribute(String::from("color"), AttributeText::quotted(color))
+    }
+
+    /// This attribute specifies a color scheme namespace: the context for interpreting color names.
+    /// In particular, if a color value has form "xxx" or "//xxx", then the color xxx will be evaluated 
+    /// according to the current color scheme. If no color scheme is set, the standard X11 naming is used.
+    /// For example, if colorscheme=bugn9, then color=7 is interpreted as color="/bugn9/7".
+    pub fn color_scheme(&mut self, color_scheme: String) -> &mut Self {
+        self.add_attribute(String::from("colorscheme"), AttributeText::quotted(color_scheme))
+    }
+
+    /// Comments are inserted into output. Device-dependent
+    pub fn comment(&mut self, comment: String) -> &mut Self {
+        self.comment = Some(comment);
         self
+    }
+
+    /// Distortion factor for shape=polygon.
+    /// Positive values cause top part to be larger than bottom; negative values do the opposite.
+    pub fn distortion(&mut self, distortion: f32) -> &mut Self {
+        self.add_attribute(String::from("distortion"), AttributeText::attr(distortion.to_string()))
+    }
+
+    // color
+    // color list
+    /// Color used to fill the background of a node or cluster assuming style=filled, or a filled arrowhead.
+    pub fn fill_color(&mut self, fill_color: String) -> &mut Self {
+        self.add_attribute(String::from("fillcolor"), AttributeText::quotted(fill_color))
+    }
+
+    /// If true, the node size is specified by the values of the width and height attributes only and 
+    /// is not expanded to contain the text label. 
+    /// There will be a warning if the label (with margin) cannot fit within these limits.
+    /// If false, the size of a node is determined by smallest width and height needed to contain its label 
+    /// and image, if any, with a margin specified by the margin attribute.
+    pub fn fixed_size(&mut self, fixed_size: bool) -> &mut Self {
+        self.add_attribute(String::from("fixedsize"), AttributeText::quotted(fixed_size.to_string()))
+    }
+
+    // color
+    // color list
+    /// Color used for text.
+    pub fn font_color(&mut self, font_color: String) -> &mut Self {
+        self.add_attribute(String::from("fontcolor"), AttributeText::quotted(font_color))
+    }
+
+    /// Font used for text. 
+    pub fn font_name(&mut self, font_name: String) -> &mut Self {
+        self.add_attribute(String::from("fontname"), AttributeText::quotted(font_name))
+    }
+
+    /// Font size, in points, used for text.
+    /// default: 14.0, minimum: 1.0
+    pub fn font_size(&mut self, font_size: f32) -> &mut Self {
+        self.add_attribute(String::from("fontsize"), AttributeText::quotted(font_size.to_string()))
+    }
+
+    /// If a gradient fill is being used, this determines the angle of the fill.
+    pub fn gradient_angle(&mut self, gradient_angle: u32) -> &mut Self {
+        self.add_attribute(String::from("gradientangle"), AttributeText::attr(gradient_angle.to_string()))
+    }
+
+    /// If the end points of an edge belong to the same group, i.e., have the same group attribute, 
+    /// parameters are set to avoid crossings and keep the edges straight.
+    pub fn group(&mut self, group: String) -> &mut Self {
+        self.add_attribute(String::from("group"), AttributeText::attr(group))
+    }
+
+    // TODO: constrain
+    /// Height of node, in inches.
+    /// default: 0.5, minimum: 0.02
+    pub fn height(&mut self, height: f32) -> &mut Self {
+        self.add_attribute(String::from("height"), AttributeText::attr(height.to_string()))
+    }
+
+    // TODO: delete and just use url?
+    /// Synonym for URL.
+    pub fn href(&mut self, href: String) -> &mut Self {
+        self.add_attribute(String::from("href"), AttributeText::escaped(href))
+    }
+
+    /// Gives the name of a file containing an image to be displayed inside a node. 
+    /// The image file must be in one of the recognized formats, 
+    /// typically JPEG, PNG, GIF, BMP, SVG, or Postscript, and be able to be converted 
+    /// into the desired output format.
+    pub fn image(&mut self, image: String) -> &mut Self {
+        self.add_attribute(String::from("image"), AttributeText::quotted(image))
+    }
+
+    /// Controls how an image is positioned within its containing node.
+    /// Only has an effect when the image is smaller than the containing node.
+    pub fn image_pos(&mut self, image_pos: ImagePosition) -> &mut Self {
+        self.add_attribute(String::from("imagepos"), AttributeText::quotted(image_pos.as_slice()))
+    }
+
+    /// Controls how an image fills its containing node.
+    pub fn image_scale_bool(&mut self, image_scale: bool) -> &mut Self {
+        self.add_attribute(String::from("imagescale"), AttributeText::quotted(image_scale.to_string()))
+    }
+
+    /// Controls how an image fills its containing node.
+    pub fn image_scale(&mut self, image_scale: ImageScale) -> &mut Self {
+        self.add_attribute(String::from("imagescale"), AttributeText::quotted(image_scale.as_slice()))
+    }
+
+    /// Text label attached to objects.
+    pub fn label<S: Into<Cow<'a, str>>>(&mut self, text: S) -> &mut Self {
+        self.attributes.insert(String::from("label"), QuottedStr(text.into()));
+        self
+    }
+
+    // Vertical placement of labels for nodes, root graphs and clusters.
+    // For graphs and clusters, only labelloc=t and labelloc=b are allowed, corresponding to placement at the top and bottom, respectively.
+    // By default, root graph labels go on the bottom and cluster labels go on the top.
+    // Note that a subgraph inherits attributes from its parent. Thus, if the root graph sets labelloc=b, the subgraph inherits this value.
+    // For nodes, this attribute is used only when the height of the node is larger than the height of its label.
+    // If labelloc=t, labelloc=c, labelloc=b, the label is aligned with the top, centered, or aligned with the bottom of the node, respectively.
+    // By default, the label is vertically centered.
+    pub fn label_location(&mut self, label_location: LabelLocation) -> &mut Self {
+        self.add_attribute(String::from("labelloc"), AttributeText::attr(label_location.as_slice()))
+    }
+
+    /// Specifies layers in which the node, edge or cluster is present.
+    pub fn layer(&mut self, layer: String) -> &mut Self {
+        self.add_attribute(String::from("layer"), AttributeText::attr(layer))
+    }
+
+    // TODO: point
+    /// For nodes, this attribute specifies space left around the node’s label.
+    /// If the margin is a single double, both margins are set equal to the given value.
+    /// Note that the margin is not part of the drawing but just empty space left around the drawing. 
+    /// The margin basically corresponds to a translation of drawing, as would be necessary to center a drawing on a page. 
+    /// Nothing is actually drawn in the margin. To actually extend the background of a drawing, see the pad attribute.
+    /// By default, the value is 0.11,0.055.
+    pub fn margin(&mut self, margin: f32) -> &mut Self {
+        self.add_attribute(String::from("margin"), AttributeText::attr(margin.to_string()))
+    }
+
+    /// By default, the justification of multi-line labels is done within the largest context that makes sense. 
+    /// Thus, in the label of a polygonal node, a left-justified line will align with the left side of the node (shifted by the prescribed margin). 
+    /// In record nodes, left-justified line will line up with the left side of the enclosing column of fields. 
+    /// If nojustify=true, multi-line labels will be justified in the context of itself.
+    /// For example, if nojustify is set, the first label line is long, and the second is shorter and left-justified, 
+    /// the second will align with the left-most character in the first line, regardless of how large the node might be.
+    pub fn no_justify(&mut self, no_justify: bool) -> &mut Self {
+        self.add_attribute(String::from("nojustify"), AttributeText::attr(no_justify.to_string()))
+    }
+
+    /// If ordering="out", then the outedges of a node, that is, edges with the node as its tail node, must appear left-to-right in the same order in which they are defined in the input.
+    /// If ordering="in", then the inedges of a node must appear left-to-right in the same order in which they are defined in the input.
+    /// If defined as a graph or subgraph attribute, the value is applied to all nodes in the graph or subgraph.
+    /// Note that the graph attribute takes precedence over the node attribute.
+    pub fn ordering(&mut self, ordering: Ordering) -> &mut Self {
+        self.add_attribute(String::from("ordering"), AttributeText::attr(ordering.as_slice()))
+    }
+
+    // TODO: constrain to 0 - 360. Docs say min is 360 which should be max right?
+    /// When used on nodes: Angle, in degrees, to rotate polygon node shapes. 
+    /// For any number of polygon sides, 0 degrees rotation results in a flat base.
+    /// When used on graphs: If "[lL]*", sets graph orientation to landscape.
+    /// Used only if rotate is not defined.
+    /// Default: 0.0 and minimum: 360.0
+    pub fn orientation(&mut self, orientation: f32) -> &mut Self {
+        self.add_attribute(String::from("orientation"), AttributeText::attr(orientation.to_string()))
+    }
+
+    /// Specifies the width of the pen, in points, used to draw lines and curves, 
+    /// including the boundaries of edges and clusters.
+    /// default: 1.0, minimum: 0.0
+    pub fn pen_width(&mut self, pen_width: f32) -> &mut Self {
+        self.add_attribute(String::from("penwidth"), AttributeText::attr(pen_width.to_string()))
+    }
+
+    /// Set number of peripheries used in polygonal shapes and cluster boundaries.
+    pub fn peripheries(&mut self, pen_width: u32) -> &mut Self {
+        self.add_attribute(String::from("penwidth"), AttributeText::attr(pen_width.to_string()))
+    }
+
+    /// Position of node, or spline control points.
+    /// the position indicates the center of the node. On output, the coordinates are in points.
+    pub fn pos(&mut self, pos: Point) -> &mut Self {
+        self.add_attribute(String::from("pos"), AttributeText::attr(pos.to_formatted_string()))
+    }
+
+    // TODO: add post_spline
+
+    // TODO: add rect type?
+    // "%f,%f,%f,%f"
+    /// Rectangles for fields of records, in points.
+    pub fn rects(&mut self, rects: String) -> &mut Self {
+        self.add_attribute(String::from("rects"), AttributeText::attr(rects))
+    }
+
+    /// If true, force polygon to be regular, i.e., the vertices of the polygon will 
+    /// lie on a circle whose center is the center of the node.
+    pub fn regular(&mut self, regular: bool) -> &mut Self {
+        self.add_attribute(String::from("regular"), AttributeText::attr(regular.to_string()))
+    }
+
+    /// Gives the number of points used for a circle/ellipse node.
+    pub fn sample_points(&mut self, sample_points: u32) -> &mut Self {
+        self.add_attribute(String::from("samplepoints"), AttributeText::attr(sample_points.to_string()))
+    }
+
+    /// Sets the shape of a node.
+    pub fn shape(&mut self, shape: Shape) -> &mut Self {
+        self.add_attribute(String::from("shape"), AttributeText::attr(shape.as_slice()))
+    }
+
+    // TODO: constrain
+    /// Print guide boxes in PostScript at the beginning of routesplines if showboxes=1, or at the end if showboxes=2.
+    /// (Debugging, TB mode only!)
+    /// default: 0, minimum: 0
+    pub fn show_boxes(&mut self, show_boxes: u32) -> &mut Self {
+        self.add_attribute(String::from("showboxes"), AttributeText::attr(show_boxes.to_string()))
+    }
+
+    /// Number of sides when shape=polygon.
+    pub fn sides(&mut self, sides: u32) -> &mut Self {
+        self.add_attribute(String::from("sides"), AttributeText::attr(sides.to_string()))
+    }
+
+    // TODO: constrain
+    /// Skew factor for shape=polygon.
+    /// Positive values skew top of polygon to right; negative to left.
+    /// default: 0.0, minimum: -100.0
+    pub fn skew(&mut self, skew: f32) -> &mut Self {
+        self.add_attribute(String::from("skew"), AttributeText::attr(skew.to_string()))
+    }
+
+    /// If packmode indicates an array packing, sortv specifies an insertion order 
+    /// among the components, with smaller values inserted first.
+    /// default: 0, minimum: 0
+    pub fn sortv(&mut self, sortv: u32) -> &mut Self {
+        self.add_attribute(String::from("sortv"), AttributeText::attr(sortv.to_string()))
+    }
+
+    /// Set style information for components of the graph.
+    pub fn style(&mut self, style: String) -> &mut Self {
+        self.add_attribute(String::from("style"), AttributeText::attr(style))
     }
 
     /// Add an attribute to the node.
-    pub fn attribute<S: Into<String>>(&mut self, key: S, value: AttributeText<'a>) -> &mut Self {
+    pub fn add_attribute<S: Into<String>>(&mut self, key: S, value: AttributeText<'a>) -> &mut Self {
         self.attributes.insert(key.into(), value);
         self
     }
 
     /// Add multiple attribures to the node.
-    pub fn attributes(&'a mut self, attributes: HashMap<String, AttributeText<'a>>) -> &mut Self {
+    pub fn add_attributes(&'a mut self, attributes: HashMap<String, AttributeText<'a>>) -> &mut Self {
         self.attributes.extend(attributes);
         self
     }
@@ -1446,6 +1711,51 @@ impl<'a> NodeBuilder<'a> {
         }
     }
 }
+
+pub enum ImagePosition {
+    TopLeft,
+    TopCentered,
+    TopRight,
+    MiddleLeft,
+    MiddleCentered,
+    MiddleRight,
+    BottomLeft,
+    BottomCentered,
+    BottomRight,
+}
+
+impl ImagePosition {
+    pub fn as_slice(self) -> &'static str {
+        match self {
+            ImagePosition::TopLeft => "tl",
+            ImagePosition::TopCentered => "tc",
+            ImagePosition::TopRight => "tr",
+            ImagePosition::MiddleLeft => "ml",
+            ImagePosition::MiddleCentered => "mc",
+            ImagePosition::MiddleRight => "mr",
+            ImagePosition::BottomLeft => "bl",
+            ImagePosition::BottomCentered => "bc",
+            ImagePosition::BottomRight => "br",
+        }
+    }
+}
+
+pub enum ImageScale {
+    Width,
+    Height,
+    Both,
+}
+
+impl ImageScale {
+    pub fn as_slice(self) -> &'static str {
+        match self {
+            ImageScale::Width => "width",
+            ImageScale::Height => "height",
+            ImageScale::Both => "both",
+        }
+    }
+}
+
 
 #[derive(Clone, Debug)]
 pub struct Edge<'a> {
@@ -1749,7 +2059,7 @@ fn single_node() {
 #[test]
 fn single_node_with_style() {
     let node = NodeBuilder::new("N0".to_string())
-        .attribute("style", AttributeText::quotted("dashed"))
+        .add_attribute("style", AttributeText::quotted("dashed"))
         .build();
 
     let g = GraphBuilder::new_directed(Some("single_node".to_string()))
@@ -1772,10 +2082,10 @@ fn support_non_inline_builder() {
 
     // TODO: having to split this is stupid. am i doing something wrong?
     let mut node_builder = NodeBuilder::new("N0".to_string());
-    node_builder.attribute("style", AttributeText::quotted("dashed"));
+    node_builder.add_attribute("style", AttributeText::quotted("dashed"));
 
     if true {
-        node_builder.attribute("foo", AttributeText::quotted("baz"));
+        node_builder.add_attribute("foo", AttributeText::quotted("baz"));
     }
 
     let node = node_builder.build();
