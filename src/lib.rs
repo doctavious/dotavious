@@ -1815,6 +1815,8 @@ pub struct Edge<'a> {
 
     pub target: String,
 
+    pub comment: Option<String>,
+
     pub attributes: HashMap<String, AttributeText<'a>>,
 }
 
@@ -1824,6 +1826,7 @@ impl<'a> Edge<'a> {
         Edge {
             source,
             target,
+            comment: None,
             attributes: HashMap::new(),
         }
     }
@@ -1834,6 +1837,8 @@ pub struct EdgeBuilder<'a> {
 
     pub target: String,
     
+    pub comment: Option<String>,
+
     attributes: HashMap<String, AttributeText<'a>>,
 }
 
@@ -1842,18 +1847,171 @@ impl<'a> EdgeBuilder<'a> {
         EdgeBuilder {
             source,
             target,
+            comment: None,
             attributes: HashMap::new(),
         }
     }
 
+    /// Style of arrowhead on the head node of an edge. 
+    /// This will only appear if the dir attribute is forward or both.
+    pub fn arrow_head(&mut self, arrowhead: ArrowType) -> &mut Self {
+        self.add_attribute(String::from("arrowhead"), AttributeText::attr(arrowhead.as_slice()))
+    }
+
+    // TODO: constrain
+    /// Multiplicative scale factor for arrowheads.
+    /// default: 1.0, minimum: 0.0
+    pub fn arrow_size(&mut self, arrow_size: f32) -> &mut Self {
+        self.add_attribute(String::from("arrowsize"), AttributeText::attr(arrow_size.to_string()))
+    }
+
+    /// Style of arrowhead on the tail node of an edge. 
+    /// This will only appear if the dir attribute is back or both.
+    pub fn arrowtail(&mut self, arrowtail: ArrowType) -> &mut Self {
+        self.add_attribute(String::from("arrowtail"), AttributeText::attr(arrowtail.as_slice()))
+    }
+    
+    // color / color list
+    /// Basic drawing color for graphics, not text. For the latter, use the fontcolor attribute.
+    pub fn color(&mut self, color: String) -> &mut Self {
+        self.add_attribute(String::from("color"), AttributeText::quotted(color))
+    }
+
+    /// This attribute specifies a color scheme namespace: the context for interpreting color names.
+    /// In particular, if a color value has form "xxx" or "//xxx", then the color xxx will be evaluated 
+    /// according to the current color scheme. If no color scheme is set, the standard X11 naming is used.
+    /// For example, if colorscheme=bugn9, then color=7 is interpreted as color="/bugn9/7".
+    pub fn color_scheme(&mut self, color_scheme: String) -> &mut Self {
+        self.add_attribute(String::from("colorscheme"), AttributeText::quotted(color_scheme))
+    }
+
+    /// Comments are inserted into output. Device-dependent
+    pub fn comment(&mut self, comment: String) -> &mut Self {
+        self.comment = Some(comment);
+        self
+    }
+
+    /// If false, the edge is not used in ranking the nodes.
+    pub fn constriant(&mut self, constriant: bool) -> &mut Self {
+        self.add_attribute(String::from("constriant"), AttributeText::attr(constriant.to_string()))
+    }
+
+    /// If true, attach edge label to edge by a 2-segment polyline, underlining the label, 
+    /// then going to the closest point of spline.
+    pub fn decorate(&mut self, decorate: bool) -> &mut Self {
+        self.add_attribute(String::from("decorate"), AttributeText::attr(decorate.to_string()))
+    }
+
+    /// Edge type for drawing arrowheads.
+    /// Indicates which ends of the edge should be decorated with an arrowhead.
+    /// The actual style of the arrowhead can be specified using the arrowhead and arrowtail attributes.
+    pub fn dir(&mut self, dir: Direction) -> &mut Self {
+        self.add_attribute(String::from("dir"), AttributeText::attr(dir.as_slice()))
+    }
+
+    /// If the edge has a URL or edgeURL attribute, edgetarget determines which window 
+    /// of the browser is used for the URL attached to the non-label part of the edge.
+    /// Setting edgetarget=_graphviz will open a new window if it doesn’t already exist, or reuse it if it does.
+    pub fn edge_target(&mut self, edge_target: String) -> &mut Self {
+        self.add_attribute(String::from("edgetarget"), AttributeText::escaped(edge_target))
+    }
+
+    /// Tooltip annotation attached to the non-label part of an edge.
+    /// Used only if the edge has a URL or edgeURL attribute.
+    pub fn edge_tooltip(&mut self, edge_tooltip: String) -> &mut Self {
+        self.add_attribute(String::from("edgetooltip"), AttributeText::escaped(edge_tooltip))
+    }
+
+    /// The link for the non-label parts of an edge.
+    /// edgeURL overrides any URL defined for the edge.
+    /// Also, edgeURL is used near the head or tail node unless overridden by headURL or tailURL, respectively.
+    pub fn edge_url(&mut self, edge_url: String) -> &mut Self {
+        self.add_attribute(String::from("edgeurl"), AttributeText::escaped(edge_url))
+    }
+
+    // color
+    // color list
+    /// Color used to fill the background of a node or cluster assuming style=filled, or a filled arrowhead.
+    pub fn fill_color(&mut self, fill_color: String) -> &mut Self {
+        self.add_attribute(String::from("fillcolor"), AttributeText::quotted(fill_color))
+    }
+
+    // color
+    // color list
+    /// Color used for text.
+    pub fn font_color(&mut self, font_color: String) -> &mut Self {
+        self.add_attribute(String::from("fontcolor"), AttributeText::quotted(font_color))
+    }
+
+    /// Font used for text. 
+    pub fn font_name(&mut self, font_name: String) -> &mut Self {
+        self.add_attribute(String::from("fontname"), AttributeText::quotted(font_name))
+    }
+
+    /// Font size, in points, used for text.
+    /// default: 14.0, minimum: 1.0
+    pub fn font_size(&mut self, font_size: f32) -> &mut Self {
+        self.add_attribute(String::from("fontsize"), AttributeText::quotted(font_size.to_string()))
+    }
+
+    /// Position of an edge’s head label, in points. The position indicates the center of the label.
+    pub fn head_lp(&mut self, head_lp: Point) -> &mut Self {
+        self.add_attribute(String::from("head_lp"), AttributeText::quotted(head_lp.to_formatted_string()))
+    }
+
+    /// If true, the head of an edge is clipped to the boundary of the head node; 
+    /// otherwise, the end of the edge goes to the center of the node, or the center 
+    /// of a port, if applicable.
+    pub fn head_clip(&mut self, head_clip: bool) -> &mut Self {
+        self.add_attribute(String::from("headclip"), AttributeText::quotted(head_clip.to_string()))
+    }
+
+    /// Text label to be placed near head of edge.
+    pub fn head_label(&mut self, head_label: String) -> &mut Self {
+        self.add_attribute(String::from("headlabel"), AttributeText::quotted(head_label))
+    }
+
+    // TODO: portPos struct?
+    /// Indicates where on the head node to attach the head of the edge. 
+    /// In the default case, the edge is aimed towards the center of the node, 
+    /// and then clipped at the node boundary.
+    pub fn head_port(&mut self, head_port: String) -> &mut Self {
+        self.add_attribute(String::from("headport"), AttributeText::quotted(head_port))
+    }
+
+    /// If the edge has a headURL, headtarget determines which window of the browser is used for the URL. 
+    /// Setting headURL=_graphviz will open a new window if the window doesn’t already exist, 
+    /// or reuse the window if it does.
+    /// If undefined, the value of the target is used.
+    pub fn head_target(&mut self, head_target: String) -> &mut Self {
+        self.add_attribute(String::from("headtarget"), AttributeText::escaped(head_target))
+    }
+
+    /// Tooltip annotation attached to the head of an edge.
+    /// Used only if the edge has a headURL attribute.
+    pub fn head_tooltip(&mut self, head_tooltip: String) -> &mut Self {
+        self.add_attribute(String::from("headtooltip"), AttributeText::escaped(head_tooltip))
+    }
+
+    /// If defined, headURL is output as part of the head label of the edge.
+    /// Also, this value is used near the head node, overriding any URL value.
+    pub fn head_url(&mut self, head_url: String) -> &mut Self {
+        self.add_attribute(String::from("headURL"), AttributeText::escaped(head_url))
+    }
+
+    /// An escString or an HTML label.
+    pub fn label(&mut self, label: String) -> &mut Self {
+        self.add_attribute(String::from("label"), AttributeText::quotted(label))
+    }
+
     /// Add an attribute to the edge.
-    pub fn attribute<S: Into<String>>(&mut self, key: S, value: AttributeText<'a>) -> &mut Self {
+    pub fn add_attribute<S: Into<String>>(&mut self, key: S, value: AttributeText<'a>) -> &mut Self {
         self.attributes.insert(key.into(), value);
         self
     }
 
     /// Add multiple attribures to the edge.
-    pub fn attributes(&'a mut self, attributes: HashMap<String, AttributeText<'a>>) -> &mut Self {
+    pub fn add_attributes(&'a mut self, attributes: HashMap<String, AttributeText<'a>>) -> &mut Self {
         self.attributes.extend(attributes);
         self
     }
@@ -1863,6 +2021,7 @@ impl<'a> EdgeBuilder<'a> {
             // TODO: are these to_owned and clones necessary?
             source: self.source.to_owned(),
             target: self.target.to_owned(),
+            comment: self.comment.clone(),
             attributes: self.attributes.clone()
         }
     }
@@ -1997,6 +2156,72 @@ impl Shape {
     }
 }
 
+
+pub enum ArrowType {
+    Normal,
+    Dot,
+    Odot,
+    None,
+    Empty,
+    Diamond,
+    Ediamond,
+    Box,
+    Open,
+    Vee,
+    Inv,
+    Invdot,
+    Invodot,
+    Tee,
+    Invempty,
+    Odiamond,
+    Crow,
+    Obox,
+    Halfopen,
+}
+
+impl ArrowType {
+    pub fn as_slice(self) -> &'static str {
+        match self {
+            ArrowType::Normal => "normal",
+            ArrowType::Dot => "dot",
+            ArrowType::Odot => "odot",
+            ArrowType::None => "none",
+            ArrowType::Empty => "empty",
+            ArrowType::Diamond => "diamond",
+            ArrowType::Ediamond => "ediamond",
+            ArrowType::Box => "box",
+            ArrowType::Open => "open",
+            ArrowType::Vee => "vee",
+            ArrowType::Inv => "inv",
+            ArrowType::Invdot => "invdot",
+            ArrowType::Invodot => "invodot",
+            ArrowType::Tee => "tee",
+            ArrowType::Invempty => "invempty",
+            ArrowType::Odiamond => "odiamond",
+            ArrowType::Crow => "crow",
+            ArrowType::Obox => "obox",
+            ArrowType::Halfopen => "halfopen",
+        }
+    }
+}
+
+pub enum Direction {
+    Forward,
+    Back,
+    Both,
+    None,
+}
+
+impl Direction {
+    pub fn as_slice(self) -> &'static str {
+        match self {
+            Direction::Forward => "forward",
+            Direction::Back => "back",
+            Direction::Both => "both",
+            Direction::None => "none",
+        }
+    }
+}
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum RenderOption {
@@ -2197,7 +2422,7 @@ fn single_edge() {
 #[test]
 fn single_edge_with_style() {
     let edge = EdgeBuilder::new("N0".to_string(), "N1".to_string())
-        .attribute("style", AttributeText::quotted("bold"))
+        .add_attribute("style", AttributeText::quotted("bold"))
         .build();
 
     let g = GraphBuilder::new_directed(Some("single_edge".to_string()))
