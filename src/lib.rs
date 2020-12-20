@@ -2004,6 +2004,208 @@ impl<'a> EdgeBuilder<'a> {
         self.add_attribute(String::from("label"), AttributeText::quotted(label))
     }
 
+    // TODO: constrain
+    /// Determines, along with labeldistance, where the headlabel / taillabel are 
+    /// placed with respect to the head / tail in polar coordinates.
+    /// The origin in the coordinate system is the point where the edge touches the node. 
+    /// The ray of 0 degrees goes from the origin back along the edge, parallel to the edge at the origin.
+    /// The angle, in degrees, specifies the rotation from the 0 degree ray, 
+    /// with positive angles moving counterclockwise and negative angles moving clockwise.
+    /// default: -25.0, minimum: -180.0
+    pub fn label_angle(&mut self, label_angle: f32) -> &mut Self {
+        self.add_attribute(String::from("labelangle"), AttributeText::attr(label_angle.to_string()))
+    }
+
+    /// Multiplicative scaling factor adjusting the distance that the headlabel / taillabel is from the head / tail node.
+    /// default: 1.0, minimum: 0.0
+    pub fn label_distance(&mut self, label_distance: f32) -> &mut Self {
+        self.add_attribute(String::from("labeldistance"), AttributeText::attr(label_distance.to_string()))
+    }
+
+    /// If true, allows edge labels to be less constrained in position. 
+    /// In particular, it may appear on top of other edges.
+    pub fn label_float(&mut self, label_float: bool) -> &mut Self {
+        self.add_attribute(String::from("labelfloat"), AttributeText::attr(label_float.to_string()))
+    }
+
+    // TODO: color
+    /// Color used for headlabel and taillabel.
+    pub fn label_font_color(&mut self, label_font_color: String) -> &mut Self {
+        self.add_attribute(String::from("labelfontcolor"), AttributeText::quotted(label_font_color))
+    }
+
+    /// Font used for headlabel and taillabel.
+    /// If not set, defaults to edge’s fontname.
+    pub fn label_font_name(&mut self, label_font_name: String) -> &mut Self {
+        self.add_attribute(String::from("labelfontname"), AttributeText::attr(label_font_name))
+    }
+
+    // TODO: constrains 
+    /// Font size, in points, used for headlabel and taillabel.
+    /// If not set, defaults to edge’s fontsize.
+    /// default: 14.0, minimum: 1.0
+    pub fn label_font_size(&mut self, label_font_size: f32) -> &mut Self {
+        self.add_attribute(String::from("labelfontsize"), AttributeText::attr(label_font_size.to_string()))
+    }
+
+    /// If the edge has a URL or labelURL attribute, this attribute determines
+    ///  which window of the browser is used for the URL attached to the label.
+    pub fn label_target(&mut self, label_target: String) -> &mut Self {
+        self.add_attribute(String::from("labeltarget"), AttributeText::escaped(label_target))
+    }
+
+    /// Tooltip annotation attached to label of an edge.
+    /// Used only if the edge has a URL or labelURL attribute.
+    pub fn label_tooltip(&mut self, label_tooltip: String) -> &mut Self {
+        self.add_attribute(String::from("labeltooltip"), AttributeText::escaped(label_tooltip))
+    }
+
+    /// If defined, labelURL is the link used for the label of an edge.
+    /// labelURL overrides any URL defined for the edge.
+    pub fn label_url(&mut self, label_url: String) -> &mut Self {
+        self.add_attribute(String::from("labelurl"), AttributeText::escaped(label_url))
+    }
+
+    // TODO: layer
+    pub fn layer(&mut self, layer: String) -> &mut Self {
+        self.add_attribute(String::from("layer"), AttributeText::quotted(layer))
+    }
+
+    pub fn lhead(&mut self, lhead: String) -> &mut Self {
+        self.add_attribute(String::from("lhead"), AttributeText::quotted(lhead))
+    }
+
+    /// Logical tail of an edge.
+    /// When compound=true, if ltail is defined and is the name of a cluster 
+    /// containing the real tail, the edge is clipped to the boundary of the cluster.
+    pub fn ltail(&mut self, ltail: String) -> &mut Self {
+        self.add_attribute(String::from("ltail"), AttributeText::quotted(ltail))
+    }
+
+    /// Minimum edge length (rank difference between head and tail).
+    pub fn min_len(&mut self, min_len: u32) -> &mut Self {
+        self.add_attribute(String::from("minlen"), AttributeText::attr(min_len.to_string()))
+    }
+
+    pub fn no_justify(&mut self, no_justify: bool) -> &mut Self {
+        self.add_attribute(String::from("nojustify"), AttributeText::attr(no_justify.to_string()))
+    }
+
+    pub fn pen_width(&mut self, pen_width: f32) -> &mut Self {
+        self.add_attribute(String::from("penwidth"), AttributeText::attr(pen_width.to_string()))
+    }
+
+    /// Position of node, or spline control points.
+    /// the position indicates the center of the node. On output, the coordinates are in points.
+    pub fn pos(&mut self, pos: Point) -> &mut Self {
+        self.add_attribute(String::from("pos"), AttributeText::attr(pos.to_formatted_string()))
+    }
+
+    /// Edges with the same head and the same samehead value are aimed at the same point on the head.
+    pub fn same_head(&mut self, same_head: String) -> &mut Self {
+        self.add_attribute(String::from("samehead"), AttributeText::quotted(same_head))
+    }
+
+    /// Edges with the same tail and the same sametail value are aimed at the same point on the tail.
+    pub fn same_tail(&mut self, same_tail: String) -> &mut Self {
+        self.add_attribute(String::from("sametail"), AttributeText::quotted(same_tail))
+    }
+
+    // TODO: constrain
+    /// Print guide boxes in PostScript at the beginning of routesplines if showboxes=1, or at the end if showboxes=2.
+    /// (Debugging, TB mode only!)
+    /// default: 0, minimum: 0
+    pub fn show_boxes(&mut self, show_boxes: u32) -> &mut Self {
+        self.add_attribute(String::from("showboxes"), AttributeText::attr(show_boxes.to_string()))
+    }
+
+    /// Set style information for components of the graph.
+    pub fn style(&mut self, style: String) -> &mut Self {
+        self.add_attribute(String::from("style"), AttributeText::attr(style))
+    }
+
+    /// Position of an edge’s tail label, in points.
+    /// The position indicates the center of the label.
+    pub fn tail_lp(&mut self, tail_lp: Point) -> &mut Self {
+        self.add_attribute(String::from("tail_lp"), AttributeText::quotted(tail_lp.to_formatted_string()))
+    }
+
+    /// If true, the tail of an edge is clipped to the boundary of the tail node; otherwise, 
+    /// the end of the edge goes to the center of the node, or the center of a port, if applicable.
+    pub fn tail_clip(&mut self, tail_clip: bool) -> &mut Self {
+        self.add_attribute(String::from("tailclip"), AttributeText::quotted(tail_clip.to_string()))
+    }
+
+    /// Text label to be placed near tail of edge.
+    pub fn tail_label(&mut self, tail_label: String) -> &mut Self {
+        self.add_attribute(String::from("taillabel"), AttributeText::quotted(tail_label))
+    }
+
+    // TODO: portPos struct?
+    /// Indicates where on the tail node to attach the tail of the edge.
+    pub fn tail_port(&mut self, tail_port: String) -> &mut Self {
+        self.add_attribute(String::from("tailport"), AttributeText::quotted(tail_port))
+    }
+
+    /// If the edge has a tailURL, tailtarget determines which window of the browser is used for the URL.
+    pub fn tail_target(&mut self, tail_target: String) -> &mut Self {
+        self.add_attribute(String::from("tailtarget"), AttributeText::escaped(tail_target))
+    }
+
+    /// Tooltip annotation attached to the tail of an edge.
+    pub fn tail_tooltip(&mut self, tail_tooltip: String) -> &mut Self {
+        self.add_attribute(String::from("tailtooltip"), AttributeText::escaped(tail_tooltip))
+    }
+
+    /// If defined, tailURL is output as part of the tail label of the edge.
+    /// Also, this value is used near the tail node, overriding any URL value.
+    pub fn tail_url(&mut self, tail_url: String) -> &mut Self {
+        self.add_attribute(String::from("tailURL"), AttributeText::escaped(tail_url))
+    }
+
+    /// If the object has a URL, this attribute determines which window of the browser is used for the URL.
+    pub fn target(&mut self, target: String) -> &mut Self {
+        self.add_attribute(String::from("target"), AttributeText::escaped(target))
+    }
+
+    /// Tooltip annotation attached to the node or edge.
+    /// If unset, Graphviz will use the object’s label if defined. 
+    /// Note that if the label is a record specification or an HTML-like label, 
+    /// the resulting tooltip may be unhelpful. 
+    /// In this case, if tooltips will be generated, the user should set a tooltip attribute explicitly.
+    pub fn tooltip(&mut self, tooltip: String) -> &mut Self {
+        self.add_attribute(String::from("tooltip"), AttributeText::escaped(tooltip))
+    }
+
+    /// Hyperlinks incorporated into device-dependent output. 
+    pub fn url(&mut self, url: String) -> &mut Self {
+        self.add_attribute(String::from("url"), AttributeText::escaped(url))
+    }
+
+    // TODO: contrain
+    /// Weight of edge.
+    /// The heavier the weight, the shorter, straighter and more vertical the edge is.
+    /// default: 1, minimum: 0
+    pub fn weight(&mut self, weight: u32) -> &mut Self {
+        self.add_attribute(String::from("weight"), AttributeText::attr(weight.to_string()))
+    }
+
+    /// External label for a node or edge.
+    /// The label will be placed outside of the node but near it.
+    /// These labels are added after all nodes and edges have been placed.
+    /// The labels will be placed so that they do not overlap any node or label. 
+    /// This means it may not be possible to place all of them. 
+    /// To force placing all of them, set forcelabels=true.
+    pub fn xlabel(&mut self, width: String) -> &mut Self {
+        self.add_attribute(String::from("xlabel"), AttributeText::escaped(width))
+    }
+
+    /// Position of an exterior label, in points.
+    /// The position indicates the center of the label.
+    pub fn xlp(&mut self, xlp: Point) -> &mut Self {
+        self.add_attribute(String::from("xlp"), AttributeText::escaped(xlp.to_formatted_string()))
+    }
+
     /// Add an attribute to the edge.
     pub fn add_attribute<S: Into<String>>(&mut self, key: S, value: AttributeText<'a>) -> &mut Self {
         self.attributes.insert(key.into(), value);
