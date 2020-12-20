@@ -1065,6 +1065,7 @@ impl<'a> GraphBuilder<'a> {
         self.add_attribute(AttributeType::Graph, String::from("truecolor"), AttributeText::attr(true_color.to_string()))
     }
 
+    /// Hyperlinks incorporated into device-dependent output. 
     pub fn url(&mut self, url: String) -> &mut Self {
         self.add_attribute(AttributeType::Graph, String::from("url"), AttributeText::escaped(url))
     }
@@ -1688,6 +1689,56 @@ impl<'a> NodeBuilder<'a> {
     /// Set style information for components of the graph.
     pub fn style(&mut self, style: String) -> &mut Self {
         self.add_attribute(String::from("style"), AttributeText::attr(style))
+    }
+
+    /// If the object has a URL, this attribute determines which window of the browser is used for the URL.
+    pub fn target(&mut self, target: String) -> &mut Self {
+        self.add_attribute(String::from("target"), AttributeText::escaped(target))
+    }
+    
+    /// Tooltip annotation attached to the node or edge.
+    /// If unset, Graphviz will use the object’s label if defined. 
+    /// Note that if the label is a record specification or an HTML-like label, 
+    /// the resulting tooltip may be unhelpful. 
+    /// In this case, if tooltips will be generated, the user should set a tooltip attribute explicitly.
+    pub fn tooltip(&mut self, tooltip: String) -> &mut Self {
+        self.add_attribute(String::from("tooltip"), AttributeText::escaped(tooltip))
+    }
+
+    /// Hyperlinks incorporated into device-dependent output. 
+    pub fn url(&mut self, url: String) -> &mut Self {
+        self.add_attribute(String::from("url"), AttributeText::escaped(url))
+    }
+
+    /// Sets the coordinates of the vertices of the node’s polygon, in inches.
+    /// A list of points, separated by spaces.
+    pub fn vertices(&mut self, vertices: String) -> &mut Self {
+        self.add_attribute(String::from("vertices"), AttributeText::quotted(vertices))
+    }
+
+    /// Width of node, in inches.
+    /// This is taken as the initial, minimum width of the node. 
+    /// If fixedsize is true, this will be the final width of the node. 
+    /// Otherwise, if the node label requires more width to fit, the node’s 
+    /// width will be increased to contain the label.
+    pub fn width(&mut self, width: f32) -> &mut Self {
+        self.add_attribute(String::from("width"), AttributeText::attr(width.to_string()))
+    }
+
+    /// External label for a node or edge.
+    /// The label will be placed outside of the node but near it.
+    /// These labels are added after all nodes and edges have been placed.
+    /// The labels will be placed so that they do not overlap any node or label. 
+    /// This means it may not be possible to place all of them. 
+    /// To force placing all of them, set forcelabels=true.
+    pub fn xlabel(&mut self, width: String) -> &mut Self {
+        self.add_attribute(String::from("xlabel"), AttributeText::escaped(width))
+    }
+
+    /// Position of an exterior label, in points.
+    /// The position indicates the center of the label.
+    pub fn xlp(&mut self, xlp: Point) -> &mut Self {
+        self.add_attribute(String::from("xlp"), AttributeText::escaped(xlp.to_formatted_string()))
     }
 
     /// Add an attribute to the node.
