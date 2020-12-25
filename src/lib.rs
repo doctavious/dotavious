@@ -1135,7 +1135,7 @@ pub enum ClusterMode {
 }
 
 impl ClusterMode {
-    pub fn as_slice(self) -> &'static str {
+    pub fn as_slice(&self) -> &'static str {
         match self {
             ClusterMode::Local => "local",
             ClusterMode::Global => "global",
@@ -1151,7 +1151,7 @@ pub enum LabelJustification {
 }
 
 impl LabelJustification {
-    pub fn as_slice(self) -> &'static str {
+    pub fn as_slice(&self) -> &'static str {
         match self {
             LabelJustification::Left => "l",
             LabelJustification::Right => "r",
@@ -1168,7 +1168,7 @@ pub enum LabelLocation {
 }
 
 impl LabelLocation {
-    pub fn as_slice(self) -> &'static str {
+    pub fn as_slice(&self) -> &'static str {
         match self {
             LabelLocation::Top => "t",
             LabelLocation::Center => "c",
@@ -1183,7 +1183,7 @@ pub enum Ordering {
 }
 
 impl Ordering {
-    pub fn as_slice(self) -> &'static str {
+    pub fn as_slice(&self) -> &'static str {
         match self {
             Ordering::In => "in",
             Ordering::Out => "out",
@@ -1206,7 +1206,7 @@ pub enum OutputMode {
 }
 
 impl OutputMode {
-    pub fn as_slice(self) -> &'static str {
+    pub fn as_slice(&self) -> &'static str {
         match self {
             OutputMode::BreadthFirst => "breadthfirst",
             OutputMode::NodesFirst => "nodesfirst",
@@ -1234,7 +1234,7 @@ pub enum PackMode {
 }
 
 impl PackMode {
-    pub fn as_slice(self) -> &'static str {
+    pub fn as_slice(&self) -> &'static str {
         match self {
             PackMode::Node => "node",
             PackMode::Cluster => "clust",
@@ -1274,7 +1274,7 @@ impl Point {
     }
 
     // TODO: change to to_dot_string / print_dot
-    pub fn to_formatted_string(self) -> String { 
+    pub fn to_formatted_string(&self) -> String {
         let mut slice = format!("{},{}", self.x, self.y);
         if self.z.is_some() {
             slice.push_str(format!(",{}", self.z.unwrap()).as_str());
@@ -1298,7 +1298,7 @@ pub enum PageDirection {
 }
 
 impl PageDirection {
-    pub fn as_slice(self) -> &'static str {
+    pub fn as_slice(&self) -> &'static str {
         match self {
             PageDirection::BottomLeft => "BL",
             PageDirection::BottomRight => "BR",
@@ -1320,7 +1320,7 @@ pub enum RankDir {
 }
 
 impl RankDir {
-    pub fn as_slice(self) -> &'static str {
+    pub fn as_slice(&self) -> &'static str {
         match self {
             RankDir::TopBottom => "TB",
             RankDir::LeftRight => "LR",
@@ -1340,7 +1340,7 @@ pub enum Splines {
 }
 
 impl Splines {
-    pub fn as_slice(self) -> &'static str {
+    pub fn as_slice(&self) -> &'static str {
         match self {
             Splines::Line => "line",
             Splines::Spline => "spline",
@@ -1362,18 +1362,18 @@ pub struct SplineType {
 impl SplineType {
 
     // TODO: is this implementation correct?
-    pub fn to_dot_string(self) -> String { 
+    pub fn to_dot_string(&self) -> String {
         let mut dot_string = "".to_owned();
 
-        if let Some(end) = self.end {
+        if let Some(end) = &self.end {
             dot_string.push_str(format!("e,{},{} ", end.x, end.y).as_str())
         }
 
-        if let Some(start) = self.start {
+        if let Some(start) = &self.start {
             dot_string.push_str(format!("s,{},{} ", start.x, start.y).as_str())
         }
 
-        for s in self.spline_points {
+        for s in &self.spline_points {
             dot_string.push_str(format!("{}", s.to_formatted_string()).as_str())
         }
 
@@ -1500,7 +1500,7 @@ pub enum ImagePosition {
 }
 
 impl ImagePosition {
-    pub fn as_slice(self) -> &'static str {
+    pub fn as_slice(&self) -> &'static str {
         match self {
             ImagePosition::TopLeft => "tl",
             ImagePosition::TopCentered => "tc",
@@ -1522,7 +1522,7 @@ pub enum ImageScale {
 }
 
 impl ImageScale {
-    pub fn as_slice(self) -> &'static str {
+    pub fn as_slice(&self) -> &'static str {
         match self {
             ImageScale::Width => "width",
             ImageScale::Height => "height",
@@ -2572,7 +2572,7 @@ pub enum Shape {
 }
 
 impl Shape {
-    pub fn as_slice(self) -> &'static str {
+    pub fn as_slice(&self) -> &'static str {
         match self {
             Shape::Box => "box",
             Shape::Polygon => "polygon",
@@ -2661,7 +2661,7 @@ pub enum ArrowType {
 }
 
 impl ArrowType {
-    pub fn as_slice(self) -> &'static str {
+    pub fn as_slice(&self) -> &'static str {
         match self {
             ArrowType::Normal => "normal",
             ArrowType::Dot => "dot",
@@ -2694,7 +2694,7 @@ pub enum Direction {
 }
 
 impl Direction {
-    pub fn as_slice(self) -> &'static str {
+    pub fn as_slice(&self) -> &'static str {
         match self {
             Direction::Forward => "forward",
             Direction::Back => "back",
@@ -2744,7 +2744,7 @@ pub enum Color<'a> {
 
 impl<'a> Color<'a> {
  
-    pub fn to_dot_string(self) -> String { 
+    pub fn to_dot_string(&self) -> String {
         match self {
             Color::RGB { red, green, blue } => {
                 format!("#{}{}{}", red, green, blue)
@@ -2794,7 +2794,7 @@ pub enum Style {
 }
 
 impl Style {
-    pub fn as_slice(self) -> &'static str {
+    pub fn as_slice(&self) -> &'static str {
         match self {
             Style::None => "",
             Style::Solid => "solid",
