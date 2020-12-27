@@ -164,7 +164,7 @@ pub enum Compass {
 }
 
 impl Compass {
-    pub fn as_slice(self) -> &'static str {
+    pub fn as_slice(&self) -> &'static str {
         match self {
             Compass::N => "n",
             Compass::NE => "ne",
@@ -180,17 +180,12 @@ impl Compass {
 }
 
 // TODO: probably dont need this struct and can move impl methods into lib module
-// pub struct Dot<'a, Ty> {
 pub struct Dot<'a> {
-    // graph: Graph<'a, Ty>,
     graph: Graph<'a>
     //config: Config,
 }
 
-// impl<'a, Ty> Dot<'a, Ty> 
-// where Ty: GraphType
-impl<'a> Dot<'a>
-{
+impl<'a> Dot<'a> {
 
     /// Renders directed graph `g` into the writer `w` in DOT syntax.
     /// (Simple wrapper around `render_opts` that passes a default set of options.)
@@ -2739,7 +2734,8 @@ pub enum Color<'a> {
         saturation: f32,
         value: f32
     },
-    X11(X11<'a>),
+    // TODO: change this to Named?
+    Named(NamedColor<'a>),
 }
 
 impl<'a> Color<'a> {
@@ -2755,7 +2751,7 @@ impl<'a> Color<'a> {
             Color::HSV { hue, saturation, value } => {
                 format!("{} {} {}", hue, saturation, value)
             },
-            Color::X11(color) => {
+            Color::Named(color) => {
                 color.name.to_string()
             }
         }
@@ -2763,18 +2759,51 @@ impl<'a> Color<'a> {
 }
 
 // TODO: is this better then just using str?
-pub struct X11<'a> {
+pub struct NamedColor<'a> {
     name: Cow<'a, str>
 }
 
-impl<'a> X11<'a> {
-    pub fn new<S>(name: S) -> X11<'a>
+impl<'a> NamedColor<'a> {
+    pub fn new<S>(name: S) -> NamedColor<'a>
         where S: Into<Cow<'a, str>>
     {
-        X11 { name: name.into() }
+        NamedColor { name: name.into() }
     }
 }
 
+// The sum of the optional weightings must sum to at most 1.
+pub struct WeightedColor<'a> {
+    color: Color<'a>,
+
+    // Must be in range 0 <= W <= 1.
+    weight: Option<f32>
+}
+
+impl<'a> WeightedColor<'a> {
+
+    pub fn to_dot_string(&self) -> String {
+        let mut dot_string = self.color.to_dot_string();
+        if let Some(weight) = &self.weight {
+            dot_string.push_str(format!(";{}", weight).as_str());
+        }
+        dot_string
+    }
+
+}
+
+// type ColorList<'a> = Vec<WeightedColor<'a>>;
+pub struct ColorList<'a> {
+    colors: Vec<WeightedColor<'a>>,
+}
+impl<'a> ColorList<'a> {
+    // TODO: verify correct string
+    // A colon-separated list of weighted color values: WC(:WC)* where each WC has the form C(;F)?
+    // Ex: fillcolor=yellow;0.3:blue
+    // I think this is wrong for 1 element in list
+    pub fn to_dot_string(&self) -> String {
+        self.colors.iter().fold(String::new(), |a, b| a + &b.to_dot_string() + ":")
+    }
+}
 
 /// The style for a node or edge.
 /// See <http://www.graphviz.org/doc/info/attrs.html#k:style> for descriptions.
