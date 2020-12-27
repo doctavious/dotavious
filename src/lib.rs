@@ -2734,8 +2734,7 @@ pub enum Color<'a> {
         saturation: f32,
         value: f32
     },
-    // TODO: change this to Named?
-    Named(NamedColor<'a>),
+    Named(&'a str),
 }
 
 impl<'a> Color<'a> {
@@ -2752,22 +2751,9 @@ impl<'a> Color<'a> {
                 format!("{} {} {}", hue, saturation, value)
             },
             Color::Named(color) => {
-                color.name.to_string()
+                (*color).to_string()
             }
         }
-    }
-}
-
-// TODO: is this better then just using str?
-pub struct NamedColor<'a> {
-    name: Cow<'a, str>
-}
-
-impl<'a> NamedColor<'a> {
-    pub fn new<S>(name: S) -> NamedColor<'a>
-        where S: Into<Cow<'a, str>>
-    {
-        NamedColor { name: name.into() }
     }
 }
 
@@ -2796,12 +2782,22 @@ pub struct ColorList<'a> {
     colors: Vec<WeightedColor<'a>>,
 }
 impl<'a> ColorList<'a> {
-    // TODO: verify correct string
     // A colon-separated list of weighted color values: WC(:WC)* where each WC has the form C(;F)?
     // Ex: fillcolor=yellow;0.3:blue
-    // I think this is wrong for 1 element in list
     pub fn to_dot_string(&self) -> String {
-        self.colors.iter().fold(String::new(), |a, b| a + &b.to_dot_string() + ":")
+        let mut dot_string = String::new();
+        let mut iter = self.colors.iter();
+        let first = iter.next();
+        if first.is_none() {
+            return dot_string;
+        }
+        dot_string.push_str(first.unwrap().to_dot_string().as_str());
+        for weighted_color in iter {
+            dot_string.push_str(":");
+            dot_string.push_str(weighted_color.to_dot_string().as_str())
+        }
+
+        dot_string
     }
 }
 
@@ -3129,6 +3125,28 @@ fn single_edge_with_style() {
 }
 "#
     );
+}
+
+// yellow;0.3:blue
+#[test]
+fn colorlist_dot_string() {
+    let yellow = WeightedColor {
+        color: Color::Named("yellow"),
+        weight: Some(0.3)
+    };
+
+    let blue = WeightedColor {
+        color: Color::Named("blue"),
+        weight: None
+    };
+
+    let color_list = ColorList {
+        colors: vec![yellow, blue]
+    };
+
+    let dot_string = color_list.to_dot_string();
+
+    assert_eq!("yellow;0.3:blue", dot_string);
 }
 
 #[test]
