@@ -282,7 +282,6 @@ pub enum AttributeType {
     Graph,
     Node,
     Edge,
-    None
 }
 
 pub struct Graph<'a> {
@@ -442,7 +441,7 @@ impl<'a> GraphBuilder<'a> {
     ) -> &mut Self {
         match attribute_type {
 
-            AttributeType::Graph | AttributeType::None => {
+            AttributeType::Graph => {
                 if self.graph_attributes.is_none() {
                     self.graph_attributes = Some(GraphAttributeStatement::new());
                 }
@@ -495,7 +494,7 @@ impl<'a> GraphBuilder<'a> {
 }
 
 
-trait GraphAttributes<'a> {
+pub trait GraphAttributes<'a> {
 
     fn background(&mut self, background: String) -> &mut Self {
         self.add_attribute("_background", AttributeText::attr(background))
@@ -586,10 +585,23 @@ trait GraphAttributes<'a> {
         self
     }
 
-    /// Color used to fill the background, with a graident, of a node or cluster assuming
+    /// Color used to fill the background, with a gradient, of a node or cluster assuming
     /// style=filled, or a filled arrowhead.
-    fn fill_colorlist(&mut self, fill_colors: ColorList) -> &mut Self {
-        Attributes::fill_colorlist(self.get_attributes_mut(), fill_colors);
+    fn fill_color_with_colorlist(&mut self, fill_colors: ColorList) -> &mut Self {
+        Attributes::fill_color_with_colorlist(self.get_attributes_mut(), fill_colors);
+        self
+    }
+
+    /// Color used to fill the background, with a gradient, of a node or cluster assuming
+    /// style=filled, or a filled arrowhead.
+    /// TODO: example
+    /// [crate::GraphAttributes::dpi]
+    fn fill_color_with_iter<I>(&mut self, fill_colors: I) -> &mut Self
+    where
+        I: IntoIterator,
+        I::Item: IntoWeightedColor<'a>,
+    {
+        Attributes::fill_color_with_iter(self.get_attributes_mut(), fill_colors);
         self
     }
 
@@ -1621,10 +1633,28 @@ trait NodeAttributes<'a> {
         self.add_attribute("distortion", AttributeText::attr(distortion.to_string()))
     }
 
-    // color list
     /// Color used to fill the background of a node or cluster assuming style=filled, or a filled arrowhead.
     fn fill_color(&mut self, fill_color: Color) -> &mut Self {
         Attributes::fill_color(self.get_attributes_mut(), fill_color);
+        self
+    }
+
+    /// Color used to fill the background, with a gradient, of a node or cluster assuming
+    /// style=filled, or a filled arrowhead.
+    fn fill_color_with_colorlist(&mut self, fill_colors: ColorList) -> &mut Self {
+        Attributes::fill_color_with_colorlist(self.get_attributes_mut(), fill_colors);
+        self
+    }
+
+    /// Color used to fill the background, with a gradient, of a node or cluster assuming
+    /// style=filled, or a filled arrowhead.
+    /// TODO: example
+    fn fill_color_with_iter<I>(&mut self, fill_colors: I) -> &mut Self
+        where
+            I: IntoIterator,
+            I::Item: IntoWeightedColor<'a>,
+    {
+        Attributes::fill_color_with_iter(self.get_attributes_mut(), fill_colors);
         self
     }
 
@@ -2665,6 +2695,7 @@ pub fn default_options() -> Vec<RenderOption> {
 }
 
 // TODO: is this a good representation of color?
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum Color<'a> {
     RGB {
         red: u8,
@@ -2751,6 +2782,25 @@ impl<'a> ColorList<'a> {
     }
 }
 
+/// Convert an element like `(i, j)` or `(i, j, w)` into
+/// a triple of source, target, edge weight.
+///
+/// For `Graph::from_edges` and `GraphMap::from_edges`.
+pub trait IntoWeightedColor<'a> {
+    fn into_weighted_color(self) -> WeightedColor<'a>;
+}
+
+impl<'a> IntoWeightedColor<'a> for &'a (Color<'a>, Option<f32>)
+{
+    fn into_weighted_color(self) -> WeightedColor<'a> {
+        let (s, t) = *self;
+        WeightedColor {
+            color: s,
+            weight: t
+        }
+    }
+}
+
 /// The style for a node or edge.
 /// See <http://www.graphviz.org/doc/info/attrs.html#k:style> for descriptions.
 /// Note that some of these are not valid for edges.
@@ -2808,8 +2858,24 @@ impl Attributes {
         Self::add_attribute(attributes, "fillcolor", AttributeText::quotted(fill_color.to_dot_string()))
     }
 
-    fn fill_colorlist(attributes: &mut IndexMap<String, AttributeText>, fill_colors: ColorList) {
+    fn fill_color_with_colorlist(attributes: &mut IndexMap<String, AttributeText>, fill_colors: ColorList) {
         Self::add_attribute(attributes, "fillcolor", AttributeText::quotted(fill_colors.to_dot_string()))
+    }
+
+    fn fill_color_with_iter<'a, I>(attributes: &mut IndexMap<String, AttributeText>, fill_colors: I)
+    where
+        I: IntoIterator,
+        I::Item: IntoWeightedColor<'a>,
+    {
+        let colors:Vec<WeightedColor> = fill_colors.into_iter()
+            .map(|e| e.into_weighted_color())
+            .collect();
+
+        let color_list = ColorList {
+            colors
+        };
+
+        Self::add_attribute(attributes, "fillcolor", AttributeText::quotted(color_list.to_dot_string()))
     }
 
     fn font_color(attributes: &mut IndexMap<String, AttributeText>, font_color: Color) {
@@ -2910,8 +2976,6 @@ impl Attributes {
     }
 }
 
-// fn test_input<Ty>(g: Graph<Ty>) -> io::Result<String> 
-// where Ty: GraphType
 fn test_input(g: Graph) -> io::Result<String> 
 {
     let mut writer = Vec::new();
@@ -3101,6 +3165,31 @@ fn colorlist_dot_string() {
     let dot_string = color_list.to_dot_string();
 
     assert_eq!("yellow;0.3:blue", dot_string);
+}
+
+// TODO: improve test
+#[test]
+fn colorlist2_dot_string() {
+    let graph_attributes = GraphAttributeStatementBuilder::new()
+        .fill_color_with_iter(&[
+            (Color::Named("yellow"), Some(0.3)),
+            (Color::Named("blue"), None)
+        ])
+        .build();
+
+    let g = GraphBuilder::new_directed(Some("graph_attributes".to_string()))
+        .add_graph_attributes(graph_attributes)
+        .build();
+
+    let r = test_input(g);
+
+    assert_eq!(
+        r.unwrap(),
+        r#"digraph graph_attributes {
+    graph [fillcolor="yellow;0.3:blue"];
+}
+"#
+    );
 }
 
 #[test]
