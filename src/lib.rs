@@ -3,7 +3,7 @@
 use AttributeText::*;
 use indexmap::IndexMap;
 use std;
-use std::borrow::Cow;
+use std::borrow::{Cow};
 use std::collections::HashMap;
 use std::io;
 use std::io::prelude::*;
@@ -318,7 +318,7 @@ impl<'a> Graph<'a> {
         nodes: Vec<Node<'a>>,
         edges: Vec<Edge<'a>>,
     ) -> Self {
-        Graph {
+        Self {
             id,
             is_directed,
             strict,
@@ -722,7 +722,6 @@ pub trait GraphAttributes<'a> {
         self.add_attribute("lwidth", AttributeText::attr(lwidth.to_string()))
     }
 
-    // TODO: point
     /// For graphs, this sets x and y margins of canvas, in inches.
     /// If the margin is a single double, both margins are set equal to the given value.
     /// Note that the margin is not part of the drawing but just empty space left around the drawing. 
@@ -733,6 +732,11 @@ pub trait GraphAttributes<'a> {
     /// By default, the value is 0.11,0.055.
     fn margin(&mut self, margin: f32) -> &mut Self {
         Attributes::margin(self.get_attributes_mut(), margin);
+        self
+    }
+
+    fn margin_point(&mut self, margin: Point) -> &mut Self {
+        Attributes::margin_point(self.get_attributes_mut(), margin);
         self
     }
 
@@ -868,18 +872,18 @@ pub trait GraphAttributes<'a> {
     }
 
     /// Sets direction of graph layout.
-    /// For example, if rankdir="LR", and barring cycles, an edge T -> H; will go from left to right. 
+    /// For example, if rankdir="LR", and barring cycles, an edge T -> H; will go from left to right.
     /// By default, graphs are laid out from top to bottom.
-    /// This attribute also has a side-effect in determining how record nodes are interpreted. 
+    /// This attribute also has a side-effect in determining how record nodes are interpreted.
     /// See record shapes.
     fn rank_dir(&mut self, rank_dir: RankDir) -> &mut Self {
         self.add_attribute("rankdir", AttributeText::attr(rank_dir.as_slice()))
     }
 
     /// sets the desired rank separation, in inches.
-    /// This is the minimum vertical distance between the bottom of the nodes in one rank 
-    /// and the tops of nodes in the next. If the value contains equally, 
-    /// the centers of all ranks are spaced equally apart. 
+    /// This is the minimum vertical distance between the bottom of the nodes in one rank
+    /// and the tops of nodes in the next. If the value contains equally,
+    /// the centers of all ranks are spaced equally apart.
     /// Note that both settings are possible, e.g., ranksep="1.2 equally".
     fn rank_sep(&mut self, rank_sep: String) -> &mut Self {
         self.add_attribute("ranksep", AttributeText::attr(rank_sep))
@@ -1015,20 +1019,19 @@ pub trait GraphAttributes<'a> {
 }
 
 impl<'a> GraphAttributes<'a> for GraphAttributeStatementBuilder<'a> {
-
-    fn get_attributes_mut(&mut self) -> &mut IndexMap<String, AttributeText<'a>> {
-        &mut self.attributes
-    }
-
     fn add_attribute<S: Into<String>>(&mut self, key: S, value: AttributeText<'a>) -> &mut Self {
         self.attributes.insert(key.into(), value);
         self
     }
 
-    /// Add multiple attribures to the node.
+    /// Add multiple attributes to the node.
     fn add_attributes(&'a mut self, attributes: HashMap<String, AttributeText<'a>>) -> &mut Self {
         self.attributes.extend(attributes);
         self
+    }
+
+    fn get_attributes_mut(&mut self) -> &mut IndexMap<String, AttributeText<'a>> {
+        &mut self.attributes
     }
 }
 
@@ -1098,6 +1101,36 @@ impl ClusterMode {
             ClusterMode::None => "none",
         }
     }
+}
+
+pub enum Ratio {
+    Aspect(f32),
+    Fill,
+    Compress,
+    Expand,
+    Auto,
+}
+
+impl Ratio {
+
+    // TODO: should this return AttributeText?
+    // that way we dont have to quote aspect?
+    pub fn to_string(&self) -> String {
+        match self {
+            Ratio::Aspect(aspect) => aspect.to_string(),
+            Ratio::Fill => String::from("fill"),
+            Ratio::Compress => String::from("compress"),
+            Ratio::Expand => String::from("expand"),
+            Ratio::Auto => String::from("auto"),
+        }
+    }
+}
+
+trait DotString {
+
+    fn to_text(&self) -> AttributeText;
+
+    fn to_string(&self) -> String;
 }
 
 pub enum LabelJustification {
@@ -1605,10 +1638,14 @@ trait NodeAttributes<'a> {
         self
     }
 
-    // color / color list
     /// Basic drawing color for graphics, not text. For the latter, use the fontcolor attribute.
     fn color(&mut self, color: Color) -> &mut Self {
         Attributes::color(self.get_attributes_mut(), color);
+        self
+    }
+
+    fn color_with_colorlist(&mut self, color: ColorList) -> &mut Self {
+        Attributes::color_with_colorlist(self.get_attributes_mut(), color);
         self
     }
 
@@ -1667,7 +1704,6 @@ trait NodeAttributes<'a> {
         self.add_attribute("fixedsize", AttributeText::quotted(fixed_size.to_string()))
     }
 
-    // TODO: color list
     /// Color used for text.
     fn font_color(&mut self, font_color: Color) -> &mut Self {
         Attributes::font_color(self.get_attributes_mut(), font_color);
@@ -1704,12 +1740,6 @@ trait NodeAttributes<'a> {
     /// default: 0.5, minimum: 0.02
     fn height(&mut self, height: f32) -> &mut Self {
         self.add_attribute("height", AttributeText::attr(height.to_string()))
-    }
-
-    // TODO: delete and just use url?
-    /// Synonym for URL.
-    fn href(&mut self, href: String) -> &mut Self {
-        self.add_attribute("href", AttributeText::escaped(href))
     }
 
     /// Gives the name of a file containing an image to be displayed inside a node. 
@@ -1759,7 +1789,6 @@ trait NodeAttributes<'a> {
         self
     }
 
-    // TODO: point
     /// For nodes, this attribute specifies space left around the node’s label.
     /// If the margin is a single double, both margins are set equal to the given value.
     /// Note that the margin is not part of the drawing but just empty space left around the drawing. 
@@ -1768,6 +1797,11 @@ trait NodeAttributes<'a> {
     /// By default, the value is 0.11,0.055.
     fn margin(&mut self, margin: f32) -> &mut Self {
         Attributes::margin(self.get_attributes_mut(), margin);
+        self
+    }
+
+    fn margin_point(&mut self, margin: Point) -> &mut Self {
+        Attributes::margin_point(self.get_attributes_mut(), margin);
         self
     }
 
@@ -2047,10 +2081,14 @@ trait EdgeAttributes<'a> {
         self
     }
 
-    // color / color list
     /// Basic drawing color for graphics, not text. For the latter, use the fontcolor attribute.
     fn color(&mut self, color: Color) -> &mut Self {
         Attributes::color(self.get_attributes_mut(), color);
+        self
+    }
+
+    fn color_with_colorlist(&mut self, color: ColorList) -> &mut Self {
+        Attributes::color_with_colorlist(self.get_attributes_mut(), color);
         self
     }
 
@@ -2846,6 +2884,10 @@ impl Attributes {
         Self::add_attribute(attributes,"color", AttributeText::quotted(color.to_dot_string()))
     }
     
+    fn color_with_colorlist<'a>(attributes: &mut IndexMap<String, AttributeText>, color: ColorList<'a>) {
+        Self::add_attribute(attributes,"color", AttributeText::quotted(color.to_dot_string()))
+    }
+
     fn color_scheme(attributes: &mut IndexMap<String, AttributeText>, color_scheme: String) {
         Self::add_attribute(attributes, "colorscheme", AttributeText::quotted(color_scheme))
     }
@@ -2914,7 +2956,11 @@ impl Attributes {
     fn margin(attributes: &mut IndexMap<String, AttributeText>, margin: f32) {
         Self::add_attribute(attributes, "margin", AttributeText::attr(margin.to_string()))
     }
-    
+
+    fn margin_point(attributes: &mut IndexMap<String, AttributeText>, margin: Point) {
+        Self::add_attribute(attributes, "margin", AttributeText::attr(margin.to_formatted_string()))
+    }
+
     fn no_justify(attributes: &mut IndexMap<String, AttributeText>, no_justify: bool) {
         Self::add_attribute(attributes, "nojustify", AttributeText::attr(no_justify.to_string()))
     }
