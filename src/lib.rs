@@ -69,7 +69,7 @@ impl<'a> AttributeText<'a> {
         HtmlStr(s.into())
     }
 
-    pub fn quotted<S: Into<Cow<'a, str>>>(s: S) -> AttributeText<'a> {
+    pub fn quoted<S: Into<Cow<'a, str>>>(s: S) -> AttributeText<'a> {
         QuottedStr(s.into())
     }
 
@@ -502,7 +502,7 @@ pub trait GraphAttributes<'a> {
 
     /// The color used as the background for entire canvas.
     fn background_color(&mut self, background_color: Color) -> &mut Self {
-        self.add_attribute("bgcolor", AttributeText::quotted(background_color.to_dot_string()))
+        self.add_attribute("bgcolor", AttributeText::quoted(background_color.to_dot_string()))
     }
 
     // TODO: constrain
@@ -511,14 +511,14 @@ pub trait GraphAttributes<'a> {
     /// with C a color value and the optional F a floating-point number, 0 ≤ F ≤ 1.
     /// The sum of the floating-point numbers in a colorList must sum to at most 1.
     fn background_colorlist(&mut self, background_colors: ColorList) -> &mut Self {
-        self.add_attribute("bgcolor", AttributeText::quotted(background_colors.to_dot_string()))
+        self.add_attribute("bgcolor", AttributeText::quoted(background_colors.to_dot_string()))
     }
 
     /// Type: rect which is "%f,%f,%f,%f"
     /// The rectangle llx,lly,urx,ury gives the coordinates, in points, of the lower-left corner (llx,lly) 
     /// and the upper-right corner (urx,ury).
     fn bounding_box(&mut self, bounding_box: String) -> &mut Self {
-        self.add_attribute("bb", AttributeText::quotted(bounding_box))
+        self.add_attribute("bb", AttributeText::quoted(bounding_box))
     }
 
     /// If true, the drawing is centered in the output canvas.
@@ -528,7 +528,7 @@ pub trait GraphAttributes<'a> {
 
     /// Specifies the character encoding used when interpreting string input as a text label.
     fn charset(&mut self, charset: String) -> &mut Self {
-        self.add_attribute("charset", AttributeText::quotted(charset))
+        self.add_attribute("charset", AttributeText::quoted(charset))
     }
 
     /// Classnames to attach to the node, edge, graph, or cluster’s SVG element. 
@@ -547,7 +547,7 @@ pub trait GraphAttributes<'a> {
     /// Note also that there can be clusters within clusters.
     /// The modes clusterrank=global and clusterrank=none appear to be identical, both turning off the special cluster processing.
     fn cluster_rank(&mut self, cluster_rank: ClusterMode) -> &mut Self {
-        self.add_attribute("clusterrank", AttributeText::quotted(cluster_rank.as_slice()))
+        self.add_attribute("clusterrank", AttributeText::quoted(cluster_rank.as_slice()))
     }
 
     /// This attribute specifies a color scheme namespace: the context for interpreting color names.
@@ -566,17 +566,17 @@ pub trait GraphAttributes<'a> {
     }
 
     fn compound(&mut self, compound: String) -> &mut Self {
-        self.add_attribute("compound", AttributeText::quotted(compound))
+        self.add_attribute("compound", AttributeText::quoted(compound))
     }
 
     fn concentrate(&mut self, concentrate: String) -> &mut Self {
-        self.add_attribute("concentrate", AttributeText::quotted(concentrate))
+        self.add_attribute("concentrate", AttributeText::quoted(concentrate))
     }
 
     /// Specifies the expected number of pixels per inch on a display device.
     /// Also known as resolution
     fn dpi(&mut self, dpi: f32) -> &mut Self {
-        self.add_attribute("dpi", AttributeText::quotted(dpi.to_string()))
+        self.add_attribute("dpi", AttributeText::quoted(dpi.to_string()))
     }
 
     /// Color used to fill the background of a node or cluster assuming style=filled, or a filled arrowhead.
@@ -618,11 +618,11 @@ pub trait GraphAttributes<'a> {
     }
 
     fn font_names(&mut self, font_names: String) -> &mut Self {
-        self.add_attribute("fontnames", AttributeText::quotted(font_names))
+        self.add_attribute("fontnames", AttributeText::quoted(font_names))
     }
     
     fn font_path(&mut self, font_path: String) -> &mut Self {
-        self.add_attribute("fontpath", AttributeText::quotted(font_path))
+        self.add_attribute("fontpath", AttributeText::quoted(font_path))
     }
 
     // TODO: constrain
@@ -1701,7 +1701,7 @@ trait NodeAttributes<'a> {
     /// If false, the size of a node is determined by smallest width and height needed to contain its label 
     /// and image, if any, with a margin specified by the margin attribute.
     fn fixed_size(&mut self, fixed_size: bool) -> &mut Self {
-        self.add_attribute("fixedsize", AttributeText::quotted(fixed_size.to_string()))
+        self.add_attribute("fixedsize", AttributeText::quoted(fixed_size.to_string()))
     }
 
     /// Color used for text.
@@ -1747,28 +1747,28 @@ trait NodeAttributes<'a> {
     /// typically JPEG, PNG, GIF, BMP, SVG, or Postscript, and be able to be converted 
     /// into the desired output format.
     fn image(&mut self, image: String) -> &mut Self {
-        self.add_attribute("image", AttributeText::quotted(image))
+        self.add_attribute("image", AttributeText::quoted(image))
     }
 
     /// Controls how an image is positioned within its containing node.
     /// Only has an effect when the image is smaller than the containing node.
     fn image_pos(&mut self, image_pos: ImagePosition) -> &mut Self {
-        self.add_attribute("imagepos", AttributeText::quotted(image_pos.as_slice()))
+        self.add_attribute("imagepos", AttributeText::quoted(image_pos.as_slice()))
     }
 
     /// Controls how an image fills its containing node.
     fn image_scale_bool(&mut self, image_scale: bool) -> &mut Self {
-        self.add_attribute("imagescale", AttributeText::quotted(image_scale.to_string()))
+        self.add_attribute("imagescale", AttributeText::quoted(image_scale.to_string()))
     }
 
     /// Controls how an image fills its containing node.
     fn image_scale(&mut self, image_scale: ImageScale) -> &mut Self {
-        self.add_attribute("imagescale", AttributeText::quotted(image_scale.as_slice()))
+        self.add_attribute("imagescale", AttributeText::quoted(image_scale.as_slice()))
     }
 
     /// Text label attached to objects.
     fn label<S: Into<Cow<'a, str>>>(&mut self, text: S) -> &mut Self {
-        self.add_attribute("label", AttributeText::quotted(text))
+        self.add_attribute("label", AttributeText::quoted(text))
     }
 
     // Vertical placement of labels for nodes, root graphs and clusters.
@@ -1941,7 +1941,7 @@ trait NodeAttributes<'a> {
     /// Sets the coordinates of the vertices of the node’s polygon, in inches.
     /// A list of points, separated by spaces.
     fn vertices(&mut self, vertices: String) -> &mut Self {
-        self.add_attribute("vertices", AttributeText::quotted(vertices))
+        self.add_attribute("vertices", AttributeText::quoted(vertices))
     }
 
     /// Width of node, in inches.
@@ -2174,19 +2174,19 @@ trait EdgeAttributes<'a> {
 
     /// Position of an edge’s head label, in points. The position indicates the center of the label.
     fn head_lp(&mut self, head_lp: Point) -> &mut Self {
-        self.add_attribute("head_lp", AttributeText::quotted(head_lp.to_formatted_string()))
+        self.add_attribute("head_lp", AttributeText::quoted(head_lp.to_formatted_string()))
     }
 
     /// If true, the head of an edge is clipped to the boundary of the head node; 
     /// otherwise, the end of the edge goes to the center of the node, or the center 
     /// of a port, if applicable.
     fn head_clip(&mut self, head_clip: bool) -> &mut Self {
-        self.add_attribute("headclip", AttributeText::quotted(head_clip.to_string()))
+        self.add_attribute("headclip", AttributeText::quoted(head_clip.to_string()))
     }
 
     /// Text label to be placed near head of edge.
     fn head_label(&mut self, head_label: String) -> &mut Self {
-        self.add_attribute("headlabel", AttributeText::quotted(head_label))
+        self.add_attribute("headlabel", AttributeText::quoted(head_label))
     }
 
     // TODO: portPos struct?
@@ -2194,7 +2194,7 @@ trait EdgeAttributes<'a> {
     /// In the default case, the edge is aimed towards the center of the node, 
     /// and then clipped at the node boundary.
     fn head_port(&mut self, head_port: String) -> &mut Self {
-        self.add_attribute("headport", AttributeText::quotted(head_port))
+        self.add_attribute("headport", AttributeText::quoted(head_port))
     }
 
     /// If the edge has a headURL, headtarget determines which window of the browser is used for the URL. 
@@ -2249,7 +2249,7 @@ trait EdgeAttributes<'a> {
 
     /// Color used for headlabel and taillabel.
     fn label_font_color(&mut self, label_font_color: Color) -> &mut Self {
-        self.add_attribute("labelfontcolor", AttributeText::quotted(label_font_color.to_dot_string()))
+        self.add_attribute("labelfontcolor", AttributeText::quoted(label_font_color.to_dot_string()))
     }
 
     /// Font used for headlabel and taillabel.
@@ -2290,7 +2290,7 @@ trait EdgeAttributes<'a> {
     }
 
     fn lhead(&mut self, lhead: String) -> &mut Self {
-        self.add_attribute("lhead", AttributeText::quotted(lhead))
+        self.add_attribute("lhead", AttributeText::quoted(lhead))
     }
 
     fn lp(&mut self, lp: String) -> &mut Self {
@@ -2302,7 +2302,7 @@ trait EdgeAttributes<'a> {
     /// When compound=true, if ltail is defined and is the name of a cluster 
     /// containing the real tail, the edge is clipped to the boundary of the cluster.
     fn ltail(&mut self, ltail: String) -> &mut Self {
-        self.add_attribute("ltail", AttributeText::quotted(ltail))
+        self.add_attribute("ltail", AttributeText::quoted(ltail))
     }
 
     /// Minimum edge length (rank difference between head and tail).
@@ -2328,12 +2328,12 @@ trait EdgeAttributes<'a> {
 
     /// Edges with the same head and the same samehead value are aimed at the same point on the head.
     fn same_head(&mut self, same_head: String) -> &mut Self {
-        self.add_attribute("samehead", AttributeText::quotted(same_head))
+        self.add_attribute("samehead", AttributeText::quoted(same_head))
     }
 
     /// Edges with the same tail and the same sametail value are aimed at the same point on the tail.
     fn same_tail(&mut self, same_tail: String) -> &mut Self {
-        self.add_attribute("sametail", AttributeText::quotted(same_tail))
+        self.add_attribute("sametail", AttributeText::quoted(same_tail))
     }
 
     // TODO: constrain
@@ -2354,24 +2354,24 @@ trait EdgeAttributes<'a> {
     /// Position of an edge’s tail label, in points.
     /// The position indicates the center of the label.
     fn tail_lp(&mut self, tail_lp: Point) -> &mut Self {
-        self.add_attribute("tail_lp", AttributeText::quotted(tail_lp.to_formatted_string()))
+        self.add_attribute("tail_lp", AttributeText::quoted(tail_lp.to_formatted_string()))
     }
 
     /// If true, the tail of an edge is clipped to the boundary of the tail node; otherwise, 
     /// the end of the edge goes to the center of the node, or the center of a port, if applicable.
     fn tail_clip(&mut self, tail_clip: bool) -> &mut Self {
-        self.add_attribute("tailclip", AttributeText::quotted(tail_clip.to_string()))
+        self.add_attribute("tailclip", AttributeText::quoted(tail_clip.to_string()))
     }
 
     /// Text label to be placed near tail of edge.
     fn tail_label(&mut self, tail_label: String) -> &mut Self {
-        self.add_attribute("taillabel", AttributeText::quotted(tail_label))
+        self.add_attribute("taillabel", AttributeText::quoted(tail_label))
     }
 
     // TODO: portPos struct?
     /// Indicates where on the tail node to attach the tail of the edge.
     fn tail_port(&mut self, tail_port: String) -> &mut Self {
-        self.add_attribute("tailport", AttributeText::quotted(tail_port))
+        self.add_attribute("tailport", AttributeText::quoted(tail_port))
     }
 
     /// If the edge has a tailURL, tailtarget determines which window of the browser is used for the URL.
@@ -2877,31 +2877,31 @@ struct Attributes;
 
 impl Attributes {
     fn class(attributes: &mut IndexMap<String, AttributeText>, class: String) {
-        Self::add_attribute(attributes, "class", AttributeText::quotted(class))
+        Self::add_attribute(attributes, "class", AttributeText::quoted(class))
     }
 
     fn color<'a>(attributes: &mut IndexMap<String, AttributeText>, color: Color<'a>) {
-        Self::add_attribute(attributes,"color", AttributeText::quotted(color.to_dot_string()))
+        Self::add_attribute(attributes,"color", AttributeText::quoted(color.to_dot_string()))
     }
-    
+
     fn color_with_colorlist<'a>(attributes: &mut IndexMap<String, AttributeText>, color: ColorList<'a>) {
-        Self::add_attribute(attributes,"color", AttributeText::quotted(color.to_dot_string()))
+        Self::add_attribute(attributes,"color", AttributeText::quoted(color.to_dot_string()))
     }
 
     fn color_scheme(attributes: &mut IndexMap<String, AttributeText>, color_scheme: String) {
-        Self::add_attribute(attributes, "colorscheme", AttributeText::quotted(color_scheme))
+        Self::add_attribute(attributes, "colorscheme", AttributeText::quoted(color_scheme))
     }
     
     fn comment(attributes: &mut IndexMap<String, AttributeText>, comment: String) {
-        Self::add_attribute(attributes, "comment", AttributeText::quotted(comment))
+        Self::add_attribute(attributes, "comment", AttributeText::quoted(comment))
     }
 
     fn fill_color(attributes: &mut IndexMap<String, AttributeText>, fill_color: Color) {
-        Self::add_attribute(attributes, "fillcolor", AttributeText::quotted(fill_color.to_dot_string()))
+        Self::add_attribute(attributes, "fillcolor", AttributeText::quoted(fill_color.to_dot_string()))
     }
 
     fn fill_color_with_colorlist(attributes: &mut IndexMap<String, AttributeText>, fill_colors: ColorList) {
-        Self::add_attribute(attributes, "fillcolor", AttributeText::quotted(fill_colors.to_dot_string()))
+        Self::add_attribute(attributes, "fillcolor", AttributeText::quoted(fill_colors.to_dot_string()))
     }
 
     fn fill_color_with_iter<'a, I>(attributes: &mut IndexMap<String, AttributeText>, fill_colors: I)
@@ -2917,15 +2917,15 @@ impl Attributes {
             colors
         };
 
-        Self::add_attribute(attributes, "fillcolor", AttributeText::quotted(color_list.to_dot_string()))
+        Self::add_attribute(attributes, "fillcolor", AttributeText::quoted(color_list.to_dot_string()))
     }
 
     fn font_color(attributes: &mut IndexMap<String, AttributeText>, font_color: Color) {
-        Self::add_attribute(attributes, "fontcolor", AttributeText::quotted(font_color.to_dot_string()))
+        Self::add_attribute(attributes, "fontcolor", AttributeText::quoted(font_color.to_dot_string()))
     }
 
     fn font_name(attributes: &mut IndexMap<String, AttributeText>, font_name: String) {
-        Self::add_attribute(attributes, "fontname", AttributeText::quotted(font_name))
+        Self::add_attribute(attributes, "fontname", AttributeText::quoted(font_name))
     }
 
     fn font_size(attributes: &mut IndexMap<String, AttributeText>, font_size: f32) {
@@ -2937,7 +2937,7 @@ impl Attributes {
     }
 
     fn label(attributes: &mut IndexMap<String, AttributeText>, text: String) {
-        Self::add_attribute(attributes, "label", AttributeText::quotted(text));
+        Self::add_attribute(attributes, "label", AttributeText::quoted(text));
     }
 
     fn label_location(attributes: &mut IndexMap<String, AttributeText>, label_location: LabelLocation) {
@@ -3082,7 +3082,7 @@ fn single_node() {
 #[test]
 fn single_node_with_style() {
     let node = NodeBuilder::new("N0".to_string())
-        .add_attribute("style", AttributeText::quotted("dashed"))
+        .add_attribute("style", AttributeText::quoted("dashed"))
         .build();
 
     let g = GraphBuilder::new_directed(Some("single_node".to_string()))
@@ -3105,10 +3105,10 @@ fn support_non_inline_builder() {
 
     // TODO: having to split this is stupid. am i doing something wrong?
     let mut node_builder = NodeBuilder::new("N0".to_string());
-    node_builder.add_attribute("style", AttributeText::quotted("dashed"));
+    node_builder.add_attribute("style", AttributeText::quoted("dashed"));
 
     if true {
-        node_builder.add_attribute("foo", AttributeText::quotted("baz"));
+        node_builder.add_attribute("foo", AttributeText::quoted("baz"));
     }
 
     let node = node_builder.build();
@@ -3169,7 +3169,7 @@ fn single_edge() {
 #[test]
 fn single_edge_with_style() {
     let edge = EdgeBuilder::new("N0".to_string(), "N1".to_string())
-        .add_attribute("style", AttributeText::quotted("bold"))
+        .add_attribute("style", AttributeText::quoted("bold"))
         .build();
 
     let g = GraphBuilder::new_directed(Some("single_edge".to_string()))
