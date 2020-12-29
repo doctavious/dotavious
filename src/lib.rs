@@ -11,19 +11,16 @@ use std::io::prelude::*;
 static INDENT: &str = "    ";
 
 // TODO: support adding edge based on index of nodes?
-// TODO: support fluent graph builder methods
 // TODO: handle render options
 // TODO: explicit attribute methods with type safety and enforce constraints
-// i'm thinking we have NodeTraits/GraphTraints/EdgeTraits (what about none? is that a graph trait?)
-// which will have default methods that use an associated type field called "state" or "attribtues" etc
+// i'm thinking we have NodeTraits/GraphTraits/EdgeTraits (what about none? is that a graph trait?)
+// which will have default methods that use an associated type field called "state" or "attributes" etc
 // TODO: implement Clone for Graph
-// TODO: remove duplicate fns
 // TODO: Node port and compass
-// TODO: <S: Into<String>> / <S: Into<Cow<'a, str>>
 // TODO: see if we can get any insights from Haskell implementation
 // https://hackage.haskell.org/package/graphviz-2999.20.1.0/docs/Data-GraphViz-Attributes-Complete.html#t:Point
 // - I like this: A summary of known current constraints/limitations/differences:
-// Has GlobalAttributes which hs GraphAttrs, NodeAttrs, EdgeAttrs
+
 
 /// Most of this comes from core rust. Where to provide attribution?
 /// The text for a graphviz label on a node or edge.
@@ -230,68 +227,6 @@ impl<'a> Dot<'a> {
             write!(w, "{}", edge_attributes.to_dot_string())?;
         }
 
-        // TODO: clean this up
-        for (key, value) in self.graph.attributes {
-            write!(w, "{}", INDENT)?;
-            match key {
-                AttributeType::Edge => {
-                    write!(w, "edge")?;
-                    if !value.is_empty() {
-                        write!(w, " [")?;
-        
-                        let mut iter = value.iter();
-                        let first = iter.next().unwrap();
-                        write!(w, "{}={}", first.0, first.1.to_dot_string())?;
-                        for (key, value) in iter {
-                            write!(w, ", ")?;
-                            write!(w, "{}={}", key, value.to_dot_string())?;
-                        }
-                        write!(w, "]")?;
-                    }
-                    writeln!(w, ";")?;
-                },
-                AttributeType::Graph => {
-                    write!(w, "graph")?;
-                    if !value.is_empty() {
-                        write!(w, " [")?;
-        
-                        let mut iter = value.iter();
-                        let first = iter.next().unwrap();
-                        write!(w, "{}={}", first.0, first.1.to_dot_string())?;
-                        for (key, value) in iter {
-                            write!(w, ", ")?;
-                            write!(w, "{}={}", key, value.to_dot_string())?;
-                        }
-                        write!(w, "]")?;
-                    }
-                    writeln!(w, ";")?;
-                },
-                AttributeType::Node => {
-                    write!(w, "node")?;
-                    if !value.is_empty() {
-                        write!(w, " [")?;
-        
-                        let mut iter = value.iter();
-                        let first = iter.next().unwrap();
-                        write!(w, "{}={}", first.0, first.1.to_dot_string())?;
-                        for (key, value) in iter {
-                            write!(w, ", ")?;
-                            write!(w, "{}={}", key, value.to_dot_string())?;
-                        }
-                        write!(w, "]")?;
-                    }
-                    writeln!(w, ";")?;
-                },
-                AttributeType::None => {
-                    if !value.is_empty() {        
-                        for (key, value) in value.iter() {
-                            writeln!(w, "{}={};", key, value.to_dot_string())?;
-                        }
-                    }
-                }
-            }
-        }
-
         for n in self.graph.nodes {
             // TODO: handle render options
             // Are render options something we need?
@@ -357,17 +292,14 @@ pub struct Graph<'a> {
 
     pub strict: bool,
 
-    // Comment added to the first line of the source.
+    /// Comment added to the first line of the source.
     pub comment: Option<String>,
 
     pub graph_attributes: Option<GraphAttributeStatement<'a>>,
 
     pub node_attributes: Option<NodeAttributeStatement<'a>>,
 
-    // pub edge_attributes: IndexMap<String, AttributeText<'a>>,
     pub edge_attributes: Option<EdgeAttributeStatement<'a>>,
-
-    pub attributes: IndexMap<AttributeType, IndexMap<String, AttributeText<'a>>>,
 
     pub nodes: Vec<Node<'a>>,
 
@@ -383,9 +315,7 @@ impl<'a> Graph<'a> {
         comment: Option<String>,
         graph_attributes: Option<GraphAttributeStatement<'a>>,
         node_attributes: Option<NodeAttributeStatement<'a>>,
-        // edge_attributes: IndexMap<String, AttributeText<'a>>,
         edge_attributes: Option<EdgeAttributeStatement<'a>>,
-        attributes: IndexMap<AttributeType, IndexMap<String, AttributeText<'a>>>,
         nodes: Vec<Node<'a>>,
         edges: Vec<Edge<'a>>,
     ) -> Self {
@@ -397,7 +327,6 @@ impl<'a> Graph<'a> {
             graph_attributes,
             node_attributes,
             edge_attributes,
-            attributes,
             nodes,
             edges,
         }
@@ -428,16 +357,11 @@ pub struct GraphBuilder<'a> {
 
     strict: bool,
 
-    // graph_attributes: IndexMap<String, AttributeText<'a>>,
     graph_attributes: Option<GraphAttributeStatement<'a>>,
 
-    // node_attributes: IndexMap<String, AttributeText<'a>>,
     node_attributes: Option<NodeAttributeStatement<'a>>,
 
-    // edge_attributes: IndexMap<String, AttributeText<'a>>,
     edge_attributes: Option<EdgeAttributeStatement<'a>>,
-
-    attributes: IndexMap<AttributeType, IndexMap<String, AttributeText<'a>>>,
 
     nodes: Vec<Node<'a>>,
     
@@ -456,8 +380,6 @@ impl<'a> GraphBuilder<'a> {
             graph_attributes: None,
             node_attributes: None,
             edge_attributes: None,
-            // edge_attributes: IndexMap::new(),
-            attributes: IndexMap::new(),
             nodes: Vec::new(),
             edges: Vec::new(),
             comment: None,
@@ -471,16 +393,12 @@ impl<'a> GraphBuilder<'a> {
             strict: false,
             graph_attributes: None,
             node_attributes: None,
-            // edge_attributes: IndexMap::new(),
             edge_attributes: None,
-            attributes: IndexMap::new(),
             nodes: Vec::new(),
             edges: Vec::new(),
             comment: None,
         }
     }
-
-    // TODO: do we want a map for attribute list ie attributes not mapped to (graph/node/edge)
 
     pub fn add_graph_attributes(&mut self, graph_attributes: GraphAttributeStatement<'a>) -> &mut Self {
         self.graph_attributes = Some(graph_attributes);
@@ -492,36 +410,58 @@ impl<'a> GraphBuilder<'a> {
         self
     }
 
-    // pub fn add_edge_attributes(&mut self, edge_attributes: IndexMap<String, AttributeText<'a>>) -> &mut Self {
-    //     self.edge_attributes = edge_attributes;
-    //     self
-    // }
     pub fn add_edge_attributes(&mut self, edge_attributes: EdgeAttributeStatement<'a>) -> &mut Self {
         self.edge_attributes = Some(edge_attributes);
         self
     }
 
     // TODO: update to insert into appropriate statement or remove?
+    // pub fn add_attribute(
+    //     &mut self,
+    //     attribute_type: AttributeType,
+    //     key: String, value: AttributeText<'a>
+    // ) -> &mut Self {
+    //     self.get_attributes(attribute_type).insert(key, value);
+    //     self
+    // }
+    //
+    // pub fn add_attributes(
+    //     &mut self,
+    //     attribute_type: AttributeType,
+    //     attributes: HashMap<String, AttributeText<'a>>
+    // ) -> &mut Self {
+    //     self.get_attributes(attribute_type).extend(attributes);
+    //     self
+    // }
+
     pub fn add_attribute(
-        &mut self, 
-        attribute_type: AttributeType, 
-        key: String, value: AttributeText<'a>
+        &mut self,
+        attribute_type: AttributeType,
+        key: String,
+        value: AttributeText<'a>
     ) -> &mut Self {
-        self.get_attributes(attribute_type).insert(key, value);
-        self
-    }
+        match attribute_type {
 
-    pub fn add_attributes(
-        &mut self, 
-        attribute_type: AttributeType, 
-        attributes: HashMap<String, AttributeText<'a>>
-    ) -> &mut Self {
-        self.get_attributes(attribute_type).extend(attributes);
+            AttributeType::Graph | AttributeType::None => {
+                if self.graph_attributes.is_none() {
+                    self.graph_attributes = Some(GraphAttributeStatement::new());
+                }
+                self.graph_attributes.as_mut().unwrap().add_attribute(key, value);
+            },
+            AttributeType::Edge => {
+                if self.edge_attributes.is_none() {
+                    self.edge_attributes = Some(EdgeAttributeStatement::new());
+                }
+                self.edge_attributes.as_mut().unwrap().add_attribute(key, value);
+            },
+            AttributeType::Node => {
+                if self.node_attributes.is_none() {
+                    self.node_attributes = Some(NodeAttributeStatement::new());
+                }
+                self.node_attributes.as_mut().unwrap().add_attribute(key, value);
+            },
+        }
         self
-    }
-
-    fn get_attributes(&mut self, attribute_type: AttributeType) -> &mut IndexMap<String, AttributeText<'a>> {
-        self.attributes.entry(attribute_type).or_insert(IndexMap::new())
     }
 
     pub fn add_node(&mut self, node: Node<'a>) -> &mut Self {
@@ -547,9 +487,7 @@ impl<'a> GraphBuilder<'a> {
             comment: self.comment.clone(), // TODO: is clone the only option here?
             graph_attributes: self.graph_attributes.clone(),
             node_attributes: self.node_attributes.clone(),
-            // edge_attributes: self.edge_attributes.clone(),
             edge_attributes: self.edge_attributes.clone(),
-            attributes: self.attributes.clone(), // TODO: is clone the only option here?
             nodes: self.nodes.clone(), // TODO: is clone the only option here?
             edges: self.edges.clone(), // TODO: is clone the only option here?
         }
@@ -563,12 +501,18 @@ trait GraphAttributes<'a> {
         self.add_attribute("_background", AttributeText::attr(background))
     }
 
-    // TODO: color list
-    /// A colon-separated list of weighted color values: WC(:WC)* where each WC has the form C(;F)? 
-    /// with C a color value and the optional F a floating-point number, 0 ≤ F ≤ 1. 
-    /// The sum of the floating-point numbers in a colorList must sum to at most 1.
+    /// The color used as the background for entire canvas.
     fn background_color(&mut self, background_color: Color) -> &mut Self {
         self.add_attribute("bgcolor", AttributeText::quotted(background_color.to_dot_string()))
+    }
+
+    // TODO: constrain
+    /// The color used as the background for entire canvas with a gradient fill.
+    /// A colon-separated list of weighted color values: WC(:WC)* where each WC has the form C(;F)?
+    /// with C a color value and the optional F a floating-point number, 0 ≤ F ≤ 1.
+    /// The sum of the floating-point numbers in a colorList must sum to at most 1.
+    fn background_colorlist(&mut self, background_colors: ColorList) -> &mut Self {
+        self.add_attribute("bgcolor", AttributeText::quotted(background_colors.to_dot_string()))
     }
 
     /// Type: rect which is "%f,%f,%f,%f"
@@ -636,14 +580,19 @@ trait GraphAttributes<'a> {
         self.add_attribute("dpi", AttributeText::quotted(dpi.to_string()))
     }
 
-    // color list
     /// Color used to fill the background of a node or cluster assuming style=filled, or a filled arrowhead.
     fn fill_color(&mut self, fill_color: Color) -> &mut Self {
         Attributes::fill_color(self.get_attributes_mut(), fill_color);
         self
     }
 
-    // color list
+    /// Color used to fill the background, with a graident, of a node or cluster assuming
+    /// style=filled, or a filled arrowhead.
+    fn fill_colorlist(&mut self, fill_colors: ColorList) -> &mut Self {
+        Attributes::fill_colorlist(self.get_attributes_mut(), fill_colors);
+        self
+    }
+
     /// Color used for text.
     fn font_color(&mut self, font_color: Color) -> &mut Self {
         Attributes::font_color(self.get_attributes_mut(), font_color);
@@ -1566,7 +1515,7 @@ impl<'a> EdgeAttributes<'a> for EdgeBuilder<'a> {
         &mut self.attributes
     }
 
-    // /// Add multiple attribures to the edge.
+    // /// Add multiple attributes to the edge.
     // fn add_attributes(&'a mut self, attributes: HashMap<String, AttributeText<'a>>) -> &mut Self {
     //     self.attributes.extend(attributes);
     //     self
@@ -2728,6 +2677,7 @@ pub enum Color<'a> {
         blue: u8,
         alpha: u8,
     },
+    // TODO: constrain?
     // Hue-Saturation-Value (HSV) 0.0 <= H,S,V <= 1.0
     HSV {
         hue: f32,
@@ -2761,7 +2711,8 @@ impl<'a> Color<'a> {
 pub struct WeightedColor<'a> {
     color: Color<'a>,
 
-    // Must be in range 0 <= W <= 1.
+    // TODO: constrain
+    /// Must be in range 0 <= W <= 1.
     weight: Option<f32>
 }
 
@@ -2777,13 +2728,12 @@ impl<'a> WeightedColor<'a> {
 
 }
 
-// type ColorList<'a> = Vec<WeightedColor<'a>>;
 pub struct ColorList<'a> {
     colors: Vec<WeightedColor<'a>>,
 }
 impl<'a> ColorList<'a> {
-    // A colon-separated list of weighted color values: WC(:WC)* where each WC has the form C(;F)?
-    // Ex: fillcolor=yellow;0.3:blue
+    /// A colon-separated list of weighted color values: WC(:WC)* where each WC has the form C(;F)?
+    /// Ex: fillcolor=yellow;0.3:blue
     pub fn to_dot_string(&self) -> String {
         let mut dot_string = String::new();
         let mut iter = self.colors.iter();
@@ -2856,6 +2806,10 @@ impl Attributes {
 
     fn fill_color(attributes: &mut IndexMap<String, AttributeText>, fill_color: Color) {
         Self::add_attribute(attributes, "fillcolor", AttributeText::quotted(fill_color.to_dot_string()))
+    }
+
+    fn fill_colorlist(attributes: &mut IndexMap<String, AttributeText>, fill_colors: ColorList) {
+        Self::add_attribute(attributes, "fillcolor", AttributeText::quotted(fill_colors.to_dot_string()))
     }
 
     fn font_color(attributes: &mut IndexMap<String, AttributeText>, font_color: Color) {
@@ -2950,8 +2904,8 @@ impl Attributes {
     fn add_attribute<'a, S: Into<String>>(
         attributes: &mut IndexMap<String, AttributeText<'a>>,
         key: S, 
-        value: AttributeText<'a>
-    ) {
+        value: AttributeText<'a>)
+    {
         attributes.insert(key.into(), value);
     }
 }
@@ -3160,7 +3114,6 @@ fn graph_attributes() {
         .add_graph_attributes(graph_attributes)
         .add_node_attributes(node_attributes)
         .add_edge_attributes(edge_attributes)
-        .add_attribute(AttributeType::None, "ranksep".to_string(), AttributeText::attr("0.5"))
         .build();
 
     let r = test_input(g);
@@ -3171,7 +3124,6 @@ fn graph_attributes() {
     graph [rankdir=LR];
     node [style=filled];
     edge [minlen=1];
-    ranksep=0.5;
 }
 "#
     );
