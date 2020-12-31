@@ -212,11 +212,15 @@ impl<'a> Dot<'a> {
             writeln!(w, "// {}", comment)?;
         }
 
-        let strict = if self.graph.strict { "strict " } else { "" }; 
-        let id = self.graph.id.as_deref().unwrap_or_default();
-        let edge_op = self.graph.edge_op();
+        let edge_op = &self.graph.edge_op();
+        let strict = if self.graph.strict { "strict " } else { "" };
+        write!(w, "{}{}", strict, &self.graph.graph_type())?;
 
-        writeln!(w, "{}{} {} {{", strict, &self.graph.graph_type(), id)?;
+        if let Some(id) = &self.graph.id {
+            write!(w, " {}", id)?;
+        }
+
+        writeln!(w, " {{")?;
 
         if let Some(graph_attributes) = self.graph.graph_attributes {
             write!(w, "{}{}\n", INDENT, graph_attributes.to_dot_string())?;
@@ -3239,6 +3243,19 @@ fn test_input(g: Graph) -> io::Result<String>
 // TODO: color test
 
 #[test]
+fn empty_digraph_without_id() {
+    // TODO: support both String and &str
+    let g = GraphBuilder::new_directed(None).build();
+    let r = test_input(g);
+    assert_eq!(
+        r.unwrap(),
+        r#"digraph {
+}
+"#
+    );
+}
+
+#[test]
 fn empty_digraph() {
     // TODO: support both String and &str
     let g = GraphBuilder::new_directed(Some("empty_graph".to_string())).build();
@@ -3252,7 +3269,7 @@ fn empty_digraph() {
 }
 
 #[test]
-fn empty_graph() {
+fn empty_undirected_graph() {
     // TODO: support both String and &str
     let g = GraphBuilder::new_undirected(Some("empty_graph".to_string())).build();
     let r = test_input(g);
