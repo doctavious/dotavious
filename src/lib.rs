@@ -143,7 +143,6 @@ impl<'a> AttributeText<'a> {
     }
 }
 
-// TODO: need a way to print out values
 // TODO: not sure we need this enum but should support setting nodeport either via
 // headport / tailport attributes e.g. a -> b [tailport=se]
 // or via edge declaration using the syntax node name:port_name e.g. a -> b:se
@@ -160,18 +159,22 @@ pub enum Compass {
     None
 }
 
-impl Compass {
-    pub fn as_slice(&self) -> &'static str {
+impl<'a> DotString<'a> for Compass {
+    fn text_attribute(&self) -> AttributeText<'a> {
+        AttributeText::quoted(self.as_cow())
+    }
+
+    fn as_cow(&self) -> Cow<'a, str> {
         match self {
-            Compass::N => "n",
-            Compass::NE => "ne",
-            Compass::E => "e",
-            Compass::SE => "se",
-            Compass::S => "s",
-            Compass::SW => "sw",
-            Compass::W => "w",
-            Compass::NW => "nw",
-            Compass::None => "",
+            Compass::N => "n".into(),
+            Compass::NE => "ne".into(),
+            Compass::E => "e".into(),
+            Compass::SE => "se".into(),
+            Compass::S => "s".into(),
+            Compass::SW => "sw".into(),
+            Compass::W => "w".into(),
+            Compass::NW => "nw".into(),
+            Compass::None => "".into(),
         }
     }
 }
@@ -216,15 +219,15 @@ impl<'a> Dot<'a> {
         writeln!(w, "{}{} {} {{", strict, &self.graph.graph_type(), id)?;
 
         if let Some(graph_attributes) = self.graph.graph_attributes {
-            write!(w, "{}", graph_attributes.to_dot_string())?;
+            write!(w, "{}{}\n", INDENT, graph_attributes.to_dot_string())?;
         }
 
         if let Some(node_attributes) = self.graph.node_attributes {
-            write!(w, "{}", node_attributes.to_dot_string())?;
+            write!(w, "{}{}\n", INDENT, node_attributes.to_dot_string())?;
         }
 
         if let Some(edge_attributes) = self.graph.edge_attributes {
-            write!(w, "{}", edge_attributes.to_dot_string())?;
+            write!(w, "{}{}\n", INDENT, edge_attributes.to_dot_string())?;
         }
 
         for n in self.graph.nodes {
@@ -547,7 +550,7 @@ pub trait GraphAttributes<'a> {
     /// Note also that there can be clusters within clusters.
     /// The modes clusterrank=global and clusterrank=none appear to be identical, both turning off the special cluster processing.
     fn cluster_rank(&mut self, cluster_rank: ClusterMode) -> &mut Self {
-        self.add_attribute("clusterrank", AttributeText::quoted(cluster_rank.as_slice()))
+        self.add_attribute("clusterrank", cluster_rank.text_attribute())
     }
 
     /// This attribute specifies a color scheme namespace: the context for interpreting color names.
@@ -653,23 +656,23 @@ pub trait GraphAttributes<'a> {
         self
     }
 
-    fn label_scheme(&mut self, label_scheme: u32) -> &mut Self {
-        self.add_attribute("labelscheme", AttributeText::attr(label_scheme.to_string()))
-    }
-
-    // If labeljust=r, the label is right-justified within bounding rectangle
-    // If labeljust=l, left-justified
-    // Else the label is centered.
-    fn label_just(&mut self, label_just: LabelJustification) -> &mut Self {
-        self.add_attribute("labeljust", AttributeText::attr(label_just.as_slice()))
+    /// If labeljust=r, the label is right-justified within bounding rectangle
+    /// If labeljust=l, left-justified
+    /// Else the label is centered.
+    fn label_justification(&mut self, label_justification: LabelJustification) -> &mut Self {
+        self.add_attribute("labeljust", label_justification.text_attribute())
     }
 
     // Vertical placement of labels for nodes, root graphs and clusters.
-    // For graphs and clusters, only labelloc=t and labelloc=b are allowed, corresponding to placement at the top and bottom, respectively.
+    // For graphs and clusters, only labelloc=t and labelloc=b are allowed, corresponding to
+    // placement at the top and bottom, respectively.
     // By default, root graph labels go on the bottom and cluster labels go on the top.
-    // Note that a subgraph inherits attributes from its parent. Thus, if the root graph sets labelloc=b, the subgraph inherits this value.
-    // For nodes, this attribute is used only when the height of the node is larger than the height of its label.
-    // If labelloc=t, labelloc=c, labelloc=b, the label is aligned with the top, centered, or aligned with the bottom of the node, respectively.
+    // Note that a subgraph inherits attributes from its parent. Thus, if the root graph sets
+    // labelloc=b, the subgraph inherits this value.
+    // For nodes, this attribute is used only when the height of the node is larger than the height
+    // of its label.
+    // If labelloc=t, labelloc=c, labelloc=b, the label is aligned with the top, centered, or
+    // aligned with the bottom of the node, respectively.
     // By default, the label is vertically centered.
     fn label_location(&mut self, label_location: LabelLocation) -> &mut Self {
         Attributes::label_location(self.get_attributes_mut(), label_location);
@@ -725,9 +728,12 @@ pub trait GraphAttributes<'a> {
     /// For graphs, this sets x and y margins of canvas, in inches.
     /// If the margin is a single double, both margins are set equal to the given value.
     /// Note that the margin is not part of the drawing but just empty space left around the drawing. 
-    /// The margin basically corresponds to a translation of drawing, as would be necessary to center a drawing on a page. 
-    /// Nothing is actually drawn in the margin. To actually extend the background of a drawing, see the pad attribute.
-    /// For clusters, margin specifies the space between the nodes in the cluster and the cluster bounding box. By default, this is 8 points.
+    /// The margin basically corresponds to a translation of drawing, as would be necessary to
+    /// center a drawing on a page.
+    /// Nothing is actually drawn in the margin. To actually extend the background of a drawing,
+    /// see the pad attribute.
+    /// For clusters, margin specifies the space between the nodes in the cluster and the cluster
+    /// bounding box. By default, this is 8 points.
     /// For nodes, this attribute specifies space left around the node’s label. 
     /// By default, the value is 0.11,0.055.
     fn margin(&mut self, margin: f32) -> &mut Self {
@@ -740,8 +746,10 @@ pub trait GraphAttributes<'a> {
         self
     }
 
-    /// Multiplicative scale factor used to alter the MinQuit (default = 8) and MaxIter (default = 24) parameters used during crossing minimization.
-    /// These correspond to the number of tries without improvement before quitting and the maximum number of iterations in each pass.
+    /// Multiplicative scale factor used to alter the MinQuit (default = 8) and
+    /// MaxIter (default = 24) parameters used during crossing minimization.
+    /// These correspond to the number of tries without improvement before quitting and the
+    /// maximum number of iterations in each pass.
     fn mclimit(&mut self, mclimit: f32) -> &mut Self {
         self.add_attribute("mclimit", AttributeText::attr(mclimit.to_string()))
     }
@@ -753,9 +761,11 @@ pub trait GraphAttributes<'a> {
 
     /// Whether to use a single global ranking, ignoring clusters.
     /// The original ranking algorithm in dot is recursive on clusters. 
-    /// This can produce fewer ranks and a more compact layout, but sometimes at the cost of a head node being place on a higher rank than the tail node. 
+    /// This can produce fewer ranks and a more compact layout, but sometimes at the cost of a
+    /// head node being place on a higher rank than the tail node.
     /// It also assumes that a node is not constrained in separate, incompatible subgraphs. 
-    /// For example, a node cannot be in a cluster and also be constrained by rank=same with a node not in the cluster.
+    /// For example, a node cannot be in a cluster and also be constrained by rank=same with
+    /// a node not in the cluster.
     /// This allows nodes to be subject to multiple constraints. 
     /// Rank constraints will usually take precedence over edge constraints.
     fn newrank(&mut self, newrank: bool) -> &mut Self {
@@ -770,11 +780,15 @@ pub trait GraphAttributes<'a> {
     }
 
     /// By default, the justification of multi-line labels is done within the largest context that makes sense. 
-    /// Thus, in the label of a polygonal node, a left-justified line will align with the left side of the node (shifted by the prescribed margin). 
-    /// In record nodes, left-justified line will line up with the left side of the enclosing column of fields. 
+    /// Thus, in the label of a polygonal node, a left-justified line will align with the left side
+    /// of the node (shifted by the prescribed margin).
+    /// In record nodes, left-justified line will line up with the left side of the enclosing column
+    /// of fields.
     /// If nojustify=true, multi-line labels will be justified in the context of itself.
-    /// For example, if nojustify is set, the first label line is long, and the second is shorter and left-justified, 
-    /// the second will align with the left-most character in the first line, regardless of how large the node might be.
+    /// For example, if nojustify is set, the first label line is long, and the second is shorter
+    /// and left-justified,
+    /// the second will align with the left-most character in the first line, regardless of how
+    /// large the node might be.
     fn no_justify(&mut self, no_justify: bool) -> &mut Self {
         Attributes::no_justify(self.get_attributes_mut(), no_justify);
         self
@@ -787,12 +801,19 @@ pub trait GraphAttributes<'a> {
         self.add_attribute("nslimit", AttributeText::attr(nslimit.to_string()))
     }
 
-    /// If ordering="out", then the outedges of a node, that is, edges with the node as its tail node, must appear left-to-right in the same order in which they are defined in the input.
-    /// If ordering="in", then the inedges of a node must appear left-to-right in the same order in which they are defined in the input.
-    /// If defined as a graph or subgraph attribute, the value is applied to all nodes in the graph or subgraph.
+    /// If ordering="out", then the outedges of a node, that is, edges with the node as its tail
+    /// node, must appear left-to-right in the same order in which they are defined in the input.
+    ///
+    /// If ordering="in", then the inedges of a node must appear left-to-right in the same order in
+    /// which they are defined in the input.
+    ///
+    /// If defined as a graph or subgraph attribute, the value is applied to all nodes in the graph
+    /// or subgraph.
+    ///
     /// Note that the graph attribute takes precedence over the node attribute.
     fn ordering(&mut self, ordering: Ordering) -> &mut Self {
-        self.add_attribute("ordering", AttributeText::attr(ordering.as_slice()))
+        Attributes::ordering(self.get_attributes_mut(), ordering);
+        self
     }
 
     // TODO: constrain to 0 - 360. Docs say min is 360 which should be max right?
@@ -809,10 +830,11 @@ pub trait GraphAttributes<'a> {
     /// Specify order in which nodes and edges are drawn.
     /// default: breadthfirst
     fn output_order(&mut self, output_order: OutputMode) -> &mut Self {
-        self.add_attribute("outputorder", AttributeText::attr(output_order.as_slice()))
+        self.add_attribute("outputorder", output_order.text_attribute())
     }
 
-    /// Whether each connected component of the graph should be laid out separately, and then the graphs packed together.
+    /// Whether each connected component of the graph should be laid out separately, and then the
+    /// graphs packed together.
     /// If false, the entire graph is laid out together. 
     /// The granularity and method of packing is influenced by the packmode attribute.
     fn pack(&mut self, pack: bool) -> &mut Self {
@@ -820,8 +842,10 @@ pub trait GraphAttributes<'a> {
     }
 
     // TODO: constrain to non-negative integer.
-    /// Whether each connected component of the graph should be laid out separately, and then the graphs packed together.
-    /// This is used as the size, in points,of a margin around each part; otherwise, a default margin of 8 is used.
+    /// Whether each connected component of the graph should be laid out separately, and then
+    /// the graphs packed together.
+    /// This is used as the size, in points,of a margin around each part; otherwise, a default
+    /// margin of 8 is used.
     /// pack is treated as true if the value of pack iso a non-negative integer.
     fn pack_int(&mut self, pack: u32) -> &mut Self {
         self.add_attribute("pack", AttributeText::attr(pack.to_string()))
@@ -830,10 +854,11 @@ pub trait GraphAttributes<'a> {
     /// This indicates how connected components should be packed (cf. packMode). 
     /// Note that defining packmode will automatically turn on packing as though one had set pack=true.
     fn pack_mode(&mut self, pack_mode: PackMode) -> &mut Self {
-        self.add_attribute("packmode", AttributeText::attr(pack_mode.as_slice()))
+        self.add_attribute("packmode", pack_mode.text_attribute())
     }
 
-    /// Specifies how much, in inches, to extend the drawing area around the minimal area needed to draw the graph.
+    /// Specifies how much, in inches, to extend the drawing area around the minimal area needed
+    /// to draw the graph.
     /// Both the x and y pad values are set equal to the given value. 
     /// This area is part of the drawing and will be filled with the background color, if appropriate.
     /// default: 0.0555
@@ -841,9 +866,10 @@ pub trait GraphAttributes<'a> {
         self.add_attribute("pad", AttributeText::attr(pad.to_string()))
     }
 
-    /// Specifies how much, in inches, to extend the drawing area around the minimal area needed to draw the graph.
+    /// Specifies how much, in inches, to extend the drawing area around the minimal area needed to
+    /// draw the graph.
     fn pad_point(&mut self, pad: Point) -> &mut Self {
-        self.add_attribute("pad", AttributeText::attr(pad.to_formatted_string()))
+        self.add_attribute("pad", pad.text_attribute())
     }
 
     /// Width and height of output pages, in inches.
@@ -854,14 +880,14 @@ pub trait GraphAttributes<'a> {
 
     /// Width and height of output pages, in inches.
     fn page_point(&mut self, page: Point) -> &mut Self {
-        self.add_attribute("page", AttributeText::attr(page.to_formatted_string()))
+        self.add_attribute("page", page.text_attribute())
     }
 
     /// The order in which pages are emitted.
     /// Used only if page is set and applicable.
     /// Limited to one of the 8 row or column major orders.
     fn page_dir(&mut self, page_dir: PageDirection) -> &mut Self {
-        self.add_attribute("pagedir", AttributeText::attr(page_dir.as_slice()))
+        self.add_attribute("pagedir", page_dir.text_attribute())
     }
 
     // TODO: constrain
@@ -877,7 +903,7 @@ pub trait GraphAttributes<'a> {
     /// This attribute also has a side-effect in determining how record nodes are interpreted.
     /// See record shapes.
     fn rank_dir(&mut self, rank_dir: RankDir) -> &mut Self {
-        self.add_attribute("rankdir", AttributeText::attr(rank_dir.as_slice()))
+        self.add_attribute("rankdir", rank_dir.text_attribute())
     }
 
     /// sets the desired rank separation, in inches.
@@ -889,12 +915,10 @@ pub trait GraphAttributes<'a> {
         self.add_attribute("ranksep", AttributeText::attr(rank_sep))
     }
 
-    // TODO: numeric vs string
-    // Strings: fill, compress, expand, auto
     /// Sets the aspect ratio (drawing height/drawing width) for the drawing.
     /// Note that this is adjusted before the size attribute constraints are enforced.
-    fn ratio(&mut self, ratio: String) -> &mut Self {
-        self.add_attribute("ratio", AttributeText::attr(ratio))
+    fn ratio(&mut self, ratio: Ratio) -> &mut Self {
+        self.add_attribute("ratio", ratio.text_attribute())
     }
 
     /// If true and there are multiple clusters, run crossing minimization a second time.
@@ -908,7 +932,8 @@ pub trait GraphAttributes<'a> {
     }
 
     // TODO: constrain
-    /// Print guide boxes in PostScript at the beginning of routesplines if showboxes=1, or at the end if showboxes=2.
+    /// Print guide boxes in PostScript at the beginning of routesplines if showboxes=1, or at
+    /// the end if showboxes=2.
     /// (Debugging, TB mode only!)
     /// default: 0, minimum: 0
     fn show_boxes(&mut self, show_boxes: u32) -> &mut Self {
@@ -931,6 +956,8 @@ pub trait GraphAttributes<'a> {
         self.add_attribute("size", AttributeText::attr(text))
     }
 
+    // TODO: both point and desired_min have an '!' which doesnt seem correct.
+    // I think point should be the thing that drives it and dont need desired_min
     /// Maximum width and height of drawing, in inches.
     /// If defined and the drawing is larger than the given size, the drawing 
     /// is uniformly scaled down so that it fits within the given size.
@@ -938,7 +965,7 @@ pub trait GraphAttributes<'a> {
     /// are less than size, the drawing is scaled up uniformly until at 
     /// least one dimension equals its dimension in size.
     fn size_point(&mut self, size: Point, desired_min: bool) -> &mut Self {
-        let mut text = size.to_formatted_string();
+        let mut text = format!("{}", size.as_cow());
         if desired_min {
             text.push_str("!");
         }
@@ -954,20 +981,13 @@ pub trait GraphAttributes<'a> {
     }
 
     /// Controls how, and if, edges are represented.
-    /// If splines=true, edges are drawn as splines routed around nodes; 
-    /// if splines=false, edges are drawn as line segments.
-    fn splines_bool(&mut self, splines: bool) -> &mut Self {
-        self.add_attribute("splines", AttributeText::attr(splines.to_string()))
-    }
-
-    /// Controls how, and if, edges are represented.
     fn splines(&mut self, splines: Splines) -> &mut Self {
-        self.add_attribute("splines", AttributeText::attr(splines.as_slice()))
+        self.add_attribute("splines", splines.text_attribute())
     }
 
     /// Set style information for components of the graph.
-    fn style<S: Into<Cow<'a, str>>>(&mut self, style: S) -> &mut Self {
-        Attributes::style(self.get_attributes_mut(), style);
+    fn style(&mut self, style: GraphStyle) -> &mut Self {
+        Attributes::style(self.get_attributes_mut(), Styles::Graph(style));
         self
     }
 
@@ -1093,12 +1113,16 @@ pub enum ClusterMode {
     None
 }
 
-impl ClusterMode {
-    pub fn as_slice(&self) -> &'static str {
+impl<'a> DotString<'a> for ClusterMode {
+    fn text_attribute(&self) -> AttributeText<'a> {
+        AttributeText::quoted(self.as_cow())
+    }
+
+    fn as_cow(&self) -> Cow<'a, str> {
         match self {
-            ClusterMode::Local => "local",
-            ClusterMode::Global => "global",
-            ClusterMode::None => "none",
+            ClusterMode::Local => "local".into(),
+            ClusterMode::Global => "global".into(),
+            ClusterMode::None => "none".into(),
         }
     }
 }
@@ -1111,26 +1135,31 @@ pub enum Ratio {
     Auto,
 }
 
-impl Ratio {
-
-    // TODO: should this return AttributeText?
-    // that way we dont have to quote aspect?
-    pub fn to_string(&self) -> String {
+impl<'a> DotString<'a> for Ratio {
+    fn text_attribute(&self) -> AttributeText<'a> {
         match self {
-            Ratio::Aspect(aspect) => aspect.to_string(),
-            Ratio::Fill => String::from("fill"),
-            Ratio::Compress => String::from("compress"),
-            Ratio::Expand => String::from("expand"),
-            Ratio::Auto => String::from("auto"),
+            Ratio::Aspect(_aspect) => AttributeText::attr(self.as_cow()),
+            _ => AttributeText::quoted(self.as_cow()),
+        }
+    }
+
+    fn as_cow(&self) -> Cow<'a, str> {
+        match self {
+            Ratio::Aspect(aspect) => aspect.to_string().into(),
+            Ratio::Fill => "fill".into(),
+            Ratio::Compress => "compress".into(),
+            Ratio::Expand => "expand".into(),
+            Ratio::Auto => "auto".into(),
         }
     }
 }
 
-trait DotString {
+// TODO: maybe change the name given we arent actually printing the dot string
+trait DotString<'a> {
 
-    fn to_text(&self) -> AttributeText;
+    fn text_attribute(&self) -> AttributeText<'a>;
 
-    fn to_string(&self) -> String;
+    fn as_cow(&self) -> Cow<'a, str>;
 }
 
 pub enum LabelJustification {
@@ -1139,16 +1168,19 @@ pub enum LabelJustification {
     Center
 }
 
-impl LabelJustification {
-    pub fn as_slice(&self) -> &'static str {
+impl<'a> DotString<'a> for LabelJustification {
+    fn text_attribute(&self) -> AttributeText<'a> {
+        AttributeText::attr(self.as_cow())
+    }
+
+    fn as_cow(&self) -> Cow<'a, str> {
         match self {
-            LabelJustification::Left => "l",
-            LabelJustification::Right => "r",
-            LabelJustification::Center => "c",
+            LabelJustification::Left => "l".into(),
+            LabelJustification::Right => "r".into(),
+            LabelJustification::Center => "c".into(),
         }
     }
 }
-
 
 pub enum LabelLocation {
     Top,
@@ -1156,12 +1188,16 @@ pub enum LabelLocation {
     Bottom
 }
 
-impl LabelLocation {
-    pub fn as_slice(&self) -> &'static str {
+impl<'a> DotString<'a> for LabelLocation {
+    fn text_attribute(&self) -> AttributeText<'a> {
+        AttributeText::attr(self.as_cow())
+    }
+
+    fn as_cow(&self) -> Cow<'a, str> {
         match self {
-            LabelLocation::Top => "t",
-            LabelLocation::Center => "c",
-            LabelLocation::Bottom => "b",
+            LabelLocation::Top => "t".into(),
+            LabelLocation::Center => "c".into(),
+            LabelLocation::Bottom => "b".into(),
         }
     }
 }
@@ -1171,22 +1207,29 @@ pub enum Ordering {
     Out,
 }
 
-impl Ordering {
-    pub fn as_slice(&self) -> &'static str {
+impl<'a> DotString<'a> for Ordering {
+    fn text_attribute(&self) -> AttributeText<'a> {
+        AttributeText::quoted(self.as_cow())
+    }
+
+    fn as_cow(&self) -> Cow<'a, str> {
         match self {
-            Ordering::In => "in",
-            Ordering::Out => "out",
+            Ordering::In => "in".into(),
+            Ordering::Out => "out".into(),
         }
     }
 }
 
 /// These specify the order in which nodes and edges are drawn in concrete output.
-/// The default "breadthfirst" is the simplest, but when the graph layout does not avoid edge-node overlap, 
-/// this mode will sometimes have edges drawn over nodes and sometimes on top of nodes.
+///
+/// The default "breadthfirst" is the simplest, but when the graph layout does not avoid edge-node
+/// overlap, this mode will sometimes have edges drawn over nodes and sometimes on top of nodes.
+///
 /// If the mode "nodesfirst" is chosen, all nodes are drawn first, followed by the edges. 
 /// This guarantees an edge-node overlap will not be mistaken for an edge ending at a node.
-/// On the other hand, usually for aesthetic reasons, it may be desirable that all edges appear beneath nodes, 
-/// even if the resulting drawing is ambiguous. 
+///
+/// On the other hand, usually for aesthetic reasons, it may be desirable that all edges appear
+/// beneath nodes, even if the resulting drawing is ambiguous.
 /// This can be achieved by choosing "edgesfirst".
 pub enum OutputMode {
     BreadthFirst,
@@ -1194,18 +1237,22 @@ pub enum OutputMode {
     EdgesFirst,
 }
 
-impl OutputMode {
-    pub fn as_slice(&self) -> &'static str {
+impl<'a> DotString<'a> for OutputMode {
+    fn text_attribute(&self) -> AttributeText<'a> {
+        AttributeText::quoted(self.as_cow())
+    }
+
+    fn as_cow(&self) -> Cow<'a, str> {
         match self {
-            OutputMode::BreadthFirst => "breadthfirst",
-            OutputMode::NodesFirst => "nodesfirst",
-            OutputMode::EdgesFirst => "edgesfirst",
+            OutputMode::BreadthFirst => "breadthfirst".into(),
+            OutputMode::NodesFirst => "nodesfirst".into(),
+            OutputMode::EdgesFirst => "edgesfirst".into(),
         }
     }
 }
 
-/// The modes "node", "clust" or "graph" specify that the components should be packed together tightly, 
-/// using the specified granularity. 
+/// The modes "node", "clust" or "graph" specify that the components should be packed together
+/// tightly, using the specified granularity.
 pub enum PackMode {
     /// causes packing at the node and edge level, with no overlapping of these objects.
     /// This produces a layout with the least area, but it also allows interleaving, 
@@ -1219,15 +1266,20 @@ pub enum PackMode {
     /// does a packing using the bounding box of the component. 
     /// Thus, there will be a rectangular region around a component free of elements of any other component. 
     Graph,
+
     // TODO: array - "array(_flags)?(%d)?"
 }
 
-impl PackMode {
-    pub fn as_slice(&self) -> &'static str {
+impl<'a> DotString<'a> for PackMode {
+    fn text_attribute(&self) -> AttributeText<'a> {
+        AttributeText::quoted(self.as_cow())
+    }
+
+    fn as_cow(&self) -> Cow<'a, str> {
         match self {
-            PackMode::Node => "node",
-            PackMode::Cluster => "clust",
-            PackMode::Graph => "graph",
+            PackMode::Node => "node".into(),
+            PackMode::Cluster => "clust".into(),
+            PackMode::Graph => "graph".into(),
         }
     }
 }
@@ -1262,19 +1314,30 @@ impl Point {
         }
     }
 
-    // TODO: change to to_dot_string / print_dot
-    pub fn to_formatted_string(&self) -> String {
+}
+
+impl<'a> DotString<'a> for Point {
+    fn text_attribute(&self) -> AttributeText<'a> {
+        AttributeText::quoted(self.as_cow())
+    }
+
+    fn as_cow(&self) -> Cow<'a, str> {
         let mut slice = format!("{},{}", self.x, self.y);
         if self.z.is_some() {
             slice.push_str(format!(",{}", self.z.unwrap()).as_str());
         }
-        if !self.force_pos {
+        if self.force_pos {
             slice.push_str("!")
         }
-        slice.to_string()
+        slice.into()
     }
 }
 
+/// These specify the 8 row or column major orders for traversing a rectangular array,
+/// the first character corresponding to the major order and the second to the minor order.
+/// Thus, for “BL”, the major order is from bottom to top, and the minor order is from left to right.
+/// This means the bottom row is traversed first, from left to right, then the next row up,
+/// from left to right, and so on, until the topmost row is traversed
 pub enum PageDirection {
     BottomLeft,
     BottomRight,
@@ -1286,21 +1349,27 @@ pub enum PageDirection {
     LeftTop,
 }
 
-impl PageDirection {
-    pub fn as_slice(&self) -> &'static str {
+impl<'a> DotString<'a> for PageDirection {
+    fn text_attribute(&self) -> AttributeText<'a> {
+        AttributeText::attr(self.as_cow())
+    }
+
+    fn as_cow(&self) -> Cow<'a, str> {
         match self {
-            PageDirection::BottomLeft => "BL",
-            PageDirection::BottomRight => "BR",
-            PageDirection::TopLeft => "TL",
-            PageDirection::TopRight => "TR",
-            PageDirection::RightBottom => "RB",
-            PageDirection::RightTop => "RT",
-            PageDirection::LeftBottom => "LB",
-            PageDirection::LeftTop => "LT",
+            PageDirection::BottomLeft => "BL".into(),
+            PageDirection::BottomRight => "BR".into(),
+            PageDirection::TopLeft => "TL".into(),
+            PageDirection::TopRight => "TR".into(),
+            PageDirection::RightBottom => "RB".into(),
+            PageDirection::RightTop => "RT".into(),
+            PageDirection::LeftBottom => "LB".into(),
+            PageDirection::LeftTop => "LT".into(),
         }
     }
 }
 
+/// Corresponding to directed graphs drawn from top to bottom, from left to right,
+/// from bottom to top, and from right to left, respectively.
 pub enum RankDir {
     TopBottom,
     LeftRight,
@@ -1308,17 +1377,28 @@ pub enum RankDir {
     RightLeft,
 }
 
-impl RankDir {
-    pub fn as_slice(&self) -> &'static str {
+impl<'a> DotString<'a> for RankDir {
+    fn text_attribute(&self) -> AttributeText<'a> {
+        AttributeText::attr(self.as_cow())
+    }
+
+    fn as_cow(&self) -> Cow<'a, str> {
         match self {
-            RankDir::TopBottom => "TB",
-            RankDir::LeftRight => "LR",
-            RankDir::BottomTop => "BT",
-            RankDir::RightLeft => "RL",
+            RankDir::TopBottom => "TB".into(),
+            RankDir::LeftRight => "LR".into(),
+            RankDir::BottomTop => "BT".into(),
+            RankDir::RightLeft => "RL".into(),
         }
     }
 }
 
+/// Spline, edges are drawn as splines routed around nodes
+/// Line, edges are drawn as line segments
+/// Polygon, specifies that edges should be drawn as polylines.
+/// Ortho, specifies edges should be routed as polylines of axis-aligned segments.
+/// Curved, specifies edges should be drawn as curved arcs.
+/// splines=line and splines=spline can be used as synonyms for
+/// splines=false and splines=true, respectively.
 pub enum Splines {
     Line,
     Spline,
@@ -1328,47 +1408,55 @@ pub enum Splines {
     Ortho,
 }
 
-impl Splines {
-    pub fn as_slice(&self) -> &'static str {
+impl<'a> DotString<'a> for Splines {
+    fn text_attribute(&self) -> AttributeText<'a> {
+        AttributeText::quoted(self.as_cow())
+    }
+
+    fn as_cow(&self) -> Cow<'a, str> {
         match self {
-            Splines::Line => "line",
-            Splines::Spline => "spline",
-            Splines::None => "none",
-            Splines::Curved => "curved",
-            Splines::Polyline => "polyline",
-            Splines::Ortho => "ortho",
+            Splines::Line => "line".into(),
+            Splines::Spline => "spline".into(),
+            Splines::None => "none".into(),
+            Splines::Curved => "curved".into(),
+            Splines::Polyline => "polyline".into(),
+            Splines::Ortho => "ortho".into(),
         }
     }
 }
 
 /// The number of points in the list must be equivalent to 1 mod 3; note that this is not checked.
+/// TODO: should we check?
 pub struct SplineType {
     start: Option<Point>,
     end: Option<Point>,
     spline_points: Vec<Point>,
 }
 
-impl SplineType {
+impl<'a> DotString<'a> for SplineType {
 
-    // TODO: is this implementation correct?
-    pub fn to_dot_string(&self) -> String {
-        let mut dot_string = "".to_owned();
+    fn text_attribute(&self) -> AttributeText<'a> {
+        AttributeText::quoted(self.as_cow())
+    }
+
+    fn as_cow(&self) -> Cow<'a, str> {
+        let mut dot_string = String::from("");
 
         if let Some(end) = &self.end {
-            dot_string.push_str(format!("e,{},{} ", end.x, end.y).as_str())
+            dot_string.push_str(format!("e,{},{} ", end.x, end.y).as_str());
         }
 
         if let Some(start) = &self.start {
-            dot_string.push_str(format!("s,{},{} ", start.x, start.y).as_str())
+            dot_string.push_str(format!("s,{},{} ", start.x, start.y).as_str());
         }
 
+        // TODO: I think there is a but with spacing
         for s in &self.spline_points {
-            dot_string.push_str(format!("{}", s.to_formatted_string()).as_str())
+            dot_string.push_str(format!("{}", s.as_cow()).as_str());
         }
 
-        dot_string.to_string()
+        dot_string.into()
     }
-
 }
 
 
@@ -1607,7 +1695,7 @@ trait AttributeStatement<'a> {
         if self.get_attributes().is_empty() {
             return String::from("");
         }
-        let mut dot_string = format!("{}{} [", INDENT, self.get_attribute_statement_type());
+        let mut dot_string = format!("{} [", self.get_attribute_statement_type());
         let attributes = &self.get_attributes();
         let mut iter = attributes.iter();
         let first = iter.next().unwrap();
@@ -1616,7 +1704,7 @@ trait AttributeStatement<'a> {
             dot_string.push_str(", ");
             dot_string.push_str(format!("{}={}", key, value.to_dot_string()).as_str());
         }
-        dot_string.push_str("];\n");
+        dot_string.push_str("];");
         dot_string.to_string()
     }
 }
@@ -1639,7 +1727,7 @@ trait NodeAttributes<'a> {
     }
 
     /// Basic drawing color for graphics, not text. For the latter, use the fontcolor attribute.
-    fn color(&mut self, color: Color) -> &mut Self {
+    fn color(&mut self, color: Color<'a>) -> &mut Self {
         Attributes::color(self.get_attributes_mut(), color);
         self
     }
@@ -1816,12 +1904,19 @@ trait NodeAttributes<'a> {
         self
     }
 
-    /// If ordering="out", then the outedges of a node, that is, edges with the node as its tail node, must appear left-to-right in the same order in which they are defined in the input.
-    /// If ordering="in", then the inedges of a node must appear left-to-right in the same order in which they are defined in the input.
-    /// If defined as a graph or subgraph attribute, the value is applied to all nodes in the graph or subgraph.
+    /// If ordering="out", then the outedges of a node, that is, edges with the node as its tail
+    /// node, must appear left-to-right in the same order in which they are defined in the input.
+    ///
+    /// If ordering="in", then the inedges of a node must appear left-to-right in the same order in
+    /// which they are defined in the input.
+    ///
+    /// If defined as a graph or subgraph attribute, the value is applied to all nodes in the graph
+    /// or subgraph.
+    ///
     /// Note that the graph attribute takes precedence over the node attribute.
     fn ordering(&mut self, ordering: Ordering) -> &mut Self {
-        self.add_attribute("ordering", AttributeText::attr(ordering.as_slice()))
+        Attributes::ordering(self.get_attributes_mut(), ordering);
+        self
     }
 
     // TODO: constrain to 0 - 360. Docs say min is 360 which should be max right?
@@ -1877,7 +1972,7 @@ trait NodeAttributes<'a> {
 
     /// Sets the shape of a node.
     fn shape(&mut self, shape: Shape) -> &mut Self {
-        self.add_attribute("shape", AttributeText::attr(shape.as_slice()))
+        self.add_attribute("shape", shape.text_attribute())
     }
 
     // TODO: constrain
@@ -1911,8 +2006,8 @@ trait NodeAttributes<'a> {
     }
 
     /// Set style information for components of the graph.
-    fn style<S: Into<Cow<'a, str>>>(&mut self, style: S) -> &mut Self {
-        Attributes::style(self.get_attributes_mut(), style);
+    fn style(&mut self, style: NodeStyle) -> &mut Self {
+        Attributes::style(self.get_attributes_mut(), Styles::Node(style));
         self
     }
 
@@ -1988,7 +2083,7 @@ impl<'a> NodeAttributes<'a> for NodeAttributeStatementBuilder<'a> {
         self
     }
 
-    /// Add multiple attribures to the node.
+    /// Add multiple attributes to the node.
     fn add_attributes(&'a mut self, attributes: HashMap<String, AttributeText<'a>>) -> &mut Self {
         self.attributes.extend(attributes);
         self
@@ -2057,7 +2152,7 @@ trait EdgeAttributes<'a> {
     /// Style of arrowhead on the head node of an edge. 
     /// This will only appear if the dir attribute is forward or both.
     fn arrow_head(&mut self, arrowhead: ArrowType) -> &mut Self {
-        self.add_attribute("arrowhead", AttributeText::attr(arrowhead.as_slice()))
+        self.add_attribute("arrowhead", arrowhead.text_attribute())
     }
 
     // TODO: constrain
@@ -2070,7 +2165,7 @@ trait EdgeAttributes<'a> {
     /// Style of arrowhead on the tail node of an edge. 
     /// This will only appear if the dir attribute is back or both.
     fn arrowtail(&mut self, arrowtail: ArrowType) -> &mut Self {
-        self.add_attribute("arrowtail", AttributeText::attr(arrowtail.as_slice()))
+        self.add_attribute("arrowtail", arrowtail.text_attribute())
     }
     
     /// Classnames to attach to the edge’s SVG element. 
@@ -2082,7 +2177,7 @@ trait EdgeAttributes<'a> {
     }
 
     /// Basic drawing color for graphics, not text. For the latter, use the fontcolor attribute.
-    fn color(&mut self, color: Color) -> &mut Self {
+    fn color(&mut self, color: Color<'a>) -> &mut Self {
         Attributes::color(self.get_attributes_mut(), color);
         self
     }
@@ -2174,7 +2269,7 @@ trait EdgeAttributes<'a> {
 
     /// Position of an edge’s head label, in points. The position indicates the center of the label.
     fn head_lp(&mut self, head_lp: Point) -> &mut Self {
-        self.add_attribute("head_lp", AttributeText::quoted(head_lp.to_formatted_string()))
+        self.add_attribute("head_lp", head_lp.text_attribute())
     }
 
     /// If true, the head of an edge is clipped to the boundary of the head node; 
@@ -2346,15 +2441,15 @@ trait EdgeAttributes<'a> {
     }
 
     /// Set style information for components of the graph.
-    fn style<S: Into<Cow<'a, str>>>(&mut self, style: S) -> &mut Self {
-        Attributes::style(self.get_attributes_mut(), style);
+    fn style(&mut self, style: EdgeStyle) -> &mut Self {
+        Attributes::style(self.get_attributes_mut(), Styles::Edge(style));
         self
     }
 
     /// Position of an edge’s tail label, in points.
     /// The position indicates the center of the label.
     fn tail_lp(&mut self, tail_lp: Point) -> &mut Self {
-        self.add_attribute("tail_lp", AttributeText::quoted(tail_lp.to_formatted_string()))
+        self.add_attribute("tail_lp", tail_lp.text_attribute())
     }
 
     /// If true, the tail of an edge is clipped to the boundary of the tail node; otherwise, 
@@ -2549,6 +2644,7 @@ pub enum Shape {
     Mdiamond,
     Msquare,
     Mcircle,
+    Record,
     Rect,
     Rectangle,
     Square,
@@ -2583,72 +2679,76 @@ pub enum Shape {
     Lpromotor,
 }
 
-impl Shape {
-    pub fn as_slice(&self) -> &'static str {
+impl<'a> DotString<'a> for Shape {
+    fn text_attribute(&self) -> AttributeText<'a> {
+        AttributeText::attr(self.as_cow())
+    }
+
+    fn as_cow(&self) -> Cow<'a, str> {
         match self {
-            Shape::Box => "box",
-            Shape::Polygon => "polygon",
-            Shape::Ellipse => "ellipse",
-            Shape::Oval => "oval",
-            Shape::Circle => "circle",
-            Shape::Point => "point",
-            Shape::Egg => "egg",
-            Shape::Triangle => "triangle",
-            Shape::Plaintext => "plaintext",
-            Shape::Plain => "plain",
-            Shape::Diamond => "diamond",
-            Shape::Trapezium => "trapezium",
-            Shape::Parallelogram => "parallelogram",
-            Shape::House => "house",
-            Shape::Pentagon => "pentagon",
-            Shape::Hexagon => "hexagon",
-            Shape::Septagon => "septagon",
-            Shape::Octagon => "octagon",
-            Shape::DoubleCircle => "doublecircle",
-            Shape::DoubleOctagon => "doubleoctagon",
-            Shape::TripleOctagon => "tripleocctagon",
-            Shape::Invtriangle => "invtriangle",
-            Shape::Invtrapezium => "invtrapezium",
-            Shape::Invhouse => "invhouse",
-            Shape::Mdiamond => "mdiamond",
-            Shape::Msquare => "msquare",
-            Shape::Mcircle => "mcircle",
-            Shape::Rect => "rect",
-            Shape::Rectangle => "rectangle",
-            Shape::Square => "square",
-            Shape::Star => "star",
-            Shape::None => "none",
-            Shape::Underline => "underline",
-            Shape::Cylinder => "cylinder",
-            Shape::Note => "note",
-            Shape::Tab => "tab",
-            Shape::Folder => "folder",
-            Shape::Box3D => "box3d",
-            Shape::Component => "component",
-            Shape::Promoter => "promoter",
-            Shape::Cds => "cds",
-            Shape::Terminator => "terminator",
-            Shape::Utr => "utr",
-            Shape::Primersite => "primersite",
-            Shape::Restrictionsite => "restrictionsite",
-            Shape::FivePoverHang => "fivepoverhang",
-            Shape::ThreePoverHang => "threepoverhang",
-            Shape::NoverHang => "noverhang",
-            Shape::Assemply => "assemply",
-            Shape::Signature => "signature",
-            Shape::Insulator => "insulator",
-            Shape::Ribosite => "ribosite",
-            Shape::Rnastab => "rnastab",
-            Shape::Proteasesite => "proteasesite",
-            Shape::Proteinstab => "proteinstab",
-            Shape::Rpromotor => "rpromotor",
-            Shape::Rarrow => "rarrow",
-            Shape::Larrow => "larrow",
-            Shape::Lpromotor => "lpromotor",
+            Shape::Box => "box".into(),
+            Shape::Polygon => "polygon".into(),
+            Shape::Ellipse => "ellipse".into(),
+            Shape::Oval => "oval".into(),
+            Shape::Circle => "circle".into(),
+            Shape::Point => "point".into(),
+            Shape::Egg => "egg".into(),
+            Shape::Triangle => "triangle".into(),
+            Shape::Plaintext => "plaintext".into(),
+            Shape::Plain => "plain".into(),
+            Shape::Diamond => "diamond".into(),
+            Shape::Trapezium => "trapezium".into(),
+            Shape::Parallelogram => "parallelogram".into(),
+            Shape::House => "house".into(),
+            Shape::Pentagon => "pentagon".into(),
+            Shape::Hexagon => "hexagon".into(),
+            Shape::Septagon => "septagon".into(),
+            Shape::Octagon => "octagon".into(),
+            Shape::DoubleCircle => "doublecircle".into(),
+            Shape::DoubleOctagon => "doubleoctagon".into(),
+            Shape::TripleOctagon => "tripleocctagon".into(),
+            Shape::Invtriangle => "invtriangle".into(),
+            Shape::Invtrapezium => "invtrapezium".into(),
+            Shape::Invhouse => "invhouse".into(),
+            Shape::Mdiamond => "mdiamond".into(),
+            Shape::Msquare => "msquare".into(),
+            Shape::Mcircle => "mcircle".into(),
+            Shape::Record => "record".into(),
+            Shape::Rect => "rect".into(),
+            Shape::Rectangle => "rectangle".into(),
+            Shape::Square => "square".into(),
+            Shape::Star => "star".into(),
+            Shape::None => "none".into(),
+            Shape::Underline => "underline".into(),
+            Shape::Cylinder => "cylinder".into(),
+            Shape::Note => "note".into(),
+            Shape::Tab => "tab".into(),
+            Shape::Folder => "folder".into(),
+            Shape::Box3D => "box3d".into(),
+            Shape::Component => "component".into(),
+            Shape::Promoter => "promoter".into(),
+            Shape::Cds => "cds".into(),
+            Shape::Terminator => "terminator".into(),
+            Shape::Utr => "utr".into(),
+            Shape::Primersite => "primersite".into(),
+            Shape::Restrictionsite => "restrictionsite".into(),
+            Shape::FivePoverHang => "fivepoverhang".into(),
+            Shape::ThreePoverHang => "threepoverhang".into(),
+            Shape::NoverHang => "noverhang".into(),
+            Shape::Assemply => "assemply".into(),
+            Shape::Signature => "signature".into(),
+            Shape::Insulator => "insulator".into(),
+            Shape::Ribosite => "ribosite".into(),
+            Shape::Rnastab => "rnastab".into(),
+            Shape::Proteasesite => "proteasesite".into(),
+            Shape::Proteinstab => "proteinstab".into(),
+            Shape::Rpromotor => "rpromotor".into(),
+            Shape::Rarrow => "rarrow".into(),
+            Shape::Larrow => "larrow".into(),
+            Shape::Lpromotor => "lpromotor".into(),
         }
     }
 }
-
 
 pub enum ArrowType {
     Normal,
@@ -2672,28 +2772,32 @@ pub enum ArrowType {
     Halfopen,
 }
 
-impl ArrowType {
-    pub fn as_slice(&self) -> &'static str {
+impl<'a> DotString<'a> for ArrowType {
+    fn text_attribute(&self) -> AttributeText<'a> {
+        AttributeText::attr(self.as_cow())
+    }
+
+    fn as_cow(&self) -> Cow<'a, str> {
         match self {
-            ArrowType::Normal => "normal",
-            ArrowType::Dot => "dot",
-            ArrowType::Odot => "odot",
-            ArrowType::None => "none",
-            ArrowType::Empty => "empty",
-            ArrowType::Diamond => "diamond",
-            ArrowType::Ediamond => "ediamond",
-            ArrowType::Box => "box",
-            ArrowType::Open => "open",
-            ArrowType::Vee => "vee",
-            ArrowType::Inv => "inv",
-            ArrowType::Invdot => "invdot",
-            ArrowType::Invodot => "invodot",
-            ArrowType::Tee => "tee",
-            ArrowType::Invempty => "invempty",
-            ArrowType::Odiamond => "odiamond",
-            ArrowType::Crow => "crow",
-            ArrowType::Obox => "obox",
-            ArrowType::Halfopen => "halfopen",
+            ArrowType::Normal => "normal".into(),
+            ArrowType::Dot => "dot".into(),
+            ArrowType::Odot => "odot".into(),
+            ArrowType::None => "none".into(),
+            ArrowType::Empty => "empty".into(),
+            ArrowType::Diamond => "diamond".into(),
+            ArrowType::Ediamond => "ediamond".into(),
+            ArrowType::Box => "box".into(),
+            ArrowType::Open => "open".into(),
+            ArrowType::Vee => "vee".into(),
+            ArrowType::Inv => "inv".into(),
+            ArrowType::Invdot => "invdot".into(),
+            ArrowType::Invodot => "invodot".into(),
+            ArrowType::Tee => "tee".into(),
+            ArrowType::Invempty => "invempty".into(),
+            ArrowType::Odiamond => "odiamond".into(),
+            ArrowType::Crow => "crow".into(),
+            ArrowType::Obox => "obox".into(),
+            ArrowType::Halfopen => "halfopen".into(),
         }
     }
 }
@@ -2776,6 +2880,29 @@ impl<'a> Color<'a> {
     }
 }
 
+impl<'a> DotString<'a> for Color<'a> {
+    fn text_attribute(&self) -> AttributeText<'a> {
+        AttributeText::quoted(self.as_cow())
+    }
+
+    fn as_cow(&self) -> Cow<'a, str> {
+        match self {
+            Color::RGB { red, green, blue } => {
+                format!("#{}{}{}", red, green, blue).into()
+            },
+            Color::RGBA { red, green, blue, alpha } => {
+                format!("#{}{}{}{}", red, green, blue, alpha).into()
+            },
+            Color::HSV { hue, saturation, value } => {
+                format!("{} {} {}", hue, saturation, value).into()
+            },
+            Color::Named(color) => {
+                (*color).into()
+            }
+        }
+    }
+}
+
 // The sum of the optional weightings must sum to at most 1.
 pub struct WeightedColor<'a> {
     color: Color<'a>,
@@ -2794,7 +2921,6 @@ impl<'a> WeightedColor<'a> {
         }
         dot_string
     }
-
 }
 
 pub struct ColorList<'a> {
@@ -2839,52 +2965,125 @@ impl<'a> IntoWeightedColor<'a> for &'a (Color<'a>, Option<f32>)
     }
 }
 
-/// The style for a node or edge.
-/// See <http://www.graphviz.org/doc/info/attrs.html#k:style> for descriptions.
-/// Note that some of these are not valid for edges.
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
-pub enum Style {
-    None,
-    Solid,
-    Dashed,
-    Dotted,
+
+pub enum NodeStyle {
     Bold,
-    Rounded,
+    Dashed,
     Diagonals,
+    Dotted,
     Filled,
-    Striped,
+    Invisible,
+    Rounded,
+    Solid,
+    Stripped,
+    Radical,
     Wedged,
 }
+impl<'a> DotString<'a> for NodeStyle {
+    fn text_attribute(&self) -> AttributeText<'a> {
+        AttributeText::attr(self.as_cow())
+    }
 
-impl Style {
-    pub fn as_slice(&self) -> &'static str {
+    fn as_cow(&self) -> Cow<'a, str> {
         match self {
-            Style::None => "",
-            Style::Solid => "solid",
-            Style::Dashed => "dashed",
-            Style::Dotted => "dotted",
-            Style::Bold => "bold",
-            Style::Rounded => "rounded",
-            Style::Diagonals => "diagonals",
-            Style::Filled => "filled",
-            Style::Striped => "striped",
-            Style::Wedged => "wedged",
+            NodeStyle::Bold => "bold".into(),
+            NodeStyle::Dashed => "dashed".into(),
+            NodeStyle::Diagonals => "diagonals".into(),
+            NodeStyle::Dotted => "dotted".into(),
+            NodeStyle::Filled => "filled".into(),
+            NodeStyle::Invisible => "invisible".into(),
+            NodeStyle::Rounded => "rounded".into(),
+            NodeStyle::Solid => "solid".into(),
+            NodeStyle::Stripped => "stripped".into(),
+            NodeStyle::Radical => "radical".into(),
+            NodeStyle::Wedged => "wedged".into(),
+        }
+    }
+}
+
+// TODO: this might be a bit much to in order to avoid some duplication
+// probably not worth it but is pattern is cool nonetheless
+pub enum Styles {
+    Edge(EdgeStyle),
+    Node(NodeStyle),
+    Graph(GraphStyle)
+}
+
+impl<'a> DotString<'a> for Styles {
+    fn text_attribute(&self) -> AttributeText<'a> {
+        match self {
+            Styles::Edge(s) => s.text_attribute(),
+            Styles::Node(s) => s.text_attribute(),
+            Styles::Graph(s) => s.text_attribute(),
+        }
+    }
+
+    fn as_cow(&self) -> Cow<'a, str> {
+        match self {
+            Styles::Edge(s) => s.as_cow(),
+            Styles::Node(s) => s.as_cow(),
+            Styles::Graph(s) => s.as_cow(),
+        }
+    }
+}
+
+pub enum EdgeStyle {
+    Bold,
+    Dashed,
+    Dotted,
+    Invisible,
+    Solid,
+    Tapered,
+}
+impl<'a> DotString<'a> for EdgeStyle {
+    fn text_attribute(&self) -> AttributeText<'a> {
+        AttributeText::attr(self.as_cow())
+    }
+
+    fn as_cow(&self) -> Cow<'a, str> {
+        match self {
+            EdgeStyle::Bold => "bold".into(),
+            EdgeStyle::Dashed => "dashed".into(),
+            EdgeStyle::Dotted => "dotted".into(),
+            EdgeStyle::Invisible => "invisible".into(),
+            EdgeStyle::Solid => "solid".into(),
+            EdgeStyle::Tapered => "tapered".into(),
+        }
+    }
+}
+
+pub enum GraphStyle {
+    Filled,
+    Radical,
+    Rounded,
+    Striped,
+}
+impl<'a> DotString<'a> for GraphStyle {
+    fn text_attribute(&self) -> AttributeText<'a> {
+        AttributeText::attr(self.as_cow())
+    }
+
+    fn as_cow(&self) -> Cow<'a, str> {
+        match self {
+            GraphStyle::Filled => "filled".into(),
+            GraphStyle::Radical => "radical".into(),
+            GraphStyle::Rounded => "rounded".into(),
+            GraphStyle::Striped => "striped".into(),
         }
     }
 }
 
 struct Attributes;
-
 impl Attributes {
     fn class(attributes: &mut IndexMap<String, AttributeText>, class: String) {
         Self::add_attribute(attributes, "class", AttributeText::quoted(class))
     }
 
-    fn color<'a>(attributes: &mut IndexMap<String, AttributeText>, color: Color<'a>) {
-        Self::add_attribute(attributes,"color", AttributeText::quoted(color.to_dot_string()))
+    fn color<'a>(attributes: &mut IndexMap<String, AttributeText<'a>>, color: Color<'a>) {
+        Self::add_attribute(attributes,"color", color.text_attribute())
     }
 
-    fn color_with_colorlist<'a>(attributes: &mut IndexMap<String, AttributeText>, color: ColorList<'a>) {
+    fn color_with_colorlist(attributes: &mut IndexMap<String, AttributeText>, color: ColorList) {
         Self::add_attribute(attributes,"color", AttributeText::quoted(color.to_dot_string()))
     }
 
@@ -2941,7 +3140,7 @@ impl Attributes {
     }
 
     fn label_location(attributes: &mut IndexMap<String, AttributeText>, label_location: LabelLocation) {
-        Self::add_attribute(attributes, "labelloc", AttributeText::attr(label_location.as_slice()))
+        Self::add_attribute(attributes, "labelloc", label_location.text_attribute())
     }
 
     // TODO: layer struct
@@ -2958,7 +3157,7 @@ impl Attributes {
     }
 
     fn margin_point(attributes: &mut IndexMap<String, AttributeText>, margin: Point) {
-        Self::add_attribute(attributes, "margin", AttributeText::attr(margin.to_formatted_string()))
+        Self::add_attribute(attributes, "margin", margin.text_attribute())
     }
 
     fn no_justify(attributes: &mut IndexMap<String, AttributeText>, no_justify: bool) {
@@ -2966,7 +3165,7 @@ impl Attributes {
     }
 
     fn ordering(attributes: &mut IndexMap<String, AttributeText>, ordering: Ordering) {
-        Self::add_attribute(attributes, "ordering", AttributeText::attr(ordering.as_slice()))
+        Self::add_attribute(attributes, "ordering", ordering.text_attribute())
     }
 
     fn orientation(attributes: &mut IndexMap<String, AttributeText>, orientation: f32) {
@@ -2976,9 +3175,10 @@ impl Attributes {
     fn pen_width(attributes: &mut IndexMap<String, AttributeText>, pen_width: f32) {
         Self::add_attribute(attributes, "penwidth", AttributeText::attr(pen_width.to_string()))
     }
-    
+
+    // TODO: splinetype
     fn pos(attributes: &mut IndexMap<String, AttributeText>, pos: Point){
-        Self::add_attribute(attributes, "pos", AttributeText::attr(pos.to_formatted_string()))
+        Self::add_attribute(attributes, "pos", pos.text_attribute())
     }
 
     fn show_boxes(attributes: &mut IndexMap<String, AttributeText>, show_boxes: u32) {
@@ -2989,8 +3189,8 @@ impl Attributes {
         Self::add_attribute(attributes, "sortv", AttributeText::attr(sortv.to_string()))
     }
 
-    fn style<'a, S: Into<Cow<'a, str>>>(attributes: &mut IndexMap<String, AttributeText<'a>>, style: S) {
-        Self::add_attribute(attributes, "style", AttributeText::attr(style))
+    fn style(attributes: &mut IndexMap<String, AttributeText>, style: Styles) {
+        Self::add_attribute(attributes, "style", style.text_attribute())
     }
 
     fn target(attributes: &mut IndexMap<String, AttributeText>, target: String) {
@@ -3010,7 +3210,7 @@ impl Attributes {
     }
 
     fn xlp(attributes: &mut IndexMap<String, AttributeText>, xlp: Point) {
-        Self::add_attribute(attributes, "xlp", AttributeText::escaped(xlp.to_formatted_string()))
+        Self::add_attribute(attributes, "xlp", xlp.text_attribute())
     }
 
     fn add_attribute<'a, S: Into<String>>(
@@ -3223,26 +3423,14 @@ fn colorlist2_dot_string() {
         ])
         .build();
 
-    let g = GraphBuilder::new_directed(Some("graph_attributes".to_string()))
-        .add_graph_attributes(graph_attributes)
-        .build();
-
-    let r = test_input(g);
-
-    assert_eq!(
-        r.unwrap(),
-        r#"digraph graph_attributes {
-    graph [fillcolor="yellow;0.3:blue"];
-}
-"#
-    );
+    assert_eq!("graph [fillcolor=\"yellow;0.3:blue\"];", graph_attributes.to_dot_string());
 }
 
 #[test]
 fn graph_attributes() {
 
     let graph_attributes = GraphAttributeStatementBuilder::new().rank_dir(RankDir::LeftRight).build();
-    let node_attributes = NodeAttributeStatementBuilder::new().style("filled").build();
+    let node_attributes = NodeAttributeStatementBuilder::new().style(NodeStyle::Filled).build();
     let edge_attributes = EdgeAttributeStatementBuilder::new().min_len(1).build();
 
     let g = GraphBuilder::new_directed(Some("graph_attributes".to_string()))
