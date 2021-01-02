@@ -177,12 +177,11 @@ pub enum Compass {
     None
 }
 
-impl<'a> Attribute<'a> for Compass {
-    fn text_attribute(&self) -> AttributeText<'a> {
-        AttributeText::quoted(self.dot_string())
+impl<'a> From<Compass> for AttributeText<'a> {
+    fn from(compass: Compass) -> Self {
+        AttributeText::quoted(compass.dot_string())
     }
 }
-
 impl<'a> DotString<'a> for Compass {
     fn dot_string(&self) -> Cow<'a, str> {
         match self {
@@ -543,7 +542,7 @@ pub trait GraphAttributes<'a> {
     /// with C a color value and the optional F a floating-point number, 0 ≤ F ≤ 1.
     /// The sum of the floating-point numbers in a colorList must sum to at most 1.
     fn background_colorlist(&mut self, background_colors: ColorList<'a>) -> &mut Self {
-        self.add_attribute("bgcolor", background_colors.text_attribute())
+        self.add_attribute("bgcolor", AttributeText::from(background_colors))
     }
 
     /// Type: rect which is "%f,%f,%f,%f"
@@ -555,7 +554,7 @@ pub trait GraphAttributes<'a> {
 
     /// If true, the drawing is centered in the output canvas.
     fn center(&mut self, center: bool) -> &mut Self {
-        self.add_attribute("center", AttributeText::attr(center.to_string()))
+        self.add_attribute("center", AttributeText::from(center))
     }
 
     /// Specifies the character encoding used when interpreting string input as a text label.
@@ -579,7 +578,7 @@ pub trait GraphAttributes<'a> {
     /// Note also that there can be clusters within clusters.
     /// The modes clusterrank=global and clusterrank=none appear to be identical, both turning off the special cluster processing.
     fn cluster_rank(&mut self, cluster_rank: ClusterMode) -> &mut Self {
-        self.add_attribute("clusterrank", cluster_rank.text_attribute())
+        self.add_attribute("clusterrank", AttributeText::from(cluster_rank))
     }
 
     /// This attribute specifies a color scheme namespace: the context for interpreting color names.
@@ -612,7 +611,7 @@ pub trait GraphAttributes<'a> {
     }
 
     /// Color used to fill the background of a node or cluster assuming style=filled, or a filled arrowhead.
-    fn fill_color(&mut self, fill_color: Color) -> &mut Self {
+    fn fill_color(&mut self, fill_color: Color<'a>) -> &mut Self {
         Attributes::fill_color(self.get_attributes_mut(), fill_color);
         self
     }
@@ -638,7 +637,7 @@ pub trait GraphAttributes<'a> {
     }
 
     /// Color used for text.
-    fn font_color(&mut self, font_color: Color) -> &mut Self {
+    fn font_color(&mut self, font_color: Color<'a>) -> &mut Self {
         Attributes::font_color(self.get_attributes_mut(), font_color);
         self
     }
@@ -666,7 +665,7 @@ pub trait GraphAttributes<'a> {
     }
 
     fn force_label(&mut self, force_label: bool) -> &mut Self {
-        self.add_attribute("forcelabel", AttributeText::attr(force_label.to_string()))
+        self.add_attribute("forcelabel", AttributeText::from(force_label))
     }
 
     /// If a gradient fill is being used, this determines the angle of the fill.
@@ -689,7 +688,7 @@ pub trait GraphAttributes<'a> {
     /// If labeljust=l, left-justified
     /// Else the label is centered.
     fn label_justification(&mut self, label_justification: LabelJustification) -> &mut Self {
-        self.add_attribute("labeljust", label_justification.text_attribute())
+        self.add_attribute("labeljust", AttributeText::from(label_justification))
     }
 
     // Vertical placement of labels for nodes, root graphs and clusters.
@@ -709,7 +708,7 @@ pub trait GraphAttributes<'a> {
     }
 
     fn landscape(&mut self, landscape: bool) -> &mut Self {
-        self.add_attribute("landscape", AttributeText::attr(landscape.to_string()))
+        self.add_attribute("landscape", AttributeText::from(landscape))
     }
 
     /// Specifies the separator characters used to split an attribute of type layerRange into a list of ranges.
@@ -859,7 +858,7 @@ pub trait GraphAttributes<'a> {
     /// Specify order in which nodes and edges are drawn.
     /// default: breadthfirst
     fn output_order(&mut self, output_order: OutputMode) -> &mut Self {
-        self.add_attribute("outputorder", output_order.text_attribute())
+        self.add_attribute("outputorder", AttributeText::from(output_order))
     }
 
     /// Whether each connected component of the graph should be laid out separately, and then the
@@ -883,7 +882,7 @@ pub trait GraphAttributes<'a> {
     /// This indicates how connected components should be packed (cf. packMode). 
     /// Note that defining packmode will automatically turn on packing as though one had set pack=true.
     fn pack_mode(&mut self, pack_mode: PackMode) -> &mut Self {
-        self.add_attribute("packmode", pack_mode.text_attribute())
+        self.add_attribute("packmode", AttributeText::from(pack_mode))
     }
 
     /// Specifies how much, in inches, to extend the drawing area around the minimal area needed
@@ -898,7 +897,7 @@ pub trait GraphAttributes<'a> {
     /// Specifies how much, in inches, to extend the drawing area around the minimal area needed to
     /// draw the graph.
     fn pad_point(&mut self, pad: Point) -> &mut Self {
-        self.add_attribute("pad", pad.text_attribute())
+        self.add_attribute("pad", AttributeText::from(pad))
     }
 
     /// Width and height of output pages, in inches.
@@ -909,14 +908,14 @@ pub trait GraphAttributes<'a> {
 
     /// Width and height of output pages, in inches.
     fn page_point(&mut self, page: Point) -> &mut Self {
-        self.add_attribute("page", page.text_attribute())
+        self.add_attribute("page", AttributeText::from(page))
     }
 
     /// The order in which pages are emitted.
     /// Used only if page is set and applicable.
     /// Limited to one of the 8 row or column major orders.
     fn page_dir(&mut self, page_dir: PageDirection) -> &mut Self {
-        self.add_attribute("pagedir", page_dir.text_attribute())
+        self.add_attribute("pagedir", AttributeText::from(page_dir))
     }
 
     // TODO: constrain
@@ -932,7 +931,7 @@ pub trait GraphAttributes<'a> {
     /// This attribute also has a side-effect in determining how record nodes are interpreted.
     /// See record shapes.
     fn rank_dir(&mut self, rank_dir: RankDir) -> &mut Self {
-        self.add_attribute("rankdir", rank_dir.text_attribute())
+        self.add_attribute("rankdir", AttributeText::from(rank_dir))
     }
 
     /// sets the desired rank separation, in inches.
@@ -947,7 +946,7 @@ pub trait GraphAttributes<'a> {
     /// Sets the aspect ratio (drawing height/drawing width) for the drawing.
     /// Note that this is adjusted before the size attribute constraints are enforced.
     fn ratio(&mut self, ratio: Ratio) -> &mut Self {
-        self.add_attribute("ratio", ratio.text_attribute())
+        self.add_attribute("ratio", AttributeText::from(ratio))
     }
 
     /// If true and there are multiple clusters, run crossing minimization a second time.
@@ -1011,7 +1010,7 @@ pub trait GraphAttributes<'a> {
 
     /// Controls how, and if, edges are represented.
     fn splines(&mut self, splines: Splines) -> &mut Self {
-        self.add_attribute("splines", splines.text_attribute())
+        self.add_attribute("splines", AttributeText::from(splines))
     }
 
     /// Set style information for components of the graph.
@@ -1141,9 +1140,10 @@ pub enum ClusterMode {
     Global,
     None
 }
-impl<'a> Attribute<'a> for ClusterMode {
-    fn text_attribute(&self) -> AttributeText<'a> {
-        AttributeText::quoted(self.dot_string())
+
+impl<'a> From<ClusterMode> for AttributeText<'a> {
+    fn from(mode: ClusterMode) -> Self {
+        AttributeText::quoted(mode.dot_string())
     }
 }
 
@@ -1164,14 +1164,16 @@ pub enum Ratio {
     Expand,
     Auto,
 }
-impl<'a> Attribute<'a> for Ratio {
-    fn text_attribute(&self) -> AttributeText<'a> {
-        match self {
-            Ratio::Aspect(_aspect) => AttributeText::attr(self.dot_string()),
-            _ => AttributeText::quoted(self.dot_string()),
+
+impl<'a> From<Ratio> for AttributeText<'a> {
+    fn from(ratio: Ratio) -> Self {
+        match ratio {
+            Ratio::Aspect(_aspect) => AttributeText::attr(ratio.dot_string()),
+            _ => AttributeText::quoted(ratio.dot_string()),
         }
     }
 }
+
 impl<'a> DotString<'a> for Ratio {
     fn dot_string(&self) -> Cow<'a, str> {
         match self {
@@ -1188,20 +1190,18 @@ trait DotString<'a> {
     fn dot_string(&self) -> Cow<'a, str>;
 }
 
-trait Attribute<'a>: DotString<'a> {
-    fn text_attribute(&self) -> AttributeText<'a>;
-}
-
 pub enum LabelJustification {
     Left,
     Right,
     Center
 }
-impl<'a> Attribute<'a> for LabelJustification {
-    fn text_attribute(&self) -> AttributeText<'a> {
-        AttributeText::attr(self.dot_string())
+
+impl<'a> From<LabelJustification> for AttributeText<'a> {
+    fn from(label_justification: LabelJustification) -> Self {
+        AttributeText::attr(label_justification.dot_string())
     }
 }
+
 impl<'a> DotString<'a> for LabelJustification {
 
     fn dot_string(&self) -> Cow<'a, str> {
@@ -1218,9 +1218,10 @@ pub enum LabelLocation {
     Center,
     Bottom
 }
-impl<'a> Attribute<'a> for LabelLocation {
-    fn text_attribute(&self) -> AttributeText<'a> {
-        AttributeText::attr(self.dot_string())
+
+impl<'a> From<LabelLocation> for AttributeText<'a> {
+    fn from(label_location: LabelLocation) -> Self {
+        AttributeText::attr(label_location.dot_string())
     }
 }
 impl<'a> DotString<'a> for LabelLocation {
@@ -1237,12 +1238,12 @@ pub enum Ordering {
     In,
     Out,
 }
-impl<'a> Attribute<'a> for Ordering {
-    fn text_attribute(&self) -> AttributeText<'a> {
-        AttributeText::quoted(self.dot_string())
+
+impl<'a> From<Ordering> for AttributeText<'a> {
+    fn from(ordering: Ordering) -> Self {
+        AttributeText::quoted(ordering.dot_string())
     }
 }
-
 impl<'a> DotString<'a> for Ordering {
     fn dot_string(&self) -> Cow<'a, str> {
         match self {
@@ -1268,11 +1269,13 @@ pub enum OutputMode {
     NodesFirst,
     EdgesFirst,
 }
-impl<'a> Attribute<'a> for OutputMode {
-    fn text_attribute(&self) -> AttributeText<'a> {
-        AttributeText::quoted(self.dot_string())
+
+impl<'a> From<OutputMode> for AttributeText<'a> {
+    fn from(mode: OutputMode) -> Self {
+        AttributeText::quoted(mode.dot_string())
     }
 }
+
 impl<'a> DotString<'a> for OutputMode {
     fn dot_string(&self) -> Cow<'a, str> {
         match self {
@@ -1301,9 +1304,10 @@ pub enum PackMode {
 
     // TODO: array - "array(_flags)?(%d)?"
 }
-impl<'a> Attribute<'a> for PackMode {
-    fn text_attribute(&self) -> AttributeText<'a> {
-        AttributeText::quoted(self.dot_string())
+
+impl<'a> From<PackMode> for AttributeText<'a> {
+    fn from(mode: PackMode) -> Self {
+        AttributeText::quoted(mode.dot_string())
     }
 }
 impl<'a> DotString<'a> for PackMode {
@@ -1347,11 +1351,13 @@ impl Point {
     }
 
 }
-impl<'a> Attribute<'a> for Point {
-    fn text_attribute(&self) -> AttributeText<'a> {
-        AttributeText::quoted(self.dot_string())
+
+impl<'a> From<Point> for AttributeText<'a> {
+    fn from(point: Point) -> Self {
+        AttributeText::quoted(point.dot_string())
     }
 }
+
 impl<'a> DotString<'a> for Point {
     fn dot_string(&self) -> Cow<'a, str> {
         let mut slice = format!("{:.1},{:.1}", self.x, self.y);
@@ -1380,9 +1386,10 @@ pub enum PageDirection {
     LeftBottom,
     LeftTop,
 }
-impl<'a> Attribute<'a> for PageDirection {
-    fn text_attribute(&self) -> AttributeText<'a> {
-        AttributeText::attr(self.dot_string())
+
+impl<'a> From<PageDirection> for AttributeText<'a> {
+    fn from(page_direction: PageDirection) -> Self {
+        AttributeText::attr(page_direction.dot_string())
     }
 }
 impl<'a> DotString<'a> for PageDirection {
@@ -1408,9 +1415,10 @@ pub enum RankDir {
     BottomTop,
     RightLeft,
 }
-impl<'a> Attribute<'a> for RankDir {
-    fn text_attribute(&self) -> AttributeText<'a> {
-        AttributeText::attr(self.dot_string())
+
+impl<'a> From<RankDir> for AttributeText<'a> {
+    fn from(rank_dir: RankDir) -> Self {
+        AttributeText::attr(rank_dir.dot_string())
     }
 }
 impl<'a> DotString<'a> for RankDir {
@@ -1440,11 +1448,13 @@ pub enum Splines {
     Polyline,
     Ortho,
 }
-impl<'a> Attribute<'a> for Splines {
-    fn text_attribute(&self) -> AttributeText<'a> {
-        AttributeText::quoted(self.dot_string())
+
+impl<'a> From<Splines> for AttributeText<'a> {
+    fn from(splines: Splines) -> Self {
+        AttributeText::quoted(splines.dot_string())
     }
 }
+
 impl<'a> DotString<'a> for Splines {
 
     fn dot_string(&self) -> Cow<'a, str> {
@@ -1466,10 +1476,10 @@ pub struct SplineType {
     end: Option<Point>,
     spline_points: Vec<Point>,
 }
-impl<'a> Attribute<'a> for SplineType {
 
-    fn text_attribute(&self) -> AttributeText<'a> {
-        AttributeText::quoted(self.dot_string())
+impl<'a> From<SplineType> for AttributeText<'a> {
+    fn from(spline_type: SplineType) -> Self {
+        AttributeText::quoted(spline_type.dot_string())
     }
 }
 impl<'a> DotString<'a> for SplineType {
@@ -1797,7 +1807,7 @@ trait NodeAttributes<'a> {
     }
 
     /// Color used to fill the background of a node or cluster assuming style=filled, or a filled arrowhead.
-    fn fill_color(&mut self, fill_color: Color) -> &mut Self {
+    fn fill_color(&mut self, fill_color: Color<'a>) -> &mut Self {
         Attributes::fill_color(self.get_attributes_mut(), fill_color);
         self
     }
@@ -1831,7 +1841,7 @@ trait NodeAttributes<'a> {
     }
 
     /// Color used for text.
-    fn font_color(&mut self, font_color: Color) -> &mut Self {
+    fn font_color(&mut self, font_color: Color<'a>) -> &mut Self {
         Attributes::font_color(self.get_attributes_mut(), font_color);
         self
     }
@@ -1978,7 +1988,7 @@ trait NodeAttributes<'a> {
 
     /// Set number of peripheries used in polygonal shapes and cluster boundaries.
     fn peripheries(&mut self, peripheries: u32) -> &mut Self {
-        self.add_attribute("penwidth", AttributeText::attr(peripheries.to_string()))
+        self.add_attribute("penwidth", AttributeText::from(peripheries))
     }
 
     /// Position of node, or spline control points.
@@ -2000,17 +2010,17 @@ trait NodeAttributes<'a> {
     /// If true, force polygon to be regular, i.e., the vertices of the polygon will 
     /// lie on a circle whose center is the center of the node.
     fn regular(&mut self, regular: bool) -> &mut Self {
-        self.add_attribute("regular", AttributeText::attr(regular.to_string()))
+        self.add_attribute("regular", AttributeText::from(regular))
     }
 
     /// Gives the number of points used for a circle/ellipse node.
     fn sample_points(&mut self, sample_points: u32) -> &mut Self {
-        self.add_attribute("samplepoints", AttributeText::attr(sample_points.to_string()))
+        self.add_attribute("samplepoints", AttributeText::from(sample_points))
     }
 
     /// Sets the shape of a node.
     fn shape(&mut self, shape: Shape) -> &mut Self {
-        self.add_attribute("shape", shape.text_attribute())
+        self.add_attribute("shape", AttributeText::from(shape))
     }
 
     // TODO: constrain
@@ -2083,7 +2093,7 @@ trait NodeAttributes<'a> {
     /// Otherwise, if the node label requires more width to fit, the node’s 
     /// width will be increased to contain the label.
     fn width(&mut self, width: f32) -> &mut Self {
-        self.add_attribute("width", AttributeText::attr(width.to_string()))
+        self.add_attribute("width", AttributeText::from(width))
     }
 
     /// External label for a node or edge.
@@ -2190,20 +2200,20 @@ trait EdgeAttributes<'a> {
     /// Style of arrowhead on the head node of an edge. 
     /// This will only appear if the dir attribute is forward or both.
     fn arrow_head(&mut self, arrowhead: ArrowType) -> &mut Self {
-        self.add_attribute("arrowhead", arrowhead.text_attribute())
+        self.add_attribute("arrowhead", AttributeText::from(arrowhead))
     }
 
     // TODO: constrain
     /// Multiplicative scale factor for arrowheads.
     /// default: 1.0, minimum: 0.0
     fn arrow_size(&mut self, arrow_size: f32) -> &mut Self {
-        self.add_attribute("arrowsize", AttributeText::attr(arrow_size.to_string()))
+        self.add_attribute("arrowsize", AttributeText::from(arrow_size))
     }
 
     /// Style of arrowhead on the tail node of an edge. 
     /// This will only appear if the dir attribute is back or both.
     fn arrowtail(&mut self, arrowtail: ArrowType) -> &mut Self {
-        self.add_attribute("arrowtail", arrowtail.text_attribute())
+        self.add_attribute("arrowtail", AttributeText::from(arrowtail))
     }
     
     /// Classnames to attach to the edge’s SVG element. 
@@ -2236,26 +2246,26 @@ trait EdgeAttributes<'a> {
 
     /// Comments are inserted into output. Device-dependent
     fn comment(&mut self, comment: String) -> &mut Self {
-        self.add_attribute("comment", AttributeText::attr(comment.to_string()));
+        self.add_attribute("comment", AttributeText::attr(comment));
         self
     }
 
     /// If false, the edge is not used in ranking the nodes.
     fn constriant(&mut self, constriant: bool) -> &mut Self {
-        self.add_attribute("constriant", AttributeText::attr(constriant.to_string()))
+        self.add_attribute("constriant", AttributeText::from(constriant))
     }
 
     /// If true, attach edge label to edge by a 2-segment polyline, underlining the label, 
     /// then going to the closest point of spline.
     fn decorate(&mut self, decorate: bool) -> &mut Self {
-        self.add_attribute("decorate", AttributeText::attr(decorate.to_string()))
+        self.add_attribute("decorate", AttributeText::from(decorate))
     }
 
     /// Edge type for drawing arrowheads.
     /// Indicates which ends of the edge should be decorated with an arrowhead.
     /// The actual style of the arrowhead can be specified using the arrowhead and arrowtail attributes.
     fn dir(&mut self, dir: Direction) -> &mut Self {
-        self.add_attribute("dir", dir.text_attribute())
+        self.add_attribute("dir", AttributeText::from(dir))
     }
 
     /// If the edge has a URL or edgeURL attribute, edgetarget determines which window 
@@ -2278,16 +2288,16 @@ trait EdgeAttributes<'a> {
         self.add_attribute("edgeurl", AttributeText::escaped(edge_url))
     }
 
-    // color list
+    // TODO: color list
     /// Color used to fill the background of a node or cluster assuming style=filled, or a filled arrowhead.
-    fn fill_color(&mut self, fill_color: Color) -> &mut Self {
+    fn fill_color(&mut self, fill_color: Color<'a>) -> &mut Self {
         Attributes::fill_color(self.get_attributes_mut(), fill_color);
         self
     }
 
-    // color list
+    // TODO: color list
     /// Color used for text.
-    fn font_color(&mut self, font_color: Color) -> &mut Self {
+    fn font_color(&mut self, font_color: Color<'a>) -> &mut Self {
         Attributes::font_color(self.get_attributes_mut(), font_color);
         self
     }
@@ -2307,14 +2317,14 @@ trait EdgeAttributes<'a> {
 
     /// Position of an edge’s head label, in points. The position indicates the center of the label.
     fn head_lp(&mut self, head_lp: Point) -> &mut Self {
-        self.add_attribute("head_lp", head_lp.text_attribute())
+        self.add_attribute("head_lp", AttributeText::from(head_lp))
     }
 
     /// If true, the head of an edge is clipped to the boundary of the head node; 
     /// otherwise, the end of the edge goes to the center of the node, or the center 
     /// of a port, if applicable.
     fn head_clip(&mut self, head_clip: bool) -> &mut Self {
-        self.add_attribute("headclip", AttributeText::quoted(head_clip.to_string()))
+        self.add_attribute("headclip", AttributeText::from(head_clip))
     }
 
     /// Text label to be placed near head of edge.
@@ -2365,24 +2375,24 @@ trait EdgeAttributes<'a> {
     /// with positive angles moving counterclockwise and negative angles moving clockwise.
     /// default: -25.0, minimum: -180.0
     fn label_angle(&mut self, label_angle: f32) -> &mut Self {
-        self.add_attribute("labelangle", AttributeText::attr(label_angle.to_string()))
+        self.add_attribute("labelangle", AttributeText::from(label_angle))
     }
 
     /// Multiplicative scaling factor adjusting the distance that the headlabel / taillabel is from the head / tail node.
     /// default: 1.0, minimum: 0.0
     fn label_distance(&mut self, label_distance: f32) -> &mut Self {
-        self.add_attribute("labeldistance", AttributeText::attr(label_distance.to_string()))
+        self.add_attribute("labeldistance", AttributeText::from(label_distance))
     }
 
     /// If true, allows edge labels to be less constrained in position. 
     /// In particular, it may appear on top of other edges.
     fn label_float(&mut self, label_float: bool) -> &mut Self {
-        self.add_attribute("labelfloat", AttributeText::attr(label_float.to_string()))
+        self.add_attribute("labelfloat", AttributeText::from(label_float))
     }
 
     /// Color used for headlabel and taillabel.
-    fn label_font_color(&mut self, label_font_color: Color) -> &mut Self {
-        self.add_attribute("labelfontcolor", AttributeText::quoted(label_font_color.to_dot_string()))
+    fn label_font_color(&mut self, label_font_color: Color<'a>) -> &mut Self {
+        self.add_attribute("labelfontcolor", AttributeText::from(label_font_color))
     }
 
     /// Font used for headlabel and taillabel.
@@ -2396,7 +2406,7 @@ trait EdgeAttributes<'a> {
     /// If not set, defaults to edge’s fontsize.
     /// default: 14.0, minimum: 1.0
     fn label_font_size(&mut self, label_font_size: f32) -> &mut Self {
-        self.add_attribute("labelfontsize", AttributeText::attr(label_font_size.to_string()))
+        self.add_attribute("labelfontsize", AttributeText::from(label_font_size))
     }
 
     /// If the edge has a URL or labelURL attribute, this attribute determines
@@ -2440,11 +2450,11 @@ trait EdgeAttributes<'a> {
 
     /// Minimum edge length (rank difference between head and tail).
     fn min_len(&mut self, min_len: u32) -> &mut Self {
-        self.add_attribute("minlen", AttributeText::attr(min_len.to_string()))
+        self.add_attribute("minlen", AttributeText::from(min_len))
     }
 
     fn no_justify(&mut self, no_justify: bool) -> &mut Self {
-        self.add_attribute("nojustify", AttributeText::attr(no_justify.to_string()))
+        self.add_attribute("nojustify", AttributeText::from(no_justify))
     }
 
     fn pen_width(&mut self, pen_width: f32) -> &mut Self {
@@ -2487,13 +2497,13 @@ trait EdgeAttributes<'a> {
     /// Position of an edge’s tail label, in points.
     /// The position indicates the center of the label.
     fn tail_lp(&mut self, tail_lp: Point) -> &mut Self {
-        self.add_attribute("tail_lp", tail_lp.text_attribute())
+        self.add_attribute("tail_lp", AttributeText::from(tail_lp))
     }
 
     /// If true, the tail of an edge is clipped to the boundary of the tail node; otherwise, 
     /// the end of the edge goes to the center of the node, or the center of a port, if applicable.
     fn tail_clip(&mut self, tail_clip: bool) -> &mut Self {
-        self.add_attribute("tailclip", AttributeText::quoted(tail_clip.to_string()))
+        self.add_attribute("tailclip", AttributeText::from(tail_clip))
     }
 
     /// Text label to be placed near tail of edge.
@@ -2716,9 +2726,10 @@ pub enum Shape {
     Larrow,
     Lpromotor,
 }
-impl<'a> Attribute<'a> for Shape {
-    fn text_attribute(&self) -> AttributeText<'a> {
-        AttributeText::attr(self.dot_string())
+
+impl<'a> From<Shape> for AttributeText<'a> {
+    fn from(shape: Shape) -> Self {
+        AttributeText::attr(shape.dot_string())
     }
 }
 impl<'a> DotString<'a> for Shape {
@@ -2809,9 +2820,10 @@ pub enum ArrowType {
     Obox,
     Halfopen,
 }
-impl<'a> Attribute<'a> for ArrowType {
-    fn text_attribute(&self) -> AttributeText<'a> {
-        AttributeText::attr(self.dot_string())
+
+impl<'a> From<ArrowType> for AttributeText<'a> {
+    fn from(arrow_type: ArrowType) -> Self {
+        AttributeText::attr(arrow_type.dot_string())
     }
 }
 impl<'a> DotString<'a> for ArrowType {
@@ -2847,9 +2859,10 @@ pub enum Direction {
     Both,
     None,
 }
-impl<'a> Attribute<'a> for Direction {
-    fn text_attribute(&self) -> AttributeText<'a> {
-        AttributeText::attr(self.dot_string())
+
+impl<'a> From<Direction> for AttributeText<'a> {
+    fn from(direction: Direction) -> Self {
+        AttributeText::attr(direction.dot_string())
     }
 }
 impl<'a> DotString<'a> for Direction {
@@ -2923,9 +2936,10 @@ impl<'a> Color<'a> {
         }
     }
 }
-impl<'a> Attribute<'a> for Color<'a> {
-    fn text_attribute(&self) -> AttributeText<'a> {
-        AttributeText::quoted(self.dot_string())
+
+impl<'a> From<Color<'a>> for AttributeText<'a> {
+    fn from(color: Color<'a>) -> Self {
+        AttributeText::quoted(color.dot_string())
     }
 }
 impl<'a> DotString<'a> for Color<'a> {
@@ -2971,9 +2985,10 @@ impl<'a> WeightedColor<'a> {
 pub struct ColorList<'a> {
     colors: Vec<WeightedColor<'a>>,
 }
-impl<'a> Attribute<'a> for ColorList<'a> {
-    fn text_attribute(&self) -> AttributeText<'a> {
-        AttributeText::quoted(self.dot_string())
+
+impl<'a> From<ColorList<'a>> for AttributeText<'a> {
+    fn from(color_list: ColorList<'a>) -> Self {
+        AttributeText::quoted(color_list.dot_string())
     }
 }
 impl<'a> DotString<'a> for ColorList<'a> {
@@ -3025,9 +3040,10 @@ pub enum NodeStyle {
     Radical,
     Wedged,
 }
-impl<'a> Attribute<'a> for NodeStyle {
-    fn text_attribute(&self) -> AttributeText<'a> {
-        AttributeText::attr(self.dot_string())
+
+impl<'a> From<NodeStyle> for AttributeText<'a> {
+    fn from(style: NodeStyle) -> Self {
+        AttributeText::attr(style.dot_string())
     }
 }
 impl<'a> DotString<'a> for NodeStyle {
@@ -3055,12 +3071,13 @@ pub enum Styles {
     Node(NodeStyle),
     Graph(GraphStyle)
 }
-impl<'a> Attribute<'a> for Styles {
-    fn text_attribute(&self) -> AttributeText<'a> {
-        match self {
-            Styles::Edge(s) => s.text_attribute(),
-            Styles::Node(s) => s.text_attribute(),
-            Styles::Graph(s) => s.text_attribute(),
+
+impl<'a> From<Styles> for AttributeText<'a> {
+    fn from(styles: Styles) -> Self {
+        match styles {
+            Styles::Edge(s) => AttributeText::from(s),
+            Styles::Node(s) => AttributeText::from(s),
+            Styles::Graph(s) => AttributeText::from(s),
         }
     }
 }
@@ -3082,9 +3099,10 @@ pub enum EdgeStyle {
     Solid,
     Tapered,
 }
-impl<'a> Attribute<'a> for EdgeStyle {
-    fn text_attribute(&self) -> AttributeText<'a> {
-        AttributeText::attr(self.dot_string())
+
+impl<'a> From<EdgeStyle> for AttributeText<'a> {
+    fn from(style: EdgeStyle) -> Self {
+        AttributeText::attr(style.dot_string())
     }
 }
 impl<'a> DotString<'a> for EdgeStyle {
@@ -3107,9 +3125,10 @@ pub enum GraphStyle {
     Rounded,
     Striped,
 }
-impl<'a> Attribute<'a> for GraphStyle {
-    fn text_attribute(&self) -> AttributeText<'a> {
-        AttributeText::attr(self.dot_string())
+
+impl<'a> From<GraphStyle> for AttributeText<'a> {
+    fn from(style: GraphStyle) -> Self {
+        AttributeText::attr(style.dot_string())
     }
 }
 impl<'a> DotString<'a> for GraphStyle {
@@ -3131,11 +3150,11 @@ impl Attributes {
     }
 
     fn color<'a>(attributes: &mut IndexMap<String, AttributeText<'a>>, color: Color<'a>) {
-        Self::add_attribute(attributes,"color", color.text_attribute())
+        Self::add_attribute(attributes,"color", AttributeText::from(color))
     }
 
     fn color_with_colorlist<'a>(attributes: &mut IndexMap<String, AttributeText<'a>>, color: ColorList<'a>) {
-        Self::add_attribute(attributes,"color", color.text_attribute())
+        Self::add_attribute(attributes,"color", AttributeText::from(color))
     }
 
     fn color_scheme(attributes: &mut IndexMap<String, AttributeText>, color_scheme: String) {
@@ -3146,12 +3165,12 @@ impl Attributes {
         Self::add_attribute(attributes, "comment", AttributeText::quoted(comment))
     }
 
-    fn fill_color(attributes: &mut IndexMap<String, AttributeText>, fill_color: Color) {
-        Self::add_attribute(attributes, "fillcolor", AttributeText::quoted(fill_color.to_dot_string()))
+    fn fill_color<'a>(attributes: &mut IndexMap<String, AttributeText<'a>>, fill_color: Color<'a>) {
+        Self::add_attribute(attributes, "fillcolor", AttributeText::from(fill_color))
     }
 
     fn fill_color_with_colorlist<'a>(attributes: &mut IndexMap<String, AttributeText<'a>>, fill_colors: ColorList<'a>) {
-        Self::add_attribute(attributes, "fillcolor", fill_colors.text_attribute())
+        Self::add_attribute(attributes, "fillcolor", AttributeText::from(fill_colors))
     }
 
     fn fill_color_with_iter<'a, I>(attributes: &mut IndexMap<String, AttributeText<'a>>, fill_colors: I)
@@ -3167,11 +3186,11 @@ impl Attributes {
             colors
         };
 
-        Self::add_attribute(attributes, "fillcolor", color_list.text_attribute())
+        Self::add_attribute(attributes, "fillcolor", AttributeText::from(color_list))
     }
 
-    fn font_color(attributes: &mut IndexMap<String, AttributeText>, font_color: Color) {
-        Self::add_attribute(attributes, "fontcolor", AttributeText::quoted(font_color.to_dot_string()))
+    fn font_color<'a>(attributes: &mut IndexMap<String, AttributeText<'a>>, font_color: Color<'a>) {
+        Self::add_attribute(attributes, "fontcolor", AttributeText::from(font_color))
     }
 
     fn font_name(attributes: &mut IndexMap<String, AttributeText>, font_name: String) {
@@ -3191,7 +3210,7 @@ impl Attributes {
     }
 
     fn label_location(attributes: &mut IndexMap<String, AttributeText>, label_location: LabelLocation) {
-        Self::add_attribute(attributes, "labelloc", label_location.text_attribute())
+        Self::add_attribute(attributes, "labelloc", AttributeText::from(label_location))
     }
 
     // TODO: layer struct
@@ -3208,7 +3227,7 @@ impl Attributes {
     }
 
     fn margin_point(attributes: &mut IndexMap<String, AttributeText>, margin: Point) {
-        Self::add_attribute(attributes, "margin", margin.text_attribute())
+        Self::add_attribute(attributes, "margin", AttributeText::from(margin))
     }
 
     fn no_justify(attributes: &mut IndexMap<String, AttributeText>, no_justify: bool) {
@@ -3216,7 +3235,7 @@ impl Attributes {
     }
 
     fn ordering(attributes: &mut IndexMap<String, AttributeText>, ordering: Ordering) {
-        Self::add_attribute(attributes, "ordering", ordering.text_attribute())
+        Self::add_attribute(attributes, "ordering", AttributeText::from(ordering))
     }
 
     fn orientation(attributes: &mut IndexMap<String, AttributeText>, orientation: f32) {
@@ -3229,7 +3248,7 @@ impl Attributes {
 
     // TODO: splinetype
     fn pos(attributes: &mut IndexMap<String, AttributeText>, pos: Point) {
-        Self::add_attribute(attributes, "pos", pos.text_attribute())
+        Self::add_attribute(attributes, "pos", AttributeText::from(pos))
     }
 
     fn show_boxes(attributes: &mut IndexMap<String, AttributeText>, show_boxes: u32) {
@@ -3241,7 +3260,7 @@ impl Attributes {
     }
 
     fn style(attributes: &mut IndexMap<String, AttributeText>, style: Styles) {
-        Self::add_attribute(attributes, "style", style.text_attribute())
+        Self::add_attribute(attributes, "style", AttributeText::from(style))
     }
 
     fn target(attributes: &mut IndexMap<String, AttributeText>, target: String) {
@@ -3261,7 +3280,7 @@ impl Attributes {
     }
 
     fn xlp(attributes: &mut IndexMap<String, AttributeText>, xlp: Point) {
-        Self::add_attribute(attributes, "xlp", xlp.text_attribute())
+        Self::add_attribute(attributes, "xlp", AttributeText::from(xlp))
     }
 
     fn add_attribute<'a, S: Into<String>>(
