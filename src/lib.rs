@@ -21,6 +21,35 @@ static INDENT: &str = "    ";
 // https://hackage.haskell.org/package/graphviz-2999.20.1.0/docs/Data-GraphViz-Attributes-Complete.html#t:Point
 // - I like this: A summary of known current constraints/limitations/differences:
 
+/// Modifier indicating where on a node an edge should be aimed.
+/// If Port is used, the corresponding node must either have record shape with one of its
+/// fields having the given portname, or have an HTML-like label, one of whose components has a
+/// PORT attribute set to portname.
+pub enum PortPosition {
+    Port {
+        port_name: String,
+        compass_point: Option<CompassPoint>,
+    },
+    Compass(CompassPoint),
+}
+
+impl<'a> From<PortPosition> for AttributeText<'a> {
+    fn from(port_position: PortPosition) -> Self {
+        let dot_string = match port_position {
+            PortPosition::Port { port_name, compass_point } => {
+                let mut dot_string = port_name;
+                if let Some(compass_point) = compass_point {
+                    dot_string.push_str(format!(":{}", compass_point.dot_string()).as_str());
+                }
+                dot_string
+            }
+            PortPosition::Compass(p) => {
+                p.dot_string().to_string()
+            }
+        };
+        AttributeText::quoted(dot_string)
+    }
+}
 
 impl<'a> From<u32> for AttributeText<'a> {
     fn from(v: u32) -> Self {
@@ -165,7 +194,7 @@ impl<'a> AttributeText<'a> {
 // headport / tailport attributes e.g. a -> b [tailport=se]
 // or via edge declaration using the syntax node name:port_name e.g. a -> b:se
 // aka compass
-pub enum Compass {
+pub enum CompassPoint {
     N,
     NE,
     E,
@@ -174,26 +203,32 @@ pub enum Compass {
     SW,
     W,
     NW,
+    C,
+    // TODO: none might not be a good name
+    // The compass point "_" specifies that an appropriate side of the port adjacent to the exterior
+    // of the node should be used, if such exists. Otherwise, the center is used.
+    // If no compass point is used with a portname, the default value is "_".
     None
 }
 
-impl<'a> From<Compass> for AttributeText<'a> {
-    fn from(compass: Compass) -> Self {
+impl<'a> From<CompassPoint> for AttributeText<'a> {
+    fn from(compass: CompassPoint) -> Self {
         AttributeText::quoted(compass.dot_string())
     }
 }
-impl<'a> DotString<'a> for Compass {
+impl<'a> DotString<'a> for CompassPoint {
     fn dot_string(&self) -> Cow<'a, str> {
         match self {
-            Compass::N => "n".into(),
-            Compass::NE => "ne".into(),
-            Compass::E => "e".into(),
-            Compass::SE => "se".into(),
-            Compass::S => "s".into(),
-            Compass::SW => "sw".into(),
-            Compass::W => "w".into(),
-            Compass::NW => "nw".into(),
-            Compass::None => "".into(),
+            CompassPoint::N => "n".into(),
+            CompassPoint::NE => "ne".into(),
+            CompassPoint::E => "e".into(),
+            CompassPoint::SE => "se".into(),
+            CompassPoint::S => "s".into(),
+            CompassPoint::SW => "sw".into(),
+            CompassPoint::W => "w".into(),
+            CompassPoint::NW => "nw".into(),
+            CompassPoint::C => "c".into(),
+            CompassPoint::None => "_".into(),
         }
     }
 }
@@ -2332,12 +2367,11 @@ trait EdgeAttributes<'a> {
         self.add_attribute("headlabel", AttributeText::quoted(head_label))
     }
 
-    // TODO: portPos struct?
-    /// Indicates where on the head node to attach the head of the edge. 
+    /// Indicates where on the head node to attach the head of the edge.
     /// In the default case, the edge is aimed towards the center of the node, 
     /// and then clipped at the node boundary.
-    fn head_port(&mut self, head_port: String) -> &mut Self {
-        self.add_attribute("headport", AttributeText::quoted(head_port))
+    fn head_port(&mut self, head_port: PortPosition) -> &mut Self {
+        self.add_attribute("headport", AttributeText::from(head_port))
     }
 
     /// If the edge has a headURL, headtarget determines which window of the browser is used for the URL. 
@@ -2511,10 +2545,9 @@ trait EdgeAttributes<'a> {
         self.add_attribute("taillabel", AttributeText::quoted(tail_label))
     }
 
-    // TODO: portPos struct?
     /// Indicates where on the tail node to attach the tail of the edge.
-    fn tail_port(&mut self, tail_port: String) -> &mut Self {
-        self.add_attribute("tailport", AttributeText::quoted(tail_port))
+    fn tail_port(&mut self, tail_port: PortPosition) -> &mut Self {
+        self.add_attribute("tailport", AttributeText::from(tail_port))
     }
 
     /// If the edge has a tailURL, tailtarget determines which window of the browser is used for the URL.
@@ -3618,6 +3651,49 @@ fn graph_attribute_colorlist_vec_dot_string() {
         .build();
 
     assert_eq!("graph [fillcolor=\"yellow;0.3:blue\"];", graph_attributes.to_dot_string());
+}
+
+#[test]
+fn port_position_attribute() {
+    let node_0 = NodeBuilder::new("N0".to_string())
+        .shape(Shape::Record)
+        .label("a|<port0>b")
+        .build();
+
+    let node_1 = NodeBuilder::new("N1".to_string())
+        .shape(Shape::Record)
+        .label("e|<port1>f")
+        .build();
+
+    let edge = EdgeBuilder::new("N0".to_string(), "N1".to_string())
+        .tail_port(PortPosition::Port {
+            port_name: "port0".to_string(),
+            compass_point: Some(CompassPoint::SW),
+        })
+        .head_port(PortPosition::Port {
+            port_name: "port1".to_string(),
+            compass_point: Some(CompassPoint::NE),
+        })
+
+        .build();
+
+    let g = GraphBuilder::new_directed(Some("single_edge".to_string()))
+        .add_node(node_0)
+        .add_node(node_1)
+        .add_edge(edge)
+        .build();
+
+    let r = test_input(g);
+
+    assert_eq!(
+        r.unwrap(),
+        r#"digraph single_edge {
+    N0 [shape=record, label="a|<port0>b"];
+    N1 [shape=record, label="e|<port1>f"];
+    N0 -> N1 [tailport="port0:sw", headport="port1:ne"];
+}
+"#
+    );
 }
 
 #[test]
