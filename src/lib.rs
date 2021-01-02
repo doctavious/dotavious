@@ -159,12 +159,14 @@ pub enum Compass {
     None
 }
 
-impl<'a> DotString<'a> for Compass {
+impl<'a> Attribute<'a> for Compass {
     fn text_attribute(&self) -> AttributeText<'a> {
-        AttributeText::quoted(self.as_cow())
+        AttributeText::quoted(self.dot_string())
     }
+}
 
-    fn as_cow(&self) -> Cow<'a, str> {
+impl<'a> DotString<'a> for Compass {
+    fn dot_string(&self) -> Cow<'a, str> {
         match self {
             Compass::N => "n".into(),
             Compass::NE => "ne".into(),
@@ -974,7 +976,7 @@ pub trait GraphAttributes<'a> {
     /// are less than size, the drawing is scaled up uniformly until at 
     /// least one dimension equals its dimension in size.
     fn size_point(&mut self, size: Point, desired_min: bool) -> &mut Self {
-        let mut text = format!("{}", size.as_cow());
+        let mut text = format!("{}", size.dot_string());
         if desired_min {
             text.push_str("!");
         }
@@ -1121,13 +1123,14 @@ pub enum ClusterMode {
     Global,
     None
 }
+impl<'a> Attribute<'a> for ClusterMode {
+    fn text_attribute(&self) -> AttributeText<'a> {
+        AttributeText::quoted(self.dot_string())
+    }
+}
 
 impl<'a> DotString<'a> for ClusterMode {
-    fn text_attribute(&self) -> AttributeText<'a> {
-        AttributeText::quoted(self.as_cow())
-    }
-
-    fn as_cow(&self) -> Cow<'a, str> {
+    fn dot_string(&self) -> Cow<'a, str> {
         match self {
             ClusterMode::Local => "local".into(),
             ClusterMode::Global => "global".into(),
@@ -1143,16 +1146,16 @@ pub enum Ratio {
     Expand,
     Auto,
 }
-
-impl<'a> DotString<'a> for Ratio {
+impl<'a> Attribute<'a> for Ratio {
     fn text_attribute(&self) -> AttributeText<'a> {
         match self {
-            Ratio::Aspect(_aspect) => AttributeText::attr(self.as_cow()),
-            _ => AttributeText::quoted(self.as_cow()),
+            Ratio::Aspect(_aspect) => AttributeText::attr(self.dot_string()),
+            _ => AttributeText::quoted(self.dot_string()),
         }
     }
-
-    fn as_cow(&self) -> Cow<'a, str> {
+}
+impl<'a> DotString<'a> for Ratio {
+    fn dot_string(&self) -> Cow<'a, str> {
         match self {
             Ratio::Aspect(aspect) => aspect.to_string().into(),
             Ratio::Fill => "fill".into(),
@@ -1165,26 +1168,26 @@ impl<'a> DotString<'a> for Ratio {
 
 // TODO: maybe change the name given we arent actually printing the dot string
 trait DotString<'a> {
-
-    fn text_attribute(&self) -> AttributeText<'a>;
-
-    fn as_cow(&self) -> Cow<'a, str>;
+    fn dot_string(&self) -> Cow<'a, str>;
 }
 
-
+trait Attribute<'a>: DotString<'a> {
+    fn text_attribute(&self) -> AttributeText<'a>;
+}
 
 pub enum LabelJustification {
     Left,
     Right,
     Center
 }
-
-impl<'a> DotString<'a> for LabelJustification {
+impl<'a> Attribute<'a> for LabelJustification {
     fn text_attribute(&self) -> AttributeText<'a> {
-        AttributeText::attr(self.as_cow())
+        AttributeText::attr(self.dot_string())
     }
+}
+impl<'a> DotString<'a> for LabelJustification {
 
-    fn as_cow(&self) -> Cow<'a, str> {
+    fn dot_string(&self) -> Cow<'a, str> {
         match self {
             LabelJustification::Left => "l".into(),
             LabelJustification::Right => "r".into(),
@@ -1198,13 +1201,13 @@ pub enum LabelLocation {
     Center,
     Bottom
 }
-
-impl<'a> DotString<'a> for LabelLocation {
+impl<'a> Attribute<'a> for LabelLocation {
     fn text_attribute(&self) -> AttributeText<'a> {
-        AttributeText::attr(self.as_cow())
+        AttributeText::attr(self.dot_string())
     }
-
-    fn as_cow(&self) -> Cow<'a, str> {
+}
+impl<'a> DotString<'a> for LabelLocation {
+    fn dot_string(&self) -> Cow<'a, str> {
         match self {
             LabelLocation::Top => "t".into(),
             LabelLocation::Center => "c".into(),
@@ -1217,13 +1220,14 @@ pub enum Ordering {
     In,
     Out,
 }
+impl<'a> Attribute<'a> for Ordering {
+    fn text_attribute(&self) -> AttributeText<'a> {
+        AttributeText::quoted(self.dot_string())
+    }
+}
 
 impl<'a> DotString<'a> for Ordering {
-    fn text_attribute(&self) -> AttributeText<'a> {
-        AttributeText::quoted(self.as_cow())
-    }
-
-    fn as_cow(&self) -> Cow<'a, str> {
+    fn dot_string(&self) -> Cow<'a, str> {
         match self {
             Ordering::In => "in".into(),
             Ordering::Out => "out".into(),
@@ -1247,13 +1251,13 @@ pub enum OutputMode {
     NodesFirst,
     EdgesFirst,
 }
-
-impl<'a> DotString<'a> for OutputMode {
+impl<'a> Attribute<'a> for OutputMode {
     fn text_attribute(&self) -> AttributeText<'a> {
-        AttributeText::quoted(self.as_cow())
+        AttributeText::quoted(self.dot_string())
     }
-
-    fn as_cow(&self) -> Cow<'a, str> {
+}
+impl<'a> DotString<'a> for OutputMode {
+    fn dot_string(&self) -> Cow<'a, str> {
         match self {
             OutputMode::BreadthFirst => "breadthfirst".into(),
             OutputMode::NodesFirst => "nodesfirst".into(),
@@ -1280,13 +1284,13 @@ pub enum PackMode {
 
     // TODO: array - "array(_flags)?(%d)?"
 }
-
-impl<'a> DotString<'a> for PackMode {
+impl<'a> Attribute<'a> for PackMode {
     fn text_attribute(&self) -> AttributeText<'a> {
-        AttributeText::quoted(self.as_cow())
+        AttributeText::quoted(self.dot_string())
     }
-
-    fn as_cow(&self) -> Cow<'a, str> {
+}
+impl<'a> DotString<'a> for PackMode {
+    fn dot_string(&self) -> Cow<'a, str> {
         match self {
             PackMode::Node => "node".into(),
             PackMode::Cluster => "clust".into(),
@@ -1326,13 +1330,13 @@ impl Point {
     }
 
 }
-
-impl<'a> DotString<'a> for Point {
+impl<'a> Attribute<'a> for Point {
     fn text_attribute(&self) -> AttributeText<'a> {
-        AttributeText::quoted(self.as_cow())
+        AttributeText::quoted(self.dot_string())
     }
-
-    fn as_cow(&self) -> Cow<'a, str> {
+}
+impl<'a> DotString<'a> for Point {
+    fn dot_string(&self) -> Cow<'a, str> {
         let mut slice = format!("{:.1},{:.1}", self.x, self.y);
         if self.z.is_some() {
             slice.push_str(format!(",{:.1}", self.z.unwrap()).as_str());
@@ -1359,13 +1363,13 @@ pub enum PageDirection {
     LeftBottom,
     LeftTop,
 }
-
-impl<'a> DotString<'a> for PageDirection {
+impl<'a> Attribute<'a> for PageDirection {
     fn text_attribute(&self) -> AttributeText<'a> {
-        AttributeText::attr(self.as_cow())
+        AttributeText::attr(self.dot_string())
     }
-
-    fn as_cow(&self) -> Cow<'a, str> {
+}
+impl<'a> DotString<'a> for PageDirection {
+    fn dot_string(&self) -> Cow<'a, str> {
         match self {
             PageDirection::BottomLeft => "BL".into(),
             PageDirection::BottomRight => "BR".into(),
@@ -1387,13 +1391,14 @@ pub enum RankDir {
     BottomTop,
     RightLeft,
 }
-
-impl<'a> DotString<'a> for RankDir {
+impl<'a> Attribute<'a> for RankDir {
     fn text_attribute(&self) -> AttributeText<'a> {
-        AttributeText::attr(self.as_cow())
+        AttributeText::attr(self.dot_string())
     }
+}
+impl<'a> DotString<'a> for RankDir {
 
-    fn as_cow(&self) -> Cow<'a, str> {
+    fn dot_string(&self) -> Cow<'a, str> {
         match self {
             RankDir::TopBottom => "TB".into(),
             RankDir::LeftRight => "LR".into(),
@@ -1418,13 +1423,14 @@ pub enum Splines {
     Polyline,
     Ortho,
 }
-
-impl<'a> DotString<'a> for Splines {
+impl<'a> Attribute<'a> for Splines {
     fn text_attribute(&self) -> AttributeText<'a> {
-        AttributeText::quoted(self.as_cow())
+        AttributeText::quoted(self.dot_string())
     }
+}
+impl<'a> DotString<'a> for Splines {
 
-    fn as_cow(&self) -> Cow<'a, str> {
+    fn dot_string(&self) -> Cow<'a, str> {
         match self {
             Splines::Line => "line".into(),
             Splines::Spline => "spline".into(),
@@ -1443,14 +1449,15 @@ pub struct SplineType {
     end: Option<Point>,
     spline_points: Vec<Point>,
 }
-
-impl<'a> DotString<'a> for SplineType {
+impl<'a> Attribute<'a> for SplineType {
 
     fn text_attribute(&self) -> AttributeText<'a> {
-        AttributeText::quoted(self.as_cow())
+        AttributeText::quoted(self.dot_string())
     }
+}
+impl<'a> DotString<'a> for SplineType {
 
-    fn as_cow(&self) -> Cow<'a, str> {
+    fn dot_string(&self) -> Cow<'a, str> {
         let mut dot_string = String::from("");
 
         if let Some(end) = &self.end {
@@ -1463,10 +1470,10 @@ impl<'a> DotString<'a> for SplineType {
 
         let mut iter = self.spline_points.iter();
         let first = iter.next().unwrap();
-        dot_string.push_str(format!("{}", first.as_cow()).as_str());
+        dot_string.push_str(format!("{}", first.dot_string()).as_str());
         for point in iter {
             dot_string.push_str(" ");
-            dot_string.push_str(format!("{}", point.as_cow()).as_str());
+            dot_string.push_str(format!("{}", point.dot_string()).as_str());
         }
 
         dot_string.into()
@@ -2692,13 +2699,13 @@ pub enum Shape {
     Larrow,
     Lpromotor,
 }
-
-impl<'a> DotString<'a> for Shape {
+impl<'a> Attribute<'a> for Shape {
     fn text_attribute(&self) -> AttributeText<'a> {
-        AttributeText::attr(self.as_cow())
+        AttributeText::attr(self.dot_string())
     }
-
-    fn as_cow(&self) -> Cow<'a, str> {
+}
+impl<'a> DotString<'a> for Shape {
+    fn dot_string(&self) -> Cow<'a, str> {
         match self {
             Shape::Box => "box".into(),
             Shape::Polygon => "polygon".into(),
@@ -2785,13 +2792,14 @@ pub enum ArrowType {
     Obox,
     Halfopen,
 }
-
-impl<'a> DotString<'a> for ArrowType {
+impl<'a> Attribute<'a> for ArrowType {
     fn text_attribute(&self) -> AttributeText<'a> {
-        AttributeText::attr(self.as_cow())
+        AttributeText::attr(self.dot_string())
     }
+}
+impl<'a> DotString<'a> for ArrowType {
 
-    fn as_cow(&self) -> Cow<'a, str> {
+    fn dot_string(&self) -> Cow<'a, str> {
         match self {
             ArrowType::Normal => "normal".into(),
             ArrowType::Dot => "dot".into(),
@@ -2822,13 +2830,14 @@ pub enum Direction {
     Both,
     None,
 }
-
-impl<'a> DotString<'a> for Direction {
+impl<'a> Attribute<'a> for Direction {
     fn text_attribute(&self) -> AttributeText<'a> {
-        AttributeText::attr(self.as_cow())
+        AttributeText::attr(self.dot_string())
     }
+}
+impl<'a> DotString<'a> for Direction {
 
-    fn as_cow(&self) -> Cow<'a, str> {
+    fn dot_string(&self) -> Cow<'a, str> {
         match self {
             Direction::Forward => "forward".into(),
             Direction::Back => "back".into(),
@@ -2897,13 +2906,14 @@ impl<'a> Color<'a> {
         }
     }
 }
-
-impl<'a> DotString<'a> for Color<'a> {
+impl<'a> Attribute<'a> for Color<'a> {
     fn text_attribute(&self) -> AttributeText<'a> {
-        AttributeText::quoted(self.as_cow())
+        AttributeText::quoted(self.dot_string())
     }
+}
+impl<'a> DotString<'a> for Color<'a> {
 
-    fn as_cow(&self) -> Cow<'a, str> {
+    fn dot_string(&self) -> Cow<'a, str> {
         match self {
             Color::RGB { red, green, blue } => {
                 format!("#{}{}{}", red, green, blue).into()
@@ -2944,15 +2954,15 @@ impl<'a> WeightedColor<'a> {
 pub struct ColorList<'a> {
     colors: Vec<WeightedColor<'a>>,
 }
-
-impl<'a> DotString<'a> for ColorList<'a> {
+impl<'a> Attribute<'a> for ColorList<'a> {
     fn text_attribute(&self) -> AttributeText<'a> {
-        AttributeText::quoted(self.as_cow())
+        AttributeText::quoted(self.dot_string())
     }
-
+}
+impl<'a> DotString<'a> for ColorList<'a> {
     /// A colon-separated list of weighted color values: WC(:WC)* where each WC has the form C(;F)?
     /// Ex: fillcolor=yellow;0.3:blue
-    fn as_cow(&self) -> Cow<'a, str> {
+    fn dot_string(&self) -> Cow<'a, str> {
         let mut dot_string = String::new();
         let mut iter = self.colors.iter();
         let first = iter.next();
@@ -2998,12 +3008,13 @@ pub enum NodeStyle {
     Radical,
     Wedged,
 }
-impl<'a> DotString<'a> for NodeStyle {
+impl<'a> Attribute<'a> for NodeStyle {
     fn text_attribute(&self) -> AttributeText<'a> {
-        AttributeText::attr(self.as_cow())
+        AttributeText::attr(self.dot_string())
     }
-
-    fn as_cow(&self) -> Cow<'a, str> {
+}
+impl<'a> DotString<'a> for NodeStyle {
+    fn dot_string(&self) -> Cow<'a, str> {
         match self {
             NodeStyle::Bold => "bold".into(),
             NodeStyle::Dashed => "dashed".into(),
@@ -3027,8 +3038,7 @@ pub enum Styles {
     Node(NodeStyle),
     Graph(GraphStyle)
 }
-
-impl<'a> DotString<'a> for Styles {
+impl<'a> Attribute<'a> for Styles {
     fn text_attribute(&self) -> AttributeText<'a> {
         match self {
             Styles::Edge(s) => s.text_attribute(),
@@ -3036,12 +3046,13 @@ impl<'a> DotString<'a> for Styles {
             Styles::Graph(s) => s.text_attribute(),
         }
     }
-
-    fn as_cow(&self) -> Cow<'a, str> {
+}
+impl<'a> DotString<'a> for Styles {
+    fn dot_string(&self) -> Cow<'a, str> {
         match self {
-            Styles::Edge(s) => s.as_cow(),
-            Styles::Node(s) => s.as_cow(),
-            Styles::Graph(s) => s.as_cow(),
+            Styles::Edge(s) => s.dot_string(),
+            Styles::Node(s) => s.dot_string(),
+            Styles::Graph(s) => s.dot_string(),
         }
     }
 }
@@ -3054,12 +3065,14 @@ pub enum EdgeStyle {
     Solid,
     Tapered,
 }
-impl<'a> DotString<'a> for EdgeStyle {
+impl<'a> Attribute<'a> for EdgeStyle {
     fn text_attribute(&self) -> AttributeText<'a> {
-        AttributeText::attr(self.as_cow())
+        AttributeText::attr(self.dot_string())
     }
+}
+impl<'a> DotString<'a> for EdgeStyle {
 
-    fn as_cow(&self) -> Cow<'a, str> {
+    fn dot_string(&self) -> Cow<'a, str> {
         match self {
             EdgeStyle::Bold => "bold".into(),
             EdgeStyle::Dashed => "dashed".into(),
@@ -3077,12 +3090,14 @@ pub enum GraphStyle {
     Rounded,
     Striped,
 }
-impl<'a> DotString<'a> for GraphStyle {
+impl<'a> Attribute<'a> for GraphStyle {
     fn text_attribute(&self) -> AttributeText<'a> {
-        AttributeText::attr(self.as_cow())
+        AttributeText::attr(self.dot_string())
     }
+}
+impl<'a> DotString<'a> for GraphStyle {
 
-    fn as_cow(&self) -> Cow<'a, str> {
+    fn dot_string(&self) -> Cow<'a, str> {
         match self {
             GraphStyle::Filled => "filled".into(),
             GraphStyle::Radical => "radical".into(),
@@ -3196,7 +3211,7 @@ impl Attributes {
     }
 
     // TODO: splinetype
-    fn pos(attributes: &mut IndexMap<String, AttributeText>, pos: Point){
+    fn pos(attributes: &mut IndexMap<String, AttributeText>, pos: Point) {
         Self::add_attribute(attributes, "pos", pos.text_attribute())
     }
 
@@ -3453,7 +3468,7 @@ fn colorlist_dot_string() {
         colors: vec![yellow, blue]
     };
 
-    let dot_string = color_list.as_cow();
+    let dot_string = color_list.dot_string();
 
     assert_eq!("yellow;0.3:blue", dot_string);
 }
@@ -3501,7 +3516,7 @@ fn spline_type() {
         ],
     };
 
-    assert_eq!("0.0,0.0 1.0,1.0 1.0,-1.0", spline_type.as_cow());
+    assert_eq!("0.0,0.0 1.0,1.0 1.0,-1.0", spline_type.dot_string());
 }
 
 #[test]
@@ -3516,7 +3531,7 @@ fn spline_type_end() {
         ],
     };
 
-    assert_eq!("e,2.0,0.0 0.0,0.0 1.0,1.0 1.0,-1.0", spline_type.as_cow());
+    assert_eq!("e,2.0,0.0 0.0,0.0 1.0,1.0 1.0,-1.0", spline_type.dot_string());
 }
 
 #[test]
@@ -3531,7 +3546,7 @@ fn spline_type_start() {
         ],
     };
 
-    assert_eq!("s,-1.0,0.0 0.0,0.0 1.0,1.0 1.0,-1.0", spline_type.as_cow());
+    assert_eq!("s,-1.0,0.0 0.0,0.0 1.0,1.0 1.0,-1.0", spline_type.dot_string());
 }
 
 #[test]
@@ -3546,15 +3561,15 @@ fn spline_type_complete() {
         ],
     };
 
-    assert_eq!("e,2.0,0.0 s,-1.0,0.0 0.0,0.0 1.0,1.0 1.0,-1.0", spline_type.as_cow());
+    assert_eq!("e,2.0,0.0 s,-1.0,0.0 0.0,0.0 1.0,1.0 1.0,-1.0", spline_type.dot_string());
 }
 
 #[test]
 fn point_string() {
-    assert_eq!("1.0,2.0", Point::new_2d(1.0, 2.0, false).as_cow());
-    assert_eq!("1.0,2.0!", Point::new_2d(1.0, 2.0, true).as_cow());
-    assert_eq!("1.0,2.0,0.0", Point::new_3d(1.0, 2.0, 0.0, false).as_cow());
-    assert_eq!("1.0,2.0,0.0!", Point::new_3d(1.0, 2.0, 0.0, true).as_cow());
+    assert_eq!("1.0,2.0", Point::new_2d(1.0, 2.0, false).dot_string());
+    assert_eq!("1.0,2.0!", Point::new_2d(1.0, 2.0, true).dot_string());
+    assert_eq!("1.0,2.0,0.0", Point::new_3d(1.0, 2.0, 0.0, false).dot_string());
+    assert_eq!("1.0,2.0,0.0!", Point::new_3d(1.0, 2.0, 0.0, true).dot_string());
 }
 
 #[test]
