@@ -25,6 +25,7 @@ static INDENT: &str = "    ";
 /// If Port is used, the corresponding node must either have record shape with one of its
 /// fields having the given portname, or have an HTML-like label, one of whose components has a
 /// PORT attribute set to portname.
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub enum PortPosition {
     Port {
         port_name: String,
@@ -35,19 +36,24 @@ pub enum PortPosition {
 
 impl<'a> From<PortPosition> for AttributeText<'a> {
     fn from(port_position: PortPosition) -> Self {
-        let dot_string = match port_position {
+        AttributeText::quoted(port_position.dot_string())
+    }
+}
+
+impl<'a> DotString<'a> for PortPosition {
+    fn dot_string(&self) -> Cow<'a, str> {
+        match self {
             PortPosition::Port { port_name, compass_point } => {
-                let mut dot_string = port_name;
+                let mut dot_string = port_name.to_owned();
                 if let Some(compass_point) = compass_point {
                     dot_string.push_str(format!(":{}", compass_point.dot_string()).as_str());
                 }
-                dot_string
+                dot_string.into()
             }
             PortPosition::Compass(p) => {
-                p.dot_string().to_string()
+                p.dot_string().into()
             }
-        };
-        AttributeText::quoted(dot_string)
+        }
     }
 }
 
@@ -194,6 +200,7 @@ impl<'a> AttributeText<'a> {
 // headport / tailport attributes e.g. a -> b [tailport=se]
 // or via edge declaration using the syntax node name:port_name e.g. a -> b:se
 // aka compass
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub enum CompassPoint {
     N,
     NE,
@@ -297,8 +304,17 @@ impl<'a> Dot<'a> {
         }
 
         for e in self.graph.edges {
-            write!(w, "{}", INDENT)?;
-            write!(w, "{} {} {}", e.source, edge_op, e.target)?;
+            let mut edge_source = e.source;
+            if let Some(source_port_position) = e.source_port_position {
+                edge_source.push_str(format!(":{}", source_port_position.dot_string()).as_str())
+            }
+
+            let mut edge_target = e.target;
+            if let Some(target_port_position) = e.target_port_position {
+                edge_target.push_str(format!(":{}", target_port_position.dot_string()).as_str())
+            }
+
+            write!(w, "{}{} {} {}", INDENT, edge_source, edge_op, edge_target)?;
             // TODO: render ops
             if !e.attributes.is_empty() {
                 write!(w, " [")?;
@@ -1542,14 +1558,10 @@ impl<'a> DotString<'a> for SplineType {
     }
 }
 
-
-// TODO: add node builder using "with" convention
 #[derive(Clone, Debug)]
 pub struct Node<'a> {
 
     pub id: String,
-    pub port: Option<String>,
-    // pub compass: Option<Compass>,
     pub attributes: IndexMap<String, AttributeText<'a>>,
 }
 
@@ -1559,26 +1571,14 @@ impl<'a> Node<'a> {
         // TODO: constrain id
         Node {
             id,
-            port: None,
             attributes: IndexMap::new(),
         }
     }
 
-    /// Set the port for the node.
-    pub fn port(mut self, port: String) -> Self {
-        self.port = Some(port);
-        self
-    }
-
-    // pub fn compass<'a>(&'a mut self, compass: Compass) -> &'a mut Node {
-    //     self.compass = Some(compass);
-    //     self
-    // }
-
     pub fn to_dot_string(&self) -> String {
+        // TODO: I think we should not include indent here and it should be part of the
+        // render
         let mut dot_string = format!("{}{}", INDENT, &self.id);
-        // TODO: I dont love this logic. I would like to find away to not have a special case.
-        // I think we introduce a AttributeText enum which encodes how to write out the attribute value
         if !self.attributes.is_empty() {
             dot_string.push_str(" [");
             let mut iter = self.attributes.iter();
@@ -1599,9 +1599,6 @@ impl<'a> Node<'a> {
 
 pub struct NodeBuilder<'a> {
     id: String,
-
-    port: Option<String>,
-    
     attributes: IndexMap<String, AttributeText<'a>>,
 }
 
@@ -1626,22 +1623,14 @@ impl<'a> NodeBuilder<'a> {
     pub fn new(id: String) -> Self {
         Self {
             id,
-            port: None,
             attributes: IndexMap::new(),
         }
-    }
-
-    /// Set the port for the node.
-    pub fn port<S: Into<String>>(&mut self, port: S) -> &mut Self {
-        self.port = Some(port.into());
-        self
     }
 
     pub fn build(&self) -> Node<'a> {
         Node {
             // TODO: are these to_owned and clones necessary?
             id: self.id.to_owned(),
-            port: self.port.to_owned(),
             attributes: self.attributes.clone()
         }
     }
@@ -1696,18 +1685,35 @@ impl ImageScale {
 pub struct Edge<'a> {
 
     pub source: String,
-
+    pub source_port_position: Option<PortPosition>,
     pub target: String,
-
+    pub target_port_position: Option<PortPosition>,
     pub attributes: IndexMap<String, AttributeText<'a>>,
 }
 
 impl<'a> Edge<'a> {
 
-    pub fn new(source: String, target: String) -> Edge<'a> {
-        Edge {
+    pub fn new(source: String, target: String) -> Self {
+        Self {
             source,
+            source_port_position: None,
             target,
+            target_port_position: None,
+            attributes: IndexMap::new(),
+        }
+    }
+
+    pub fn new_with_position(
+        source: String,
+        source_port_position: PortPosition,
+        target: String,
+        target_port_position: PortPosition,
+    ) -> Self {
+        Self {
+            source,
+            source_port_position: Some(source_port_position),
+            target,
+            target_port_position: Some(target_port_position),
             attributes: IndexMap::new(),
         }
     }
@@ -1715,9 +1721,9 @@ impl<'a> Edge<'a> {
 
 pub struct EdgeBuilder<'a> {
     pub source: String,
-
+    pub source_port_position: Option<PortPosition>,
     pub target: String,
-    
+    pub target_port_position: Option<PortPosition>,
     attributes: IndexMap<String, AttributeText<'a>>,
 }
 
@@ -1739,14 +1745,40 @@ impl<'a> EdgeAttributes<'a> for EdgeBuilder<'a> {
 }
 
 impl<'a> EdgeBuilder<'a> {
-    pub fn new(source: String, target: String) -> EdgeBuilder<'a> {
-        EdgeBuilder {
+    pub fn new(source: String, target: String) -> Self {
+        Self {
             source,
             target,
+            source_port_position: None,
+            target_port_position: None,
             attributes: IndexMap::new(),
         }
     }
 
+    pub fn new_with_port_position(
+        source: String,
+        source_port_position: PortPosition,
+        target: String,
+        target_port_position: PortPosition
+    ) -> Self {
+        Self {
+            source,
+            target,
+            source_port_position: Some(source_port_position),
+            target_port_position: Some(target_port_position),
+            attributes: IndexMap::new(),
+        }
+    }
+
+    pub fn source_port_position(&mut self, port_position: PortPosition) -> &mut Self {
+        self.source_port_position = Some(port_position);
+        self
+    }
+
+    pub fn target_port_position(&mut self, port_position: PortPosition) -> &mut Self {
+        self.target_port_position = Some(port_position);
+        self
+    }
     /// Add an attribute to the edge.
     pub fn add_attribute<S: Into<String>>(&mut self, key: S, value: AttributeText<'a>) -> &mut Self {
         self.attributes.insert(key.into(), value);
@@ -1763,7 +1795,9 @@ impl<'a> EdgeBuilder<'a> {
         Edge {
             // TODO: are these to_owned and clones necessary?
             source: self.source.to_owned(),
+            source_port_position: self.source_port_position.to_owned(),
             target: self.target.to_owned(),
+            target_port_position: self.target_port_position.to_owned(),
             attributes: self.attributes.clone()
         }
     }
@@ -3654,6 +3688,50 @@ fn graph_attribute_colorlist_vec_dot_string() {
 }
 
 #[test]
+fn edge_statement_port_position() {
+    let node_0 = NodeBuilder::new("N0".to_string())
+        .shape(Shape::Record)
+        .label("a|<port0>b")
+        .build();
+
+    let node_1 = NodeBuilder::new("N1".to_string())
+        .shape(Shape::Record)
+        .label("e|<port1>f")
+        .build();
+
+    let edge = EdgeBuilder::new("N0".to_string(), "N1".to_string())
+        .source_port_position(PortPosition::Port {
+            port_name: "port0".to_string(),
+            compass_point: Some(CompassPoint::SW),
+        })
+        .target_port_position(PortPosition::Port {
+            port_name: "port1".to_string(),
+            compass_point: Some(CompassPoint::NE),
+        })
+
+        .build();
+
+    let g = GraphBuilder::new_directed(Some("edge_statement_port_position".to_string()))
+        .add_node(node_0)
+        .add_node(node_1)
+        .add_edge(edge)
+        .build();
+
+    let r = test_input(g);
+
+    assert_eq!(
+        r.unwrap(),
+        r#"digraph edge_statement_port_position {
+    N0 [shape=record, label="a|<port0>b"];
+    N1 [shape=record, label="e|<port1>f"];
+    N0:port0:sw -> N1:port1:ne;
+}
+"#
+    );
+}
+
+
+#[test]
 fn port_position_attribute() {
     let node_0 = NodeBuilder::new("N0".to_string())
         .shape(Shape::Record)
@@ -3677,7 +3755,7 @@ fn port_position_attribute() {
 
         .build();
 
-    let g = GraphBuilder::new_directed(Some("single_edge".to_string()))
+    let g = GraphBuilder::new_directed(Some("port_position_attribute".to_string()))
         .add_node(node_0)
         .add_node(node_1)
         .add_edge(edge)
@@ -3687,7 +3765,7 @@ fn port_position_attribute() {
 
     assert_eq!(
         r.unwrap(),
-        r#"digraph single_edge {
+        r#"digraph port_position_attribute {
     N0 [shape=record, label="a|<port0>b"];
     N1 [shape=record, label="e|<port1>f"];
     N0 -> N1 [tailport="port0:sw", headport="port1:ne"];
