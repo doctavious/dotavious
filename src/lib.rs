@@ -22,6 +22,24 @@ static INDENT: &str = "    ";
 // - I like this: A summary of known current constraints/limitations/differences:
 
 
+impl<'a> From<u32> for AttributeText<'a> {
+    fn from(v: u32) -> Self {
+        AttributeText::attr(v.to_string())
+    }
+}
+
+impl<'a> From<f32> for AttributeText<'a> {
+    fn from(v: f32) -> Self {
+        AttributeText::attr(v.to_string())
+    }
+}
+
+impl<'a> From<bool> for AttributeText<'a> {
+    fn from(v: bool) -> Self {
+        AttributeText::attr(v.to_string())
+    }
+}
+
 /// Most of this comes from core rust. Where to provide attribution?
 /// The text for a graphviz label on a node or edge.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -590,7 +608,7 @@ pub trait GraphAttributes<'a> {
     /// Specifies the expected number of pixels per inch on a display device.
     /// Also known as resolution
     fn dpi(&mut self, dpi: f32) -> &mut Self {
-        self.add_attribute("dpi", AttributeText::quoted(dpi.to_string()))
+        self.add_attribute("dpi", AttributeText::from(dpi))
     }
 
     /// Color used to fill the background of a node or cluster assuming style=filled, or a filled arrowhead.
@@ -720,7 +738,7 @@ pub trait GraphAttributes<'a> {
 
     /// Height of graph or cluster label, in inches.
     fn lheight(&mut self, lheight: f32) -> &mut Self {
-        self.add_attribute("lheight", AttributeText::attr(lheight.to_string()))
+        self.add_attribute("lheight", AttributeText::from(lheight))
     }
 
     // TODO: I dont understand this...
@@ -733,7 +751,7 @@ pub trait GraphAttributes<'a> {
 
     /// Width of graph or cluster label, in inches.
     fn lwidth(&mut self, lwidth: f32) -> &mut Self {
-        self.add_attribute("lwidth", AttributeText::attr(lwidth.to_string()))
+        self.add_attribute("lwidth", AttributeText::from(lwidth))
     }
 
     /// For graphs, this sets x and y margins of canvas, in inches.
@@ -762,12 +780,12 @@ pub trait GraphAttributes<'a> {
     /// These correspond to the number of tries without improvement before quitting and the
     /// maximum number of iterations in each pass.
     fn mclimit(&mut self, mclimit: f32) -> &mut Self {
-        self.add_attribute("mclimit", AttributeText::attr(mclimit.to_string()))
+        self.add_attribute("mclimit", AttributeText::from(mclimit))
     }
 
     /// Specifies the minimum separation between all nodes.
     fn mindist(&mut self, mindist: u32) -> &mut Self {
-        self.add_attribute("mindist", AttributeText::attr(mindist.to_string()))
+        self.add_attribute("mindist", AttributeText::from(mindist))
     }
 
     /// Whether to use a single global ranking, ignoring clusters.
@@ -780,14 +798,14 @@ pub trait GraphAttributes<'a> {
     /// This allows nodes to be subject to multiple constraints. 
     /// Rank constraints will usually take precedence over edge constraints.
     fn newrank(&mut self, newrank: bool) -> &mut Self {
-        self.add_attribute("newrank", AttributeText::attr(newrank.to_string()))
+        self.add_attribute("newrank", AttributeText::from(newrank))
     }
 
     // TODO: add constraint
     /// specifies the minimum space between two adjacent nodes in the same rank, in inches.
     /// default: 0.25, minimum: 0.02
     fn nodesep(&mut self, nodesep: f32) -> &mut Self {
-        self.add_attribute("nodesep", AttributeText::attr(nodesep.to_string()))
+        self.add_attribute("nodesep", AttributeText::from(nodesep))
     }
 
     /// By default, the justification of multi-line labels is done within the largest context that makes sense. 
@@ -809,7 +827,7 @@ pub trait GraphAttributes<'a> {
     /// nslimit is used in computing node x coordinates.
     /// If defined, # iterations = nslimit * # nodes; otherwise, # iterations = MAXINT.
     fn nslimit(&mut self, nslimit: f32) -> &mut Self {
-        self.add_attribute("nslimit", AttributeText::attr(nslimit.to_string()))
+        self.add_attribute("nslimit", AttributeText::from(nslimit))
     }
 
     /// If ordering="out", then the outedges of a node, that is, edges with the node as its tail
@@ -849,7 +867,7 @@ pub trait GraphAttributes<'a> {
     /// If false, the entire graph is laid out together. 
     /// The granularity and method of packing is influenced by the packmode attribute.
     fn pack(&mut self, pack: bool) -> &mut Self {
-        self.add_attribute("pack", AttributeText::attr(pack.to_string()))
+        self.add_attribute("pack", AttributeText::from(pack))
     }
 
     // TODO: constrain to non-negative integer.
@@ -859,7 +877,7 @@ pub trait GraphAttributes<'a> {
     /// margin of 8 is used.
     /// pack is treated as true if the value of pack iso a non-negative integer.
     fn pack_int(&mut self, pack: u32) -> &mut Self {
-        self.add_attribute("pack", AttributeText::attr(pack.to_string()))
+        self.add_attribute("pack", AttributeText::from(pack))
     }
 
     /// This indicates how connected components should be packed (cf. packMode). 
@@ -874,7 +892,7 @@ pub trait GraphAttributes<'a> {
     /// This area is part of the drawing and will be filled with the background color, if appropriate.
     /// default: 0.0555
     fn pad(&mut self, pad: f32) -> &mut Self {
-        self.add_attribute("pad", AttributeText::attr(pad.to_string()))
+        self.add_attribute("pad", AttributeText::from(pad))
     }
 
     /// Specifies how much, in inches, to extend the drawing area around the minimal area needed to
@@ -886,7 +904,7 @@ pub trait GraphAttributes<'a> {
     /// Width and height of output pages, in inches.
     /// Value given is used for both the width and height.
     fn page(&mut self, page: f32) -> &mut Self {
-        self.add_attribute("page", AttributeText::attr(page.to_string()))
+        self.add_attribute("page", AttributeText::from(page))
     }
 
     /// Width and height of output pages, in inches.
@@ -905,7 +923,7 @@ pub trait GraphAttributes<'a> {
     /// If quantum > 0.0, node label dimensions will be rounded to integral multiples of the quantum.
     /// default: 0.0, minimum: 0.0
     fn quantum(&mut self, quantum: f32) -> &mut Self {
-        self.add_attribute("quantum", AttributeText::attr(quantum.to_string()))
+        self.add_attribute("quantum", AttributeText::from(quantum))
     }
 
     /// Sets direction of graph layout.
@@ -934,12 +952,12 @@ pub trait GraphAttributes<'a> {
 
     /// If true and there are multiple clusters, run crossing minimization a second time.
     fn remincross(&mut self, remincross: bool) -> &mut Self {
-        self.add_attribute("remincross", AttributeText::attr(remincross.to_string()))
+        self.add_attribute("remincross", AttributeText::from(remincross))
     }
 
     /// If rotate=90, sets drawing orientation to landscape.
     fn rotate(&mut self, rotate: u32) -> &mut Self {
-        self.add_attribute("rotate", AttributeText::attr(rotate.to_string()))
+        self.add_attribute("rotate", AttributeText::from(rotate))
     }
 
     // TODO: constrain
@@ -1017,7 +1035,7 @@ pub trait GraphAttributes<'a> {
     /// Whether internal bitmap rendering relies on a truecolor color model or uses a color palette.
     /// If truecolor is unset, truecolor is not used unless there is a shapefile property for some node in the graph. The output model will use the input model when possible.
     fn true_color(&mut self, true_color: bool) -> &mut Self {
-        self.add_attribute("truecolor", AttributeText::attr(true_color.to_string()))
+        self.add_attribute("truecolor", AttributeText::from(true_color))
     }
 
     /// Hyperlinks incorporated into device-dependent output. 
@@ -1166,7 +1184,6 @@ impl<'a> DotString<'a> for Ratio {
     }
 }
 
-// TODO: maybe change the name given we arent actually printing the dot string
 trait DotString<'a> {
     fn dot_string(&self) -> Cow<'a, str>;
 }
@@ -3162,11 +3179,11 @@ impl Attributes {
     }
 
     fn font_size(attributes: &mut IndexMap<String, AttributeText>, font_size: f32) {
-        Self::add_attribute(attributes, "fontsize", AttributeText::attr(font_size.to_string()))
+        Self::add_attribute(attributes, "fontsize", AttributeText::from(font_size))
     }
     
     fn gradient_angle(attributes: &mut IndexMap<String, AttributeText>, gradient_angle: u32) {
-        Self::add_attribute(attributes, "gradientangle", AttributeText::attr(gradient_angle.to_string()))
+        Self::add_attribute(attributes, "gradientangle", AttributeText::from(gradient_angle))
     }
 
     fn label(attributes: &mut IndexMap<String, AttributeText>, text: String) {
@@ -3187,7 +3204,7 @@ impl Attributes {
     }
 
     fn margin(attributes: &mut IndexMap<String, AttributeText>, margin: f32) {
-        Self::add_attribute(attributes, "margin", AttributeText::attr(margin.to_string()))
+        Self::add_attribute(attributes, "margin", AttributeText::from(margin))
     }
 
     fn margin_point(attributes: &mut IndexMap<String, AttributeText>, margin: Point) {
@@ -3195,7 +3212,7 @@ impl Attributes {
     }
 
     fn no_justify(attributes: &mut IndexMap<String, AttributeText>, no_justify: bool) {
-        Self::add_attribute(attributes, "nojustify", AttributeText::attr(no_justify.to_string()))
+        Self::add_attribute(attributes, "nojustify", AttributeText::from(no_justify))
     }
 
     fn ordering(attributes: &mut IndexMap<String, AttributeText>, ordering: Ordering) {
@@ -3203,11 +3220,11 @@ impl Attributes {
     }
 
     fn orientation(attributes: &mut IndexMap<String, AttributeText>, orientation: f32) {
-        Self::add_attribute(attributes, "orientation", AttributeText::attr(orientation.to_string()))
+        Self::add_attribute(attributes, "orientation", AttributeText::from(orientation))
     }
 
     fn pen_width(attributes: &mut IndexMap<String, AttributeText>, pen_width: f32) {
-        Self::add_attribute(attributes, "penwidth", AttributeText::attr(pen_width.to_string()))
+        Self::add_attribute(attributes, "penwidth", AttributeText::from(pen_width))
     }
 
     // TODO: splinetype
@@ -3216,11 +3233,11 @@ impl Attributes {
     }
 
     fn show_boxes(attributes: &mut IndexMap<String, AttributeText>, show_boxes: u32) {
-        Self::add_attribute(attributes, "showboxes", AttributeText::attr(show_boxes.to_string()))
+        Self::add_attribute(attributes, "showboxes", AttributeText::from(show_boxes))
     }
 
     fn sortv(attributes: &mut IndexMap<String, AttributeText>, sortv: u32) {
-        Self::add_attribute(attributes, "sortv", AttributeText::attr(sortv.to_string()))
+        Self::add_attribute(attributes, "sortv", AttributeText::from(sortv))
     }
 
     fn style(attributes: &mut IndexMap<String, AttributeText>, style: Styles) {
