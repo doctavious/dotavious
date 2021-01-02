@@ -406,6 +406,11 @@ impl<'a> GraphBuilder<'a> {
         }
     }
 
+    pub fn comment<S: Into<String>>(&mut self, comment: S) -> &mut Self {
+        self.comment = Some(comment.into());
+        self
+    }
+
     pub fn add_graph_attributes(&mut self, graph_attributes: GraphAttributeStatement<'a>) -> &mut Self {
         self.graph_attributes = Some(graph_attributes);
         self
@@ -517,8 +522,8 @@ pub trait GraphAttributes<'a> {
     /// A colon-separated list of weighted color values: WC(:WC)* where each WC has the form C(;F)?
     /// with C a color value and the optional F a floating-point number, 0 ≤ F ≤ 1.
     /// The sum of the floating-point numbers in a colorList must sum to at most 1.
-    fn background_colorlist(&mut self, background_colors: ColorList) -> &mut Self {
-        self.add_attribute("bgcolor", AttributeText::quoted(background_colors.to_dot_string()))
+    fn background_colorlist(&mut self, background_colors: ColorList<'a>) -> &mut Self {
+        self.add_attribute("bgcolor", background_colors.text_attribute())
     }
 
     /// Type: rect which is "%f,%f,%f,%f"
@@ -594,7 +599,7 @@ pub trait GraphAttributes<'a> {
 
     /// Color used to fill the background, with a gradient, of a node or cluster assuming
     /// style=filled, or a filled arrowhead.
-    fn fill_color_with_colorlist(&mut self, fill_colors: ColorList) -> &mut Self {
+    fn fill_color_with_colorlist(&mut self, fill_colors: ColorList<'a>) -> &mut Self {
         Attributes::fill_color_with_colorlist(self.get_attributes_mut(), fill_colors);
         self
     }
@@ -1166,6 +1171,8 @@ trait DotString<'a> {
     fn as_cow(&self) -> Cow<'a, str>;
 }
 
+
+
 pub enum LabelJustification {
     Left,
     Right,
@@ -1326,9 +1333,9 @@ impl<'a> DotString<'a> for Point {
     }
 
     fn as_cow(&self) -> Cow<'a, str> {
-        let mut slice = format!("{},{}", self.x, self.y);
+        let mut slice = format!("{:.1},{:.1}", self.x, self.y);
         if self.z.is_some() {
-            slice.push_str(format!(",{}", self.z.unwrap()).as_str());
+            slice.push_str(format!(",{:.1}", self.z.unwrap()).as_str());
         }
         if self.force_pos {
             slice.push_str("!")
@@ -1447,16 +1454,19 @@ impl<'a> DotString<'a> for SplineType {
         let mut dot_string = String::from("");
 
         if let Some(end) = &self.end {
-            dot_string.push_str(format!("e,{},{} ", end.x, end.y).as_str());
+            dot_string.push_str(format!("e,{:.1},{:.1} ", end.x, end.y).as_str());
         }
 
         if let Some(start) = &self.start {
-            dot_string.push_str(format!("s,{},{} ", start.x, start.y).as_str());
+            dot_string.push_str(format!("s,{:.1},{:.1} ", start.x, start.y).as_str());
         }
 
-        // TODO: I think there is a but with spacing
-        for s in &self.spline_points {
-            dot_string.push_str(format!("{}", s.as_cow()).as_str());
+        let mut iter = self.spline_points.iter();
+        let first = iter.next().unwrap();
+        dot_string.push_str(format!("{}", first.as_cow()).as_str());
+        for point in iter {
+            dot_string.push_str(" ");
+            dot_string.push_str(format!("{}", point.as_cow()).as_str());
         }
 
         dot_string.into()
@@ -1674,7 +1684,7 @@ impl<'a> EdgeBuilder<'a> {
         self
     }
 
-    /// Add multiple attribures to the edge.
+    /// Add multiple attributes to the edge.
     pub fn add_attributes(&'a mut self, attributes: HashMap<String, AttributeText<'a>>) -> &mut Self {
         self.attributes.extend(attributes);
         self
@@ -1736,7 +1746,7 @@ trait NodeAttributes<'a> {
         self
     }
 
-    fn color_with_colorlist(&mut self, color: ColorList) -> &mut Self {
+    fn color_with_colorlist(&mut self, color: ColorList<'a>) -> &mut Self {
         Attributes::color_with_colorlist(self.get_attributes_mut(), color);
         self
     }
@@ -1770,7 +1780,7 @@ trait NodeAttributes<'a> {
 
     /// Color used to fill the background, with a gradient, of a node or cluster assuming
     /// style=filled, or a filled arrowhead.
-    fn fill_color_with_colorlist(&mut self, fill_colors: ColorList) -> &mut Self {
+    fn fill_color_with_colorlist(&mut self, fill_colors: ColorList<'a>) -> &mut Self {
         Attributes::fill_color_with_colorlist(self.get_attributes_mut(), fill_colors);
         self
     }
@@ -2186,7 +2196,7 @@ trait EdgeAttributes<'a> {
         self
     }
 
-    fn color_with_colorlist(&mut self, color: ColorList) -> &mut Self {
+    fn color_with_colorlist(&mut self, color: ColorList<'a>) -> &mut Self {
         Attributes::color_with_colorlist(self.get_attributes_mut(), color);
         self
     }
@@ -2221,7 +2231,7 @@ trait EdgeAttributes<'a> {
     /// Indicates which ends of the edge should be decorated with an arrowhead.
     /// The actual style of the arrowhead can be specified using the arrowhead and arrowtail attributes.
     fn dir(&mut self, dir: Direction) -> &mut Self {
-        self.add_attribute("dir", AttributeText::attr(dir.as_slice()))
+        self.add_attribute("dir", dir.text_attribute())
     }
 
     /// If the edge has a URL or edgeURL attribute, edgetarget determines which window 
@@ -2813,13 +2823,17 @@ pub enum Direction {
     None,
 }
 
-impl Direction {
-    pub fn as_slice(&self) -> &'static str {
+impl<'a> DotString<'a> for Direction {
+    fn text_attribute(&self) -> AttributeText<'a> {
+        AttributeText::attr(self.as_cow())
+    }
+
+    fn as_cow(&self) -> Cow<'a, str> {
         match self {
-            Direction::Forward => "forward",
-            Direction::Back => "back",
-            Direction::Both => "both",
-            Direction::None => "none",
+            Direction::Forward => "forward".into(),
+            Direction::Back => "back".into(),
+            Direction::Both => "both".into(),
+            Direction::None => "none".into(),
         }
     }
 }
@@ -2869,10 +2883,10 @@ impl<'a> Color<'a> {
     pub fn to_dot_string(&self) -> String {
         match self {
             Color::RGB { red, green, blue } => {
-                format!("#{}{}{}", red, green, blue)
+                format!("#{:02x?}{:02x?}{:02x?}", red, green, blue)
             },
             Color::RGBA { red, green, blue, alpha } => {
-                format!("#{}{}{}{}", red, green, blue, alpha)
+                format!("#{:02x?}{:02x?}{:02x?}{:02x?}", red, green, blue, alpha)
             }, 
             Color::HSV { hue, saturation, value } => {
                 format!("{} {} {}", hue, saturation, value)
@@ -2930,15 +2944,20 @@ impl<'a> WeightedColor<'a> {
 pub struct ColorList<'a> {
     colors: Vec<WeightedColor<'a>>,
 }
-impl<'a> ColorList<'a> {
+
+impl<'a> DotString<'a> for ColorList<'a> {
+    fn text_attribute(&self) -> AttributeText<'a> {
+        AttributeText::quoted(self.as_cow())
+    }
+
     /// A colon-separated list of weighted color values: WC(:WC)* where each WC has the form C(;F)?
     /// Ex: fillcolor=yellow;0.3:blue
-    pub fn to_dot_string(&self) -> String {
+    fn as_cow(&self) -> Cow<'a, str> {
         let mut dot_string = String::new();
         let mut iter = self.colors.iter();
         let first = iter.next();
         if first.is_none() {
-            return dot_string;
+            return dot_string.into();
         }
         dot_string.push_str(first.unwrap().to_dot_string().as_str());
         for weighted_color in iter {
@@ -2946,20 +2965,17 @@ impl<'a> ColorList<'a> {
             dot_string.push_str(weighted_color.to_dot_string().as_str())
         }
 
-        dot_string
+        dot_string.into()
     }
 }
 
-/// Convert an element like `(i, j)` or `(i, j, w)` into
-/// a triple of source, target, edge weight.
-///
-/// For `Graph::from_edges` and `GraphMap::from_edges`.
+
+/// Convert an element like `(i, j)` into a WeightedColor
 pub trait IntoWeightedColor<'a> {
     fn into_weighted_color(self) -> WeightedColor<'a>;
 }
 
-impl<'a> IntoWeightedColor<'a> for &'a (Color<'a>, Option<f32>)
-{
+impl<'a> IntoWeightedColor<'a> for &'a (Color<'a>, Option<f32>) {
     fn into_weighted_color(self) -> WeightedColor<'a> {
         let (s, t) = *self;
         WeightedColor {
@@ -2968,7 +2984,6 @@ impl<'a> IntoWeightedColor<'a> for &'a (Color<'a>, Option<f32>)
         }
     }
 }
-
 
 pub enum NodeStyle {
     Bold,
@@ -3087,8 +3102,8 @@ impl Attributes {
         Self::add_attribute(attributes,"color", color.text_attribute())
     }
 
-    fn color_with_colorlist(attributes: &mut IndexMap<String, AttributeText>, color: ColorList) {
-        Self::add_attribute(attributes,"color", AttributeText::quoted(color.to_dot_string()))
+    fn color_with_colorlist<'a>(attributes: &mut IndexMap<String, AttributeText<'a>>, color: ColorList<'a>) {
+        Self::add_attribute(attributes,"color", color.text_attribute())
     }
 
     fn color_scheme(attributes: &mut IndexMap<String, AttributeText>, color_scheme: String) {
@@ -3103,11 +3118,11 @@ impl Attributes {
         Self::add_attribute(attributes, "fillcolor", AttributeText::quoted(fill_color.to_dot_string()))
     }
 
-    fn fill_color_with_colorlist(attributes: &mut IndexMap<String, AttributeText>, fill_colors: ColorList) {
-        Self::add_attribute(attributes, "fillcolor", AttributeText::quoted(fill_colors.to_dot_string()))
+    fn fill_color_with_colorlist<'a>(attributes: &mut IndexMap<String, AttributeText<'a>>, fill_colors: ColorList<'a>) {
+        Self::add_attribute(attributes, "fillcolor", fill_colors.text_attribute())
     }
 
-    fn fill_color_with_iter<'a, I>(attributes: &mut IndexMap<String, AttributeText>, fill_colors: I)
+    fn fill_color_with_iter<'a, I>(attributes: &mut IndexMap<String, AttributeText<'a>>, fill_colors: I)
     where
         I: IntoIterator,
         I::Item: IntoWeightedColor<'a>,
@@ -3120,7 +3135,7 @@ impl Attributes {
             colors
         };
 
-        Self::add_attribute(attributes, "fillcolor", AttributeText::quoted(color_list.to_dot_string()))
+        Self::add_attribute(attributes, "fillcolor", color_list.text_attribute())
     }
 
     fn font_color(attributes: &mut IndexMap<String, AttributeText>, font_color: Color) {
@@ -3240,8 +3255,6 @@ fn test_input(g: Graph) -> io::Result<String>
 }
 
 
-// TODO: color test
-
 #[test]
 fn empty_digraph_without_id() {
     // TODO: support both String and &str
@@ -3254,6 +3267,21 @@ fn empty_digraph_without_id() {
 "#
     );
 }
+
+#[test]
+fn graph_comment() {
+    // TODO: support both String and &str
+    let g = GraphBuilder::new_directed(None).comment("Comment goes here").build();
+    let r = test_input(g);
+    assert_eq!(
+        r.unwrap(),
+        r#"// Comment goes here
+digraph {
+}
+"#
+    );
+}
+
 
 #[test]
 fn empty_digraph() {
@@ -3425,14 +3453,112 @@ fn colorlist_dot_string() {
         colors: vec![yellow, blue]
     };
 
-    let dot_string = color_list.to_dot_string();
+    let dot_string = color_list.as_cow();
 
     assert_eq!("yellow;0.3:blue", dot_string);
 }
 
-// TODO: improve test
 #[test]
-fn colorlist2_dot_string() {
+fn color_rbg_dot_string() {
+    let color = Color::RGB {
+        red: 160,
+        green: 82,
+        blue: 45
+    };
+    assert_eq!("#a0522d", color.to_dot_string());
+}
+
+#[test]
+fn color_rbga_dot_string() {
+    let color = Color::RGBA {
+        red: 160,
+        green: 82,
+        blue: 45,
+        alpha: 10
+    };
+    assert_eq!("#a0522d0a", color.to_dot_string());
+}
+
+#[test]
+fn color_hsv_dot_string() {
+    let color = Color::HSV {
+        hue: 0.051,
+        saturation: 0.718,
+        value: 0.627,
+    };
+    assert_eq!("0.051 0.718 0.627", color.to_dot_string());
+}
+
+#[test]
+fn spline_type() {
+    let spline_type = SplineType {
+        end: None,
+        start: None,
+        spline_points: vec![
+            Point::new_2d(0.0, 0.0, false),
+            Point::new_2d(1.0, 1.0, false),
+            Point::new_2d(1.0, -1.0, false)
+        ],
+    };
+
+    assert_eq!("0.0,0.0 1.0,1.0 1.0,-1.0", spline_type.as_cow());
+}
+
+#[test]
+fn spline_type_end() {
+    let spline_type = SplineType {
+        end: Some(Point::new_2d(2.0, 0.0, false)),
+        start: None,
+        spline_points: vec![
+            Point::new_2d(0.0, 0.0, false),
+            Point::new_2d(1.0, 1.0, false),
+            Point::new_2d(1.0, -1.0, false)
+        ],
+    };
+
+    assert_eq!("e,2.0,0.0 0.0,0.0 1.0,1.0 1.0,-1.0", spline_type.as_cow());
+}
+
+#[test]
+fn spline_type_start() {
+    let spline_type = SplineType {
+        end: None,
+        start: Some(Point::new_2d(-1.0, 0.0, false)),
+        spline_points: vec![
+            Point::new_2d(0.0, 0.0, false),
+            Point::new_2d(1.0, 1.0, false),
+            Point::new_2d(1.0, -1.0, false)
+        ],
+    };
+
+    assert_eq!("s,-1.0,0.0 0.0,0.0 1.0,1.0 1.0,-1.0", spline_type.as_cow());
+}
+
+#[test]
+fn spline_type_complete() {
+    let spline_type = SplineType {
+        end: Some(Point::new_2d(2.0, 0.0, false)),
+        start: Some(Point::new_2d(-1.0, 0.0, false)),
+        spline_points: vec![
+            Point::new_2d(0.0, 0.0, false),
+            Point::new_2d(1.0, 1.0, false),
+            Point::new_2d(1.0, -1.0, false)
+        ],
+    };
+
+    assert_eq!("e,2.0,0.0 s,-1.0,0.0 0.0,0.0 1.0,1.0 1.0,-1.0", spline_type.as_cow());
+}
+
+#[test]
+fn point_string() {
+    assert_eq!("1.0,2.0", Point::new_2d(1.0, 2.0, false).as_cow());
+    assert_eq!("1.0,2.0!", Point::new_2d(1.0, 2.0, true).as_cow());
+    assert_eq!("1.0,2.0,0.0", Point::new_3d(1.0, 2.0, 0.0, false).as_cow());
+    assert_eq!("1.0,2.0,0.0!", Point::new_3d(1.0, 2.0, 0.0, true).as_cow());
+}
+
+#[test]
+fn graph_attribute_colorlist_vec_dot_string() {
     let graph_attributes = GraphAttributeStatementBuilder::new()
         .fill_color_with_iter(&[
             (Color::Named("yellow"), Some(0.3)),
