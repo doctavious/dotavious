@@ -1381,24 +1381,22 @@ pub struct Point {
 
 impl Point {
 
-    pub fn new_2d(x: f32, y: f32, force_pos: bool) -> Self {
+    pub fn new_2d(x: f32, y: f32) -> Self {
+        Self::new(x, y, None, false)
+    }
+
+    pub fn new_3d(x: f32, y: f32, z: f32) -> Self {
+        Self::new(x, y, Some(z), false)
+    }
+
+    pub fn new(x: f32, y: f32, z: Option<f32>, force_pos: bool) -> Self {
         Self {
             x,
             y,
-            z: None,
+            z,
             force_pos,
         }
     }
-
-    pub fn new_3d(x: f32, y: f32, z: f32, force_pos: bool) -> Self {
-        Self {
-            x,
-            y,
-            z: Some(z),
-            force_pos,
-        }
-    }
-
 }
 
 impl<'a> From<Point> for AttributeText<'a> {
@@ -3627,9 +3625,9 @@ fn spline_type() {
         end: None,
         start: None,
         spline_points: vec![
-            Point::new_2d(0.0, 0.0, false),
-            Point::new_2d(1.0, 1.0, false),
-            Point::new_2d(1.0, -1.0, false)
+            Point::new_2d(0.0, 0.0),
+            Point::new_2d(1.0, 1.0),
+            Point::new_2d(1.0, -1.0)
         ],
     };
 
@@ -3639,12 +3637,12 @@ fn spline_type() {
 #[test]
 fn spline_type_end() {
     let spline_type = SplineType {
-        end: Some(Point::new_2d(2.0, 0.0, false)),
+        end: Some(Point::new_2d(2.0, 0.0)),
         start: None,
         spline_points: vec![
-            Point::new_2d(0.0, 0.0, false),
-            Point::new_2d(1.0, 1.0, false),
-            Point::new_2d(1.0, -1.0, false)
+            Point::new_2d(0.0, 0.0),
+            Point::new_2d(1.0, 1.0),
+            Point::new_2d(1.0, -1.0)
         ],
     };
 
@@ -3655,11 +3653,11 @@ fn spline_type_end() {
 fn spline_type_start() {
     let spline_type = SplineType {
         end: None,
-        start: Some(Point::new_2d(-1.0, 0.0, false)),
+        start: Some(Point::new_2d(-1.0, 0.0)),
         spline_points: vec![
-            Point::new_2d(0.0, 0.0, false),
-            Point::new_2d(1.0, 1.0, false),
-            Point::new_2d(1.0, -1.0, false)
+            Point::new_2d(0.0, 0.0),
+            Point::new_2d(1.0, 1.0),
+            Point::new_2d(1.0, -1.0)
         ],
     };
 
@@ -3669,12 +3667,12 @@ fn spline_type_start() {
 #[test]
 fn spline_type_complete() {
     let spline_type = SplineType {
-        end: Some(Point::new_2d(2.0, 0.0, false)),
-        start: Some(Point::new_2d(-1.0, 0.0, false)),
+        end: Some(Point::new_2d(2.0, 0.0)),
+        start: Some(Point::new_2d(-1.0, 0.0)),
         spline_points: vec![
-            Point::new_2d(0.0, 0.0, false),
-            Point::new_2d(1.0, 1.0, false),
-            Point::new_2d(1.0, -1.0, false)
+            Point::new_2d(0.0, 0.0),
+            Point::new_2d(1.0, 1.0),
+            Point::new_2d(1.0, -1.0)
         ],
     };
 
@@ -3683,10 +3681,10 @@ fn spline_type_complete() {
 
 #[test]
 fn point_string() {
-    assert_eq!("1.0,2.0", Point::new_2d(1.0, 2.0, false).dot_string());
-    assert_eq!("1.0,2.0!", Point::new_2d(1.0, 2.0, true).dot_string());
-    assert_eq!("1.0,2.0,0.0", Point::new_3d(1.0, 2.0, 0.0, false).dot_string());
-    assert_eq!("1.0,2.0,0.0!", Point::new_3d(1.0, 2.0, 0.0, true).dot_string());
+    assert_eq!("1.0,2.0", Point::new_2d(1.0, 2.0).dot_string());
+    assert_eq!("1.0,2.0,0.0", Point::new_3d(1.0, 2.0, 0.0).dot_string());
+    assert_eq!("1.0,2.0!", Point::new(1.0, 2.0, None, true).dot_string());
+    assert_eq!("1.0,2.0,0.0!", Point::new(1.0, 2.0, Some(0.0), true).dot_string());
 }
 
 #[test]
