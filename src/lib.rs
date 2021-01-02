@@ -1420,6 +1420,24 @@ impl<'a> DotString<'a> for Point {
     }
 }
 
+pub struct Rectangle {
+    lower_left: Point,
+    upper_right: Point,
+}
+
+impl<'a> From<Rectangle> for AttributeText<'a> {
+    fn from(rectangle: Rectangle) -> Self {
+        AttributeText::quoted(rectangle.dot_string())
+    }
+}
+
+impl<'a> DotString<'a> for Rectangle {
+    fn dot_string(&self) -> Cow<'a, str> {
+        format!("{:.1},{:.1},{:.1},{:.1}",
+                self.lower_left.x, self.lower_left.y, self.upper_right.x, self.upper_right.y).into()
+    }
+}
+
 /// These specify the 8 row or column major orders for traversing a rectangular array,
 /// the first character corresponding to the major order and the second to the minor order.
 /// Thus, for “BL”, the major order is from bottom to top, and the minor order is from left to right.
@@ -2065,11 +2083,9 @@ trait NodeAttributes<'a> {
 
     // TODO: add post_spline
 
-    // TODO: add rect type?
-    // "%f,%f,%f,%f"
     /// Rectangles for fields of records, in points.
-    fn rects(&mut self, rects: String) -> &mut Self {
-        self.add_attribute("rects", AttributeText::attr(rects))
+    fn rects(&mut self, rect: Rectangle) -> &mut Self {
+        self.add_attribute("rects", AttributeText::from(rect))
     }
 
     /// If true, force polygon to be regular, i.e., the vertices of the polygon will 
