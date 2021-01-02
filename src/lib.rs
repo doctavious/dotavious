@@ -53,7 +53,7 @@ pub enum AttributeText<'a> {
     ///
     /// Occurrences of backslashes (`\`) are escaped, and thus appear
     /// as backslashes in the rendered label.
-    QuottedStr(Cow<'a, str>),
+    QuotedStr(Cow<'a, str>),
 }
 
 impl<'a> AttributeText<'a> {
@@ -70,7 +70,7 @@ impl<'a> AttributeText<'a> {
     }
 
     pub fn quoted<S: Into<Cow<'a, str>>>(s: S) -> AttributeText<'a> {
-        QuottedStr(s.into())
+        QuotedStr(s.into())
     }
 
     fn escape_char<F>(c: char, mut f: F)
@@ -104,7 +104,7 @@ impl<'a> AttributeText<'a> {
             AttrStr(ref s) => format!("{}", s),
             EscStr(ref s) => format!("\"{}\"", AttributeText::escape_str(&s)),
             HtmlStr(ref s) => format!("<{}>", s),
-            QuottedStr(ref s) => format!("\"{}\"", s.escape_default()),
+            QuotedStr(ref s) => format!("\"{}\"", s.escape_default()),
         }
     }
 
@@ -117,7 +117,7 @@ impl<'a> AttributeText<'a> {
             AttrStr(s) => s,
             EscStr(s) => s,
             HtmlStr(s) => s,
-            QuottedStr(s) => {
+            QuotedStr(s) => {
                 if s.contains('\\') {
                     (&*s).escape_default().to_string().into()
                 } else {
