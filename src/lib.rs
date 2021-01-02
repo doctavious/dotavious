@@ -16,7 +16,6 @@ static INDENT: &str = "    ";
 // i'm thinking we have NodeTraits/GraphTraits/EdgeTraits (what about none? is that a graph trait?)
 // which will have default methods that use an associated type field called "state" or "attributes" etc
 // TODO: implement Clone for Graph
-// TODO: Node port and compass
 // TODO: see if we can get any insights from Haskell implementation
 // https://hackage.haskell.org/package/graphviz-2999.20.1.0/docs/Data-GraphViz-Attributes-Complete.html#t:Point
 // - I like this: A summary of known current constraints/limitations/differences:
@@ -300,7 +299,7 @@ impl<'a> Dot<'a> {
             // Are render options something we need?
             // we could clone the node or and remove the attributes based on render options
             // or maybe we keep a set of attributes to ignore based on the options
-            writeln!(w, "{}", n.to_dot_string())?;
+            writeln!(w, "{}{}", INDENT, n.to_dot_string())?;
         }
 
         for e in self.graph.edges {
@@ -791,11 +790,10 @@ pub trait GraphAttributes<'a> {
         self.add_attribute("lheight", AttributeText::from(lheight))
     }
 
-    // TODO: I dont understand this...
-    /// "%f,%f('!')?" representing the point (x,y). The optional '!' indicates the node position should not change (input-only).
-    /// If dim=3, point may also have the format "%f,%f,%f('!')?" to represent the point (x,y,z).
-    fn lp(&mut self, lp: String) -> &mut Self {
-        Attributes::lp(self.get_attributes_mut(), lp);
+    /// Label position
+    /// The position indicates the center of the label.
+    fn label_position(&mut self, lp: Point) -> &mut Self {
+        Attributes::label_position(self.get_attributes_mut(), lp);
         self
     }
 
@@ -1576,9 +1574,7 @@ impl<'a> Node<'a> {
     }
 
     pub fn to_dot_string(&self) -> String {
-        // TODO: I think we should not include indent here and it should be part of the
-        // render
-        let mut dot_string = format!("{}{}", INDENT, &self.id);
+        let mut dot_string = format!("{}", &self.id);
         if !self.attributes.is_empty() {
             dot_string.push_str(" [");
             let mut iter = self.attributes.iter();
@@ -2504,8 +2500,10 @@ trait EdgeAttributes<'a> {
         self.add_attribute("lhead", AttributeText::quoted(lhead))
     }
 
-    fn lp(&mut self, lp: String) -> &mut Self {
-        Attributes::lp(self.get_attributes_mut(), lp);
+    /// Label position
+    /// The position indicates the center of the label.
+    fn label_position(&mut self, lp: Point) -> &mut Self {
+        Attributes::label_position(self.get_attributes_mut(), lp);
         self
     }
 
@@ -3285,8 +3283,8 @@ impl Attributes {
         Self::add_attribute(attributes, "layer", AttributeText::attr(layer))
     }
 
-    fn lp(attributes: &mut IndexMap<String, AttributeText>, lp: String) {
-        Self::add_attribute(attributes, "lp", AttributeText::attr(lp))
+    fn label_position(attributes: &mut IndexMap<String, AttributeText>, lp: Point) {
+        Self::add_attribute(attributes, "lp", AttributeText::from(lp))
     }
 
     fn margin(attributes: &mut IndexMap<String, AttributeText>, margin: f32) {
@@ -3777,9 +3775,15 @@ fn port_position_attribute() {
 #[test]
 fn graph_attributes() {
 
-    let graph_attributes = GraphAttributeStatementBuilder::new().rank_dir(RankDir::LeftRight).build();
-    let node_attributes = NodeAttributeStatementBuilder::new().style(NodeStyle::Filled).build();
-    let edge_attributes = EdgeAttributeStatementBuilder::new().min_len(1).build();
+    let graph_attributes = GraphAttributeStatementBuilder::new()
+        .rank_dir(RankDir::LeftRight)
+        .build();
+    let node_attributes = NodeAttributeStatementBuilder::new()
+        .style(NodeStyle::Filled)
+        .build();
+    let edge_attributes = EdgeAttributeStatementBuilder::new()
+        .min_len(1)
+        .build();
 
     let g = GraphBuilder::new_directed(Some("graph_attributes".to_string()))
         .add_graph_attributes(graph_attributes)
