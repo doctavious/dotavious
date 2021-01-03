@@ -246,7 +246,7 @@ impl<'a> DotString<'a> for CompassPoint {
 
 // TODO: probably dont need this struct and can move impl methods into lib module
 pub struct Dot<'a> {
-    graph: Graph<'a>, //config: Config,
+    graph: Graph<'a>,
 }
 
 impl<'a> Dot<'a> {
@@ -337,25 +337,6 @@ impl<'a> Dot<'a> {
 
         writeln!(w, "}}")
     }
-}
-
-/// `Dot` configuration.
-///
-/// This enum does not have an exhaustive definition (will be expanded)
-#[derive(Debug, PartialEq, Eq)]
-pub enum Config {
-    /// Use indices for node labels.
-    NodeIndexLabel,
-    /// Use indices for edge labels.
-    EdgeIndexLabel,
-    /// Use no edge labels.
-    EdgeNoLabel,
-    /// Use no node labels.
-    NodeNoLabel,
-    /// Do not print the graph/digraph string.
-    GraphContentOnly,
-    #[doc(hidden)]
-    _Incomplete(()),
 }
 
 #[derive(Hash, Eq, PartialEq, PartialOrd, Ord, Debug, Clone)]
