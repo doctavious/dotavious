@@ -1,12 +1,12 @@
 //! Simple graphviz dot file format output.
 
-use AttributeText::*;
 use indexmap::IndexMap;
 use std;
-use std::borrow::{Cow};
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::io;
 use std::io::prelude::*;
+use AttributeText::*;
 
 static INDENT: &str = "    ";
 
@@ -19,6 +19,12 @@ static INDENT: &str = "    ";
 // TODO: see if we can get any insights from Haskell implementation
 // https://hackage.haskell.org/package/graphviz-2999.20.1.0/docs/Data-GraphViz-Attributes-Complete.html#t:Point
 // - I like this: A summary of known current constraints/limitations/differences:
+// Add a DPoint enum?
+// /// Either a Double or a (2D) Point (i.e. created with Point::new_2d).
+// pub enum DPoint {
+//     Double(f32),
+//     Point(Point),
+// }
 
 /// Modifier indicating where on a node an edge should be aimed.
 /// If Port is used, the corresponding node must either have record shape with one of its
@@ -42,16 +48,18 @@ impl<'a> From<PortPosition> for AttributeText<'a> {
 impl<'a> DotString<'a> for PortPosition {
     fn dot_string(&self) -> Cow<'a, str> {
         match self {
-            PortPosition::Port { port_name, compass_point } => {
+            PortPosition::Port {
+                port_name,
+                compass_point,
+            } => {
                 let mut dot_string = port_name.to_owned();
                 if let Some(compass_point) = compass_point {
-                    dot_string.push_str(format!(":{}", compass_point.dot_string()).as_str());
+                    dot_string
+                        .push_str(format!(":{}", compass_point.dot_string()).as_str());
                 }
                 dot_string.into()
             }
-            PortPosition::Compass(p) => {
-                p.dot_string().into()
-            }
+            PortPosition::Compass(p) => p.dot_string().into(),
         }
     }
 }
@@ -74,11 +82,9 @@ impl<'a> From<bool> for AttributeText<'a> {
     }
 }
 
-/// Most of this comes from core rust. Where to provide attribution?
 /// The text for a graphviz label on a node or edge.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum AttributeText<'a> {
-
     /// Preserves the text directly as is.
     AttrStr(Cow<'a, str>),
 
@@ -94,8 +100,8 @@ pub enum AttributeText<'a> {
     /// preceding line and `\r` which right-justifies it.
     EscStr(Cow<'a, str>),
 
-    /// This uses a graphviz [HTML string label][html]. 
-    /// The string is printed exactly as given, but between `<` and `>`. 
+    /// This uses a graphviz [HTML string label][html].
+    /// The string is printed exactly as given, but between `<` and `>`.
     /// **No escaping is performed.**
     ///
     /// [html]: https://graphviz.org/doc/info/shapes.html#html
@@ -176,7 +182,6 @@ impl<'a> AttributeText<'a> {
                     s
                 }
             }
-            
         }
     }
 
@@ -214,7 +219,7 @@ pub enum CompassPoint {
     // The compass point "_" specifies that an appropriate side of the port adjacent to the exterior
     // of the node should be used, if such exists. Otherwise, the center is used.
     // If no compass point is used with a portname, the default value is "_".
-    None
+    None,
 }
 
 impl<'a> From<CompassPoint> for AttributeText<'a> {
@@ -241,12 +246,10 @@ impl<'a> DotString<'a> for CompassPoint {
 
 // TODO: probably dont need this struct and can move impl methods into lib module
 pub struct Dot<'a> {
-    graph: Graph<'a>
-    //config: Config,
+    graph: Graph<'a>, //config: Config,
 }
 
 impl<'a> Dot<'a> {
-
     /// Renders directed graph `g` into the writer `w` in DOT syntax.
     /// (Simple wrapper around `render_opts` that passes a default set of options.)
     //pub fn render<W>(self, g: Graph, w: &mut W) -> io::Result<()>
@@ -305,12 +308,14 @@ impl<'a> Dot<'a> {
         for e in self.graph.edges {
             let mut edge_source = e.source;
             if let Some(source_port_position) = e.source_port_position {
-                edge_source.push_str(format!(":{}", source_port_position.dot_string()).as_str())
+                edge_source
+                    .push_str(format!(":{}", source_port_position.dot_string()).as_str())
             }
 
             let mut edge_target = e.target;
             if let Some(target_port_position) = e.target_port_position {
-                edge_target.push_str(format!(":{}", target_port_position.dot_string()).as_str())
+                edge_target
+                    .push_str(format!(":{}", target_port_position.dot_string()).as_str())
             }
 
             write!(w, "{}{} {} {}", INDENT, edge_source, edge_op, edge_target)?;
@@ -362,7 +367,7 @@ pub enum AttributeType {
 
 pub struct Graph<'a> {
     pub id: Option<String>,
-    
+
     pub is_directed: bool,
 
     pub strict: bool,
@@ -382,7 +387,6 @@ pub struct Graph<'a> {
 }
 
 impl<'a> Graph<'a> {
-
     pub fn new(
         id: Option<String>,
         is_directed: bool,
@@ -422,12 +426,11 @@ impl<'a> Graph<'a> {
             "--"
         }
     }
-
 }
 
 pub struct GraphBuilder<'a> {
     id: Option<String>,
-    
+
     is_directed: bool,
 
     strict: bool,
@@ -439,7 +442,7 @@ pub struct GraphBuilder<'a> {
     edge_attributes: Option<EdgeAttributeStatement<'a>>,
 
     nodes: Vec<Node<'a>>,
-    
+
     edges: Vec<Edge<'a>>,
 
     comment: Option<String>,
@@ -480,17 +483,26 @@ impl<'a> GraphBuilder<'a> {
         self
     }
 
-    pub fn add_graph_attributes(&mut self, graph_attributes: GraphAttributeStatement<'a>) -> &mut Self {
+    pub fn add_graph_attributes(
+        &mut self,
+        graph_attributes: GraphAttributeStatement<'a>,
+    ) -> &mut Self {
         self.graph_attributes = Some(graph_attributes);
         self
     }
 
-    pub fn add_node_attributes(&mut self, node_attributes: NodeAttributeStatement<'a>) -> &mut Self {
+    pub fn add_node_attributes(
+        &mut self,
+        node_attributes: NodeAttributeStatement<'a>,
+    ) -> &mut Self {
         self.node_attributes = Some(node_attributes);
         self
     }
 
-    pub fn add_edge_attributes(&mut self, edge_attributes: EdgeAttributeStatement<'a>) -> &mut Self {
+    pub fn add_edge_attributes(
+        &mut self,
+        edge_attributes: EdgeAttributeStatement<'a>,
+    ) -> &mut Self {
         self.edge_attributes = Some(edge_attributes);
         self
     }
@@ -518,28 +530,36 @@ impl<'a> GraphBuilder<'a> {
         &mut self,
         attribute_type: AttributeType,
         key: String,
-        value: AttributeText<'a>
+        value: AttributeText<'a>,
     ) -> &mut Self {
         match attribute_type {
-
             AttributeType::Graph => {
                 if self.graph_attributes.is_none() {
                     self.graph_attributes = Some(GraphAttributeStatement::new());
                 }
-                self.graph_attributes.as_mut().unwrap().add_attribute(key, value);
-            },
+                self.graph_attributes
+                    .as_mut()
+                    .unwrap()
+                    .add_attribute(key, value);
+            }
             AttributeType::Edge => {
                 if self.edge_attributes.is_none() {
                     self.edge_attributes = Some(EdgeAttributeStatement::new());
                 }
-                self.edge_attributes.as_mut().unwrap().add_attribute(key, value);
-            },
+                self.edge_attributes
+                    .as_mut()
+                    .unwrap()
+                    .add_attribute(key, value);
+            }
             AttributeType::Node => {
                 if self.node_attributes.is_none() {
                     self.node_attributes = Some(NodeAttributeStatement::new());
                 }
-                self.node_attributes.as_mut().unwrap().add_attribute(key, value);
-            },
+                self.node_attributes
+                    .as_mut()
+                    .unwrap()
+                    .add_attribute(key, value);
+            }
         }
         self
     }
@@ -574,16 +594,17 @@ impl<'a> GraphBuilder<'a> {
     }
 }
 
-
 pub trait GraphAttributes<'a> {
-
     fn background(&mut self, background: String) -> &mut Self {
         self.add_attribute("_background", AttributeText::attr(background))
     }
 
     /// The color used as the background for entire canvas.
     fn background_color(&mut self, background_color: Color) -> &mut Self {
-        self.add_attribute("bgcolor", AttributeText::quoted(background_color.to_dot_string()))
+        self.add_attribute(
+            "bgcolor",
+            AttributeText::quoted(background_color.to_dot_string()),
+        )
     }
 
     // TODO: constrain
@@ -596,7 +617,7 @@ pub trait GraphAttributes<'a> {
     }
 
     /// Type: rect which is "%f,%f,%f,%f"
-    /// The rectangle llx,lly,urx,ury gives the coordinates, in points, of the lower-left corner (llx,lly) 
+    /// The rectangle llx,lly,urx,ury gives the coordinates, in points, of the lower-left corner (llx,lly)
     /// and the upper-right corner (urx,ury).
     fn bounding_box(&mut self, bounding_box: String) -> &mut Self {
         self.add_attribute("bb", AttributeText::quoted(bounding_box))
@@ -612,7 +633,7 @@ pub trait GraphAttributes<'a> {
         self.add_attribute("charset", AttributeText::quoted(charset))
     }
 
-    /// Classnames to attach to the node, edge, graph, or cluster’s SVG element. 
+    /// Classnames to attach to the node, edge, graph, or cluster’s SVG element.
     /// Combine with stylesheet for styling SVG output using CSS classnames.
     /// Multiple space-separated classes are supported.
     fn class(&mut self, class: String) -> &mut Self {
@@ -620,10 +641,10 @@ pub trait GraphAttributes<'a> {
         self
     }
 
-    /// Mode used for handling clusters. 
+    /// Mode used for handling clusters.
     /// If clusterrank=local, a subgraph whose name begins with cluster is given special treatment.
     /// The subgraph is laid out separately, and then integrated as a unit into its parent graph,
-    ///  with a bounding rectangle drawn about it. 
+    ///  with a bounding rectangle drawn about it.
     /// If the cluster has a label parameter, this label is displayed within the rectangle.
     /// Note also that there can be clusters within clusters.
     /// The modes clusterrank=global and clusterrank=none appear to be identical, both turning off the special cluster processing.
@@ -632,7 +653,7 @@ pub trait GraphAttributes<'a> {
     }
 
     /// This attribute specifies a color scheme namespace: the context for interpreting color names.
-    /// In particular, if a color value has form "xxx" or "//xxx", then the color xxx will be evaluated 
+    /// In particular, if a color value has form "xxx" or "//xxx", then the color xxx will be evaluated
     /// according to the current color scheme. If no color scheme is set, the standard X11 naming is used.
     /// For example, if colorscheme=bugn9, then color=7 is interpreted as color="/bugn9/7".
     fn color_scheme(&mut self, color_scheme: String) -> &mut Self {
@@ -692,7 +713,7 @@ pub trait GraphAttributes<'a> {
         self
     }
 
-    /// Font used for text. 
+    /// Font used for text.
     fn font_name(&mut self, font_name: String) -> &mut Self {
         Attributes::font_name(self.get_attributes_mut(), font_name);
         self
@@ -701,7 +722,7 @@ pub trait GraphAttributes<'a> {
     fn font_names(&mut self, font_names: String) -> &mut Self {
         self.add_attribute("fontnames", AttributeText::quoted(font_names))
     }
-    
+
     fn font_path(&mut self, font_path: String) -> &mut Self {
         self.add_attribute("fontpath", AttributeText::quoted(font_path))
     }
@@ -737,7 +758,10 @@ pub trait GraphAttributes<'a> {
     /// If labeljust=r, the label is right-justified within bounding rectangle
     /// If labeljust=l, left-justified
     /// Else the label is centered.
-    fn label_justification(&mut self, label_justification: LabelJustification) -> &mut Self {
+    fn label_justification(
+        &mut self,
+        label_justification: LabelJustification,
+    ) -> &mut Self {
         self.add_attribute("labeljust", AttributeText::from(label_justification))
     }
 
@@ -767,7 +791,7 @@ pub trait GraphAttributes<'a> {
     }
 
     /// Specifies a linearly ordered list of layer names attached to the graph
-    /// The graph is then output in separate layers. 
+    /// The graph is then output in separate layers.
     /// Only those components belonging to the current output layer appear.
     fn layers(&mut self, layers: String) -> &mut Self {
         Attributes::layer(self.get_attributes_mut(), layers);
@@ -836,13 +860,13 @@ pub trait GraphAttributes<'a> {
     }
 
     /// Whether to use a single global ranking, ignoring clusters.
-    /// The original ranking algorithm in dot is recursive on clusters. 
+    /// The original ranking algorithm in dot is recursive on clusters.
     /// This can produce fewer ranks and a more compact layout, but sometimes at the cost of a
     /// head node being place on a higher rank than the tail node.
-    /// It also assumes that a node is not constrained in separate, incompatible subgraphs. 
+    /// It also assumes that a node is not constrained in separate, incompatible subgraphs.
     /// For example, a node cannot be in a cluster and also be constrained by rank=same with
     /// a node not in the cluster.
-    /// This allows nodes to be subject to multiple constraints. 
+    /// This allows nodes to be subject to multiple constraints.
     /// Rank constraints will usually take precedence over edge constraints.
     fn newrank(&mut self, newrank: bool) -> &mut Self {
         self.add_attribute("newrank", AttributeText::from(newrank))
@@ -855,7 +879,7 @@ pub trait GraphAttributes<'a> {
         self.add_attribute("nodesep", AttributeText::from(nodesep))
     }
 
-    /// By default, the justification of multi-line labels is done within the largest context that makes sense. 
+    /// By default, the justification of multi-line labels is done within the largest context that makes sense.
     /// Thus, in the label of a polygonal node, a left-justified line will align with the left side
     /// of the node (shifted by the prescribed margin).
     /// In record nodes, left-justified line will line up with the left side of the enclosing column
@@ -893,7 +917,7 @@ pub trait GraphAttributes<'a> {
     }
 
     // TODO: constrain to 0 - 360. Docs say min is 360 which should be max right?
-    /// When used on nodes: Angle, in degrees, to rotate polygon node shapes. 
+    /// When used on nodes: Angle, in degrees, to rotate polygon node shapes.
     /// For any number of polygon sides, 0 degrees rotation results in a flat base.
     /// When used on graphs: If "[lL]*", sets graph orientation to landscape.
     /// Used only if rotate is not defined.
@@ -911,7 +935,7 @@ pub trait GraphAttributes<'a> {
 
     /// Whether each connected component of the graph should be laid out separately, and then the
     /// graphs packed together.
-    /// If false, the entire graph is laid out together. 
+    /// If false, the entire graph is laid out together.
     /// The granularity and method of packing is influenced by the packmode attribute.
     fn pack(&mut self, pack: bool) -> &mut Self {
         self.add_attribute("pack", AttributeText::from(pack))
@@ -927,7 +951,7 @@ pub trait GraphAttributes<'a> {
         self.add_attribute("pack", AttributeText::from(pack))
     }
 
-    /// This indicates how connected components should be packed (cf. packMode). 
+    /// This indicates how connected components should be packed (cf. packMode).
     /// Note that defining packmode will automatically turn on packing as though one had set pack=true.
     fn pack_mode(&mut self, pack_mode: PackMode) -> &mut Self {
         self.add_attribute("packmode", AttributeText::from(pack_mode))
@@ -935,7 +959,7 @@ pub trait GraphAttributes<'a> {
 
     /// Specifies how much, in inches, to extend the drawing area around the minimal area needed
     /// to draw the graph.
-    /// Both the x and y pad values are set equal to the given value. 
+    /// Both the x and y pad values are set equal to the given value.
     /// See [`crate::GraphAttributes::pad_point`]
     fn pad(&mut self, pad: f32) -> &mut Self {
         self.pad_point(Point::new_2d(pad, pad))
@@ -1020,10 +1044,10 @@ pub trait GraphAttributes<'a> {
 
     /// Maximum width and height of drawing, in inches.
     /// Value used for both the width and the height.
-    /// If defined and the drawing is larger than the given size, the drawing 
+    /// If defined and the drawing is larger than the given size, the drawing
     /// is uniformly scaled down so that it fits within the given size.
-    /// If desired_min is true, and both both dimensions of the drawing 
-    /// are less than size, the drawing is scaled up uniformly until at 
+    /// If desired_min is true, and both both dimensions of the drawing
+    /// are less than size, the drawing is scaled up uniformly until at
     /// least one dimension equals its dimension in size.
     /// See [`crate::GraphAttributes::size_point`]
     fn size(&mut self, size: u32, desired_min: bool) -> &mut Self {
@@ -1031,21 +1055,21 @@ pub trait GraphAttributes<'a> {
             x: size as f32,
             y: size as f32,
             z: None,
-            force_pos: desired_min
+            force_pos: desired_min,
         })
     }
 
     /// Maximum width and height of drawing, in inches.
-    /// If defined and the drawing is larger than the given size, the drawing 
+    /// If defined and the drawing is larger than the given size, the drawing
     /// is uniformly scaled down so that it fits within the given size.
-    /// If desired_min is true, and both both dimensions of the drawing 
-    /// are less than size, the drawing is scaled up uniformly until at 
+    /// If desired_min is true, and both both dimensions of the drawing
+    /// are less than size, the drawing is scaled up uniformly until at
     /// least one dimension equals its dimension in size.
     fn size_point(&mut self, size: Point) -> &mut Self {
         self.add_attribute("size", AttributeText::from(size))
     }
 
-    /// If packmode indicates an array packing, sortv specifies an insertion order 
+    /// If packmode indicates an array packing, sortv specifies an insertion order
     /// among the components, with smaller values inserted first.
     /// default: 0, minimum: 0
     fn sortv(&mut self, sortv: u32) -> &mut Self {
@@ -1077,12 +1101,14 @@ pub trait GraphAttributes<'a> {
     }
 
     /// Whether internal bitmap rendering relies on a truecolor color model or uses a color palette.
-    /// If truecolor is unset, truecolor is not used unless there is a shapefile property for some node in the graph. The output model will use the input model when possible.
+    /// If truecolor is unset, truecolor is not used unless there is a shapefile property
+    /// for some node in the graph.
+    /// The output model will use the input model when possible.
     fn true_color(&mut self, true_color: bool) -> &mut Self {
         self.add_attribute("truecolor", AttributeText::from(true_color))
     }
 
-    /// Hyperlinks incorporated into device-dependent output. 
+    /// Hyperlinks incorporated into device-dependent output.
     fn url(&mut self, url: String) -> &mut Self {
         Attributes::url(self.get_attributes_mut(), url);
         self
@@ -1090,9 +1116,9 @@ pub trait GraphAttributes<'a> {
 
     // TODO: add a ViewPort Struct?
     /// Clipping window on final drawing.
-    /// viewport supersedes any size attribute. 
+    /// viewport supersedes any size attribute.
     /// The width and height of the viewport specify precisely the final size of the output.
-    /// The viewPort W,H,Z,x,y or W,H,Z,N specifies a viewport for the final image. 
+    /// The viewPort W,H,Z,x,y or W,H,Z,N specifies a viewport for the final image.
     /// The pair (W,H) gives the dimensions (width and height) of the final image, in points.
     /// The optional Z is the zoom factor, i.e., the image in the original layout will be
     /// W/Z by H/Z points in size. By default, Z is 1.
@@ -1105,23 +1131,36 @@ pub trait GraphAttributes<'a> {
     }
 
     /// Add an attribute to the node.
-    fn add_attribute<S: Into<String>>(&mut self, key: S, value: AttributeText<'a>) -> &mut Self;
+    fn add_attribute<S: Into<String>>(
+        &mut self,
+        key: S,
+        value: AttributeText<'a>,
+    ) -> &mut Self;
 
     /// Add multiple attributes to the node.
-    fn add_attributes(&'a mut self, attributes: HashMap<String, AttributeText<'a>>) -> &mut Self;
+    fn add_attributes(
+        &'a mut self,
+        attributes: HashMap<String, AttributeText<'a>>,
+    ) -> &mut Self;
 
     fn get_attributes_mut(&mut self) -> &mut IndexMap<String, AttributeText<'a>>;
-
 }
 
 impl<'a> GraphAttributes<'a> for GraphAttributeStatementBuilder<'a> {
-    fn add_attribute<S: Into<String>>(&mut self, key: S, value: AttributeText<'a>) -> &mut Self {
+    fn add_attribute<S: Into<String>>(
+        &mut self,
+        key: S,
+        value: AttributeText<'a>,
+    ) -> &mut Self {
         self.attributes.insert(key.into(), value);
         self
     }
 
     /// Add multiple attributes to the node.
-    fn add_attributes(&'a mut self, attributes: HashMap<String, AttributeText<'a>>) -> &mut Self {
+    fn add_attributes(
+        &'a mut self,
+        attributes: HashMap<String, AttributeText<'a>>,
+    ) -> &mut Self {
         self.attributes.extend(attributes);
         self
     }
@@ -1136,8 +1175,7 @@ pub struct GraphAttributeStatementBuilder<'a> {
     pub attributes: IndexMap<String, AttributeText<'a>>,
 }
 
-impl<'a> GraphAttributeStatementBuilder<'a>  {
-
+impl<'a> GraphAttributeStatementBuilder<'a> {
     pub fn new() -> Self {
         Self {
             attributes: IndexMap::new(),
@@ -1149,7 +1187,6 @@ impl<'a> GraphAttributeStatementBuilder<'a>  {
             attributes: self.attributes.clone(),
         }
     }
-
 }
 
 #[derive(Clone, Debug)]
@@ -1158,21 +1195,23 @@ pub struct GraphAttributeStatement<'a> {
 }
 
 impl<'a> GraphAttributeStatement<'a> {
-
     pub fn new() -> Self {
         Self {
             attributes: IndexMap::new(),
         }
     }
 
-    pub fn add_attribute<S: Into<String>>(&mut self, key: S, value: AttributeText<'a>) -> &mut Self {
+    pub fn add_attribute<S: Into<String>>(
+        &mut self,
+        key: S,
+        value: AttributeText<'a>,
+    ) -> &mut Self {
         self.attributes.insert(key.into(), value);
         self
     }
 }
 
 impl<'a> AttributeStatement<'a> for GraphAttributeStatement<'a> {
-
     fn get_attribute_statement_type(&self) -> &'static str {
         "graph"
     }
@@ -1180,13 +1219,12 @@ impl<'a> AttributeStatement<'a> for GraphAttributeStatement<'a> {
     fn get_attributes(&self) -> &IndexMap<String, AttributeText<'a>> {
         &self.attributes
     }
-
 }
 
 pub enum ClusterMode {
     Local,
     Global,
-    None
+    None,
 }
 
 impl<'a> From<ClusterMode> for AttributeText<'a> {
@@ -1241,7 +1279,7 @@ trait DotString<'a> {
 pub enum LabelJustification {
     Left,
     Right,
-    Center
+    Center,
 }
 
 impl<'a> From<LabelJustification> for AttributeText<'a> {
@@ -1251,7 +1289,6 @@ impl<'a> From<LabelJustification> for AttributeText<'a> {
 }
 
 impl<'a> DotString<'a> for LabelJustification {
-
     fn dot_string(&self) -> Cow<'a, str> {
         match self {
             LabelJustification::Left => "l".into(),
@@ -1264,7 +1301,7 @@ impl<'a> DotString<'a> for LabelJustification {
 pub enum LabelLocation {
     Top,
     Center,
-    Bottom
+    Bottom,
 }
 
 impl<'a> From<LabelLocation> for AttributeText<'a> {
@@ -1306,7 +1343,7 @@ impl<'a> DotString<'a> for Ordering {
 /// The default "breadthfirst" is the simplest, but when the graph layout does not avoid edge-node
 /// overlap, this mode will sometimes have edges drawn over nodes and sometimes on top of nodes.
 ///
-/// If the mode "nodesfirst" is chosen, all nodes are drawn first, followed by the edges. 
+/// If the mode "nodesfirst" is chosen, all nodes are drawn first, followed by the edges.
 /// This guarantees an edge-node overlap will not be mistaken for an edge ending at a node.
 ///
 /// On the other hand, usually for aesthetic reasons, it may be desirable that all edges appear
@@ -1338,18 +1375,17 @@ impl<'a> DotString<'a> for OutputMode {
 /// tightly, using the specified granularity.
 pub enum PackMode {
     /// causes packing at the node and edge level, with no overlapping of these objects.
-    /// This produces a layout with the least area, but it also allows interleaving, 
+    /// This produces a layout with the least area, but it also allows interleaving,
     /// where a node of one component may lie between two nodes in another component.
     Node,
 
-    /// guarantees that top-level clusters are kept intact. 
-    /// What effect a value has also depends on the layout algorithm. 
+    /// guarantees that top-level clusters are kept intact.
+    /// What effect a value has also depends on the layout algorithm.
     Cluster,
 
-    /// does a packing using the bounding box of the component. 
-    /// Thus, there will be a rectangular region around a component free of elements of any other component. 
+    /// does a packing using the bounding box of the component.
+    /// Thus, there will be a rectangular region around a component free of elements of any other component.
     Graph,
-
     // TODO: array - "array(_flags)?(%d)?"
 }
 
@@ -1379,7 +1415,6 @@ pub struct Point {
 }
 
 impl Point {
-
     pub fn new_2d(x: f32, y: f32) -> Self {
         Self::new(x, y, None, false)
     }
@@ -1389,12 +1424,7 @@ impl Point {
     }
 
     pub fn new(x: f32, y: f32, z: Option<f32>, force_pos: bool) -> Self {
-        Self {
-            x,
-            y,
-            z,
-            force_pos,
-        }
+        Self { x, y, z, force_pos }
     }
 }
 
@@ -1430,8 +1460,11 @@ impl<'a> From<Rectangle> for AttributeText<'a> {
 
 impl<'a> DotString<'a> for Rectangle {
     fn dot_string(&self) -> Cow<'a, str> {
-        format!("{:.1},{:.1},{:.1},{:.1}",
-                self.lower_left.x, self.lower_left.y, self.upper_right.x, self.upper_right.y).into()
+        format!(
+            "{:.1},{:.1},{:.1},{:.1}",
+            self.lower_left.x, self.lower_left.y, self.upper_right.x, self.upper_right.y
+        )
+        .into()
     }
 }
 
@@ -1486,7 +1519,6 @@ impl<'a> From<RankDir> for AttributeText<'a> {
     }
 }
 impl<'a> DotString<'a> for RankDir {
-
     fn dot_string(&self) -> Cow<'a, str> {
         match self {
             RankDir::TopBottom => "TB".into(),
@@ -1520,7 +1552,6 @@ impl<'a> From<Splines> for AttributeText<'a> {
 }
 
 impl<'a> DotString<'a> for Splines {
-
     fn dot_string(&self) -> Cow<'a, str> {
         match self {
             Splines::Line => "line".into(),
@@ -1547,7 +1578,6 @@ impl<'a> From<SplineType> for AttributeText<'a> {
     }
 }
 impl<'a> DotString<'a> for SplineType {
-
     fn dot_string(&self) -> Cow<'a, str> {
         let mut dot_string = String::from("");
 
@@ -1573,13 +1603,11 @@ impl<'a> DotString<'a> for SplineType {
 
 #[derive(Clone, Debug)]
 pub struct Node<'a> {
-
     pub id: String,
     pub attributes: IndexMap<String, AttributeText<'a>>,
 }
 
 impl<'a> Node<'a> {
-
     pub fn new(id: String) -> Node<'a> {
         // TODO: constrain id
         Node {
@@ -1594,10 +1622,12 @@ impl<'a> Node<'a> {
             dot_string.push_str(" [");
             let mut iter = self.attributes.iter();
             let first = iter.next().unwrap();
-            dot_string.push_str(format!("{}={}", first.0, first.1.to_dot_string()).as_str());
+            dot_string
+                .push_str(format!("{}={}", first.0, first.1.to_dot_string()).as_str());
             for (key, value) in iter {
                 dot_string.push_str(", ");
-                dot_string.push_str(format!("{}={}", key, value.to_dot_string()).as_str());
+                dot_string
+                    .push_str(format!("{}={}", key, value.to_dot_string()).as_str());
             }
 
             dot_string.push_str("]");
@@ -1607,20 +1637,26 @@ impl<'a> Node<'a> {
     }
 }
 
-
 pub struct NodeBuilder<'a> {
     id: String,
     attributes: IndexMap<String, AttributeText<'a>>,
 }
 
 impl<'a> NodeAttributes<'a> for NodeBuilder<'a> {
-    fn add_attribute<S: Into<String>>(&mut self, key: S, value: AttributeText<'a>) -> &mut Self {
+    fn add_attribute<S: Into<String>>(
+        &mut self,
+        key: S,
+        value: AttributeText<'a>,
+    ) -> &mut Self {
         self.attributes.insert(key.into(), value);
         self
     }
 
     /// Add multiple attribures to the edge.
-    fn add_attributes(&'a mut self, attributes: HashMap<String, AttributeText<'a>>) -> &mut Self {
+    fn add_attributes(
+        &'a mut self,
+        attributes: HashMap<String, AttributeText<'a>>,
+    ) -> &mut Self {
         self.attributes.extend(attributes);
         self
     }
@@ -1642,7 +1678,7 @@ impl<'a> NodeBuilder<'a> {
         Node {
             // TODO: are these to_owned and clones necessary?
             id: self.id.to_owned(),
-            attributes: self.attributes.clone()
+            attributes: self.attributes.clone(),
         }
     }
 }
@@ -1691,10 +1727,8 @@ impl ImageScale {
     }
 }
 
-
 #[derive(Clone, Debug)]
 pub struct Edge<'a> {
-
     pub source: String,
     pub source_port_position: Option<PortPosition>,
     pub target: String,
@@ -1703,7 +1737,6 @@ pub struct Edge<'a> {
 }
 
 impl<'a> Edge<'a> {
-
     pub fn new(source: String, target: String) -> Self {
         Self {
             source,
@@ -1739,7 +1772,11 @@ pub struct EdgeBuilder<'a> {
 }
 
 impl<'a> EdgeAttributes<'a> for EdgeBuilder<'a> {
-    fn add_attribute<S: Into<String>>(&mut self, key: S, value: AttributeText<'a>) -> &mut Self {
+    fn add_attribute<S: Into<String>>(
+        &mut self,
+        key: S,
+        value: AttributeText<'a>,
+    ) -> &mut Self {
         self.attributes.insert(key.into(), value);
         self
     }
@@ -1770,7 +1807,7 @@ impl<'a> EdgeBuilder<'a> {
         source: String,
         source_port_position: PortPosition,
         target: String,
-        target_port_position: PortPosition
+        target_port_position: PortPosition,
     ) -> Self {
         Self {
             source,
@@ -1791,13 +1828,20 @@ impl<'a> EdgeBuilder<'a> {
         self
     }
     /// Add an attribute to the edge.
-    pub fn add_attribute<S: Into<String>>(&mut self, key: S, value: AttributeText<'a>) -> &mut Self {
+    pub fn add_attribute<S: Into<String>>(
+        &mut self,
+        key: S,
+        value: AttributeText<'a>,
+    ) -> &mut Self {
         self.attributes.insert(key.into(), value);
         self
     }
 
     /// Add multiple attributes to the edge.
-    pub fn add_attributes(&'a mut self, attributes: HashMap<String, AttributeText<'a>>) -> &mut Self {
+    pub fn add_attributes(
+        &'a mut self,
+        attributes: HashMap<String, AttributeText<'a>>,
+    ) -> &mut Self {
         self.attributes.extend(attributes);
         self
     }
@@ -1809,7 +1853,7 @@ impl<'a> EdgeBuilder<'a> {
             source_port_position: self.source_port_position.to_owned(),
             target: self.target.to_owned(),
             target_port_position: self.target_port_position.to_owned(),
-            attributes: self.attributes.clone()
+            attributes: self.attributes.clone(),
         }
     }
 }
@@ -1838,7 +1882,6 @@ trait AttributeStatement<'a> {
 }
 
 trait NodeAttributes<'a> {
-
     // TODO: constrain
     /// Indicates the preferred area for a node or empty cluster when laid out by patchwork.
     /// default: 1.0, minimum: >0
@@ -1846,7 +1889,7 @@ trait NodeAttributes<'a> {
         self.add_attribute("area", AttributeText::attr(area.to_string()))
     }
 
-    /// Classnames to attach to the node’s SVG element. 
+    /// Classnames to attach to the node’s SVG element.
     /// Combine with stylesheet for styling SVG output using CSS classnames.
     /// Multiple space-separated classes are supported.
     fn class(&mut self, class: String) -> &mut Self {
@@ -1866,7 +1909,7 @@ trait NodeAttributes<'a> {
     }
 
     /// This attribute specifies a color scheme namespace: the context for interpreting color names.
-    /// In particular, if a color value has form "xxx" or "//xxx", then the color xxx will be evaluated 
+    /// In particular, if a color value has form "xxx" or "//xxx", then the color xxx will be evaluated
     /// according to the current color scheme. If no color scheme is set, the standard X11 naming is used.
     /// For example, if colorscheme=bugn9, then color=7 is interpreted as color="/bugn9/7".
     fn color_scheme(&mut self, color_scheme: String) -> &mut Self {
@@ -1903,18 +1946,18 @@ trait NodeAttributes<'a> {
     /// style=filled, or a filled arrowhead.
     /// TODO: example
     fn fill_color_with_iter<I>(&mut self, fill_colors: I) -> &mut Self
-        where
-            I: IntoIterator,
-            I::Item: IntoWeightedColor<'a>,
+    where
+        I: IntoIterator,
+        I::Item: IntoWeightedColor<'a>,
     {
         Attributes::fill_color_with_iter(self.get_attributes_mut(), fill_colors);
         self
     }
 
-    /// If true, the node size is specified by the values of the width and height attributes only and 
-    /// is not expanded to contain the text label. 
+    /// If true, the node size is specified by the values of the width and height attributes only and
+    /// is not expanded to contain the text label.
     /// There will be a warning if the label (with margin) cannot fit within these limits.
-    /// If false, the size of a node is determined by smallest width and height needed to contain its label 
+    /// If false, the size of a node is determined by smallest width and height needed to contain its label
     /// and image, if any, with a margin specified by the margin attribute.
     fn fixed_size(&mut self, fixed_size: bool) -> &mut Self {
         self.add_attribute("fixedsize", AttributeText::quoted(fixed_size.to_string()))
@@ -1926,7 +1969,7 @@ trait NodeAttributes<'a> {
         self
     }
 
-    /// Font used for text. 
+    /// Font used for text.
     fn font_name(&mut self, font_name: String) -> &mut Self {
         Attributes::font_name(self.get_attributes_mut(), font_name);
         self
@@ -1945,7 +1988,7 @@ trait NodeAttributes<'a> {
         self
     }
 
-    /// If the end points of an edge belong to the same group, i.e., have the same group attribute, 
+    /// If the end points of an edge belong to the same group, i.e., have the same group attribute,
     /// parameters are set to avoid crossings and keep the edges straight.
     fn group(&mut self, group: String) -> &mut Self {
         self.add_attribute("group", AttributeText::attr(group))
@@ -1958,9 +2001,9 @@ trait NodeAttributes<'a> {
         self.add_attribute("height", AttributeText::attr(height.to_string()))
     }
 
-    /// Gives the name of a file containing an image to be displayed inside a node. 
-    /// The image file must be in one of the recognized formats, 
-    /// typically JPEG, PNG, GIF, BMP, SVG, or Postscript, and be able to be converted 
+    /// Gives the name of a file containing an image to be displayed inside a node.
+    /// The image file must be in one of the recognized formats,
+    /// typically JPEG, PNG, GIF, BMP, SVG, or Postscript, and be able to be converted
     /// into the desired output format.
     fn image(&mut self, image: String) -> &mut Self {
         self.add_attribute("image", AttributeText::quoted(image))
@@ -2027,11 +2070,11 @@ trait NodeAttributes<'a> {
         self
     }
 
-    /// By default, the justification of multi-line labels is done within the largest context that makes sense. 
-    /// Thus, in the label of a polygonal node, a left-justified line will align with the left side of the node (shifted by the prescribed margin). 
-    /// In record nodes, left-justified line will line up with the left side of the enclosing column of fields. 
+    /// By default, the justification of multi-line labels is done within the largest context that makes sense.
+    /// Thus, in the label of a polygonal node, a left-justified line will align with the left side of the node (shifted by the prescribed margin).
+    /// In record nodes, left-justified line will line up with the left side of the enclosing column of fields.
     /// If nojustify=true, multi-line labels will be justified in the context of itself.
-    /// For example, if nojustify is set, the first label line is long, and the second is shorter and left-justified, 
+    /// For example, if nojustify is set, the first label line is long, and the second is shorter and left-justified,
     /// the second will align with the left-most character in the first line, regardless of how large the node might be.
     fn no_justify(&mut self, no_justify: bool) -> &mut Self {
         Attributes::no_justify(self.get_attributes_mut(), no_justify);
@@ -2054,7 +2097,7 @@ trait NodeAttributes<'a> {
     }
 
     // TODO: constrain to 0 - 360. Docs say min is 360 which should be max right?
-    /// When used on nodes: Angle, in degrees, to rotate polygon node shapes. 
+    /// When used on nodes: Angle, in degrees, to rotate polygon node shapes.
     /// For any number of polygon sides, 0 degrees rotation results in a flat base.
     /// When used on graphs: If "[lL]*", sets graph orientation to landscape.
     /// Used only if rotate is not defined.
@@ -2064,7 +2107,7 @@ trait NodeAttributes<'a> {
         self
     }
 
-    /// Specifies the width of the pen, in points, used to draw lines and curves, 
+    /// Specifies the width of the pen, in points, used to draw lines and curves,
     /// including the boundaries of edges and clusters.
     /// default: 1.0, minimum: 0.0
     fn pen_width(&mut self, pen_width: f32) -> &mut Self {
@@ -2091,7 +2134,7 @@ trait NodeAttributes<'a> {
         self.add_attribute("rects", AttributeText::from(rect))
     }
 
-    /// If true, force polygon to be regular, i.e., the vertices of the polygon will 
+    /// If true, force polygon to be regular, i.e., the vertices of the polygon will
     /// lie on a circle whose center is the center of the node.
     fn regular(&mut self, regular: bool) -> &mut Self {
         self.add_attribute("regular", AttributeText::from(regular))
@@ -2118,7 +2161,7 @@ trait NodeAttributes<'a> {
 
     /// Number of sides when shape=polygon.
     fn sides(&mut self, sides: u32) -> &mut Self {
-        self.add_attribute("sides", AttributeText::attr(sides.to_string()))
+        self.add_attribute("sides", AttributeText::from(sides))
     }
 
     // TODO: constrain
@@ -2126,10 +2169,10 @@ trait NodeAttributes<'a> {
     /// Positive values skew top of polygon to right; negative to left.
     /// default: 0.0, minimum: -100.0
     fn skew(&mut self, skew: f32) -> &mut Self {
-        self.add_attribute("skew", AttributeText::attr(skew.to_string()))
+        self.add_attribute("skew", AttributeText::from(skew))
     }
 
-    /// If packmode indicates an array packing, sortv specifies an insertion order 
+    /// If packmode indicates an array packing, sortv specifies an insertion order
     /// among the components, with smaller values inserted first.
     /// default: 0, minimum: 0
     fn sortv(&mut self, sortv: u32) -> &mut Self {
@@ -2148,18 +2191,18 @@ trait NodeAttributes<'a> {
         Attributes::target(self.get_attributes_mut(), target);
         self
     }
-    
+
     /// Tooltip annotation attached to the node or edge.
-    /// If unset, Graphviz will use the object’s label if defined. 
-    /// Note that if the label is a record specification or an HTML-like label, 
-    /// the resulting tooltip may be unhelpful. 
+    /// If unset, Graphviz will use the object’s label if defined.
+    /// Note that if the label is a record specification or an HTML-like label,
+    /// the resulting tooltip may be unhelpful.
     /// In this case, if tooltips will be generated, the user should set a tooltip attribute explicitly.
     fn tooltip(&mut self, tooltip: String) -> &mut Self {
         Attributes::tooltip(self.get_attributes_mut(), tooltip);
         self
     }
 
-    /// Hyperlinks incorporated into device-dependent output. 
+    /// Hyperlinks incorporated into device-dependent output.
     fn url(&mut self, url: String) -> &mut Self {
         Attributes::url(self.get_attributes_mut(), url);
         self
@@ -2172,9 +2215,9 @@ trait NodeAttributes<'a> {
     }
 
     /// Width of node, in inches.
-    /// This is taken as the initial, minimum width of the node. 
-    /// If fixedsize is true, this will be the final width of the node. 
-    /// Otherwise, if the node label requires more width to fit, the node’s 
+    /// This is taken as the initial, minimum width of the node.
+    /// If fixedsize is true, this will be the final width of the node.
+    /// Otherwise, if the node label requires more width to fit, the node’s
     /// width will be increased to contain the label.
     fn width(&mut self, width: f32) -> &mut Self {
         self.add_attribute("width", AttributeText::from(width))
@@ -2183,8 +2226,8 @@ trait NodeAttributes<'a> {
     /// External label for a node or edge.
     /// The label will be placed outside of the node but near it.
     /// These labels are added after all nodes and edges have been placed.
-    /// The labels will be placed so that they do not overlap any node or label. 
-    /// This means it may not be possible to place all of them. 
+    /// The labels will be placed so that they do not overlap any node or label.
+    /// This means it may not be possible to place all of them.
     /// To force placing all of them, set forcelabels=true.
     fn xlabel(&mut self, xlabel: String) -> &mut Self {
         Attributes::xlabel(self.get_attributes_mut(), xlabel);
@@ -2199,24 +2242,36 @@ trait NodeAttributes<'a> {
     }
 
     /// Add an attribute to the node.
-    fn add_attribute<S: Into<String>>(&mut self, key: S, value: AttributeText<'a>) -> &mut Self;
+    fn add_attribute<S: Into<String>>(
+        &mut self,
+        key: S,
+        value: AttributeText<'a>,
+    ) -> &mut Self;
 
     /// Add multiple attribures to the node.
-    fn add_attributes(&'a mut self, attributes: HashMap<String, AttributeText<'a>>) -> &mut Self;
+    fn add_attributes(
+        &'a mut self,
+        attributes: HashMap<String, AttributeText<'a>>,
+    ) -> &mut Self;
 
     fn get_attributes_mut(&mut self) -> &mut IndexMap<String, AttributeText<'a>>;
-
 }
 
 impl<'a> NodeAttributes<'a> for NodeAttributeStatementBuilder<'a> {
-
-    fn add_attribute<S: Into<String>>(&mut self, key: S, value: AttributeText<'a>) -> &mut Self {
+    fn add_attribute<S: Into<String>>(
+        &mut self,
+        key: S,
+        value: AttributeText<'a>,
+    ) -> &mut Self {
         self.attributes.insert(key.into(), value);
         self
     }
 
     /// Add multiple attributes to the node.
-    fn add_attributes(&'a mut self, attributes: HashMap<String, AttributeText<'a>>) -> &mut Self {
+    fn add_attributes(
+        &'a mut self,
+        attributes: HashMap<String, AttributeText<'a>>,
+    ) -> &mut Self {
         self.attributes.extend(attributes);
         self
     }
@@ -2231,8 +2286,7 @@ pub struct NodeAttributeStatementBuilder<'a> {
     pub attributes: IndexMap<String, AttributeText<'a>>,
 }
 
-impl<'a> NodeAttributeStatementBuilder<'a>  {
-
+impl<'a> NodeAttributeStatementBuilder<'a> {
     pub fn new() -> Self {
         Self {
             attributes: IndexMap::new(),
@@ -2244,7 +2298,6 @@ impl<'a> NodeAttributeStatementBuilder<'a>  {
             attributes: self.attributes.clone(),
         }
     }
-
 }
 
 #[derive(Clone, Debug)]
@@ -2253,21 +2306,23 @@ pub struct NodeAttributeStatement<'a> {
 }
 
 impl<'a> NodeAttributeStatement<'a> {
-
     pub fn new() -> Self {
         Self {
             attributes: IndexMap::new(),
         }
     }
 
-    pub fn add_attribute<S: Into<String>>(&mut self, key: S, value: AttributeText<'a>) -> &mut Self {
+    pub fn add_attribute<S: Into<String>>(
+        &mut self,
+        key: S,
+        value: AttributeText<'a>,
+    ) -> &mut Self {
         self.attributes.insert(key.into(), value);
         self
     }
 }
 
 impl<'a> AttributeStatement<'a> for NodeAttributeStatement<'a> {
-
     fn get_attribute_statement_type(&self) -> &'static str {
         "node"
     }
@@ -2275,13 +2330,10 @@ impl<'a> AttributeStatement<'a> for NodeAttributeStatement<'a> {
     fn get_attributes(&self) -> &IndexMap<String, AttributeText<'a>> {
         &self.attributes
     }
-
 }
 
-
 trait EdgeAttributes<'a> {
-
-    /// Style of arrowhead on the head node of an edge. 
+    /// Style of arrowhead on the head node of an edge.
     /// This will only appear if the dir attribute is forward or both.
     fn arrow_head(&mut self, arrowhead: ArrowType) -> &mut Self {
         self.add_attribute("arrowhead", AttributeText::from(arrowhead))
@@ -2294,13 +2346,13 @@ trait EdgeAttributes<'a> {
         self.add_attribute("arrowsize", AttributeText::from(arrow_size))
     }
 
-    /// Style of arrowhead on the tail node of an edge. 
+    /// Style of arrowhead on the tail node of an edge.
     /// This will only appear if the dir attribute is back or both.
     fn arrowtail(&mut self, arrowtail: ArrowType) -> &mut Self {
         self.add_attribute("arrowtail", AttributeText::from(arrowtail))
     }
-    
-    /// Classnames to attach to the edge’s SVG element. 
+
+    /// Classnames to attach to the edge’s SVG element.
     /// Combine with stylesheet for styling SVG output using CSS classnames.
     /// Multiple space-separated classes are supported.
     fn class(&mut self, class: String) -> &mut Self {
@@ -2320,7 +2372,7 @@ trait EdgeAttributes<'a> {
     }
 
     /// This attribute specifies a color scheme namespace: the context for interpreting color names.
-    /// In particular, if a color value has form "xxx" or "//xxx", then the color xxx will be evaluated 
+    /// In particular, if a color value has form "xxx" or "//xxx", then the color xxx will be evaluated
     /// according to the current color scheme. If no color scheme is set, the standard X11 naming is used.
     /// For example, if colorscheme=bugn9, then color=7 is interpreted as color="/bugn9/7".
     fn color_scheme(&mut self, color_scheme: String) -> &mut Self {
@@ -2339,7 +2391,7 @@ trait EdgeAttributes<'a> {
         self.add_attribute("constriant", AttributeText::from(constriant))
     }
 
-    /// If true, attach edge label to edge by a 2-segment polyline, underlining the label, 
+    /// If true, attach edge label to edge by a 2-segment polyline, underlining the label,
     /// then going to the closest point of spline.
     fn decorate(&mut self, decorate: bool) -> &mut Self {
         self.add_attribute("decorate", AttributeText::from(decorate))
@@ -2352,9 +2404,10 @@ trait EdgeAttributes<'a> {
         self.add_attribute("dir", AttributeText::from(dir))
     }
 
-    /// If the edge has a URL or edgeURL attribute, edgetarget determines which window 
+    /// If the edge has a URL or edgeURL attribute, edgetarget determines which window
     /// of the browser is used for the URL attached to the non-label part of the edge.
-    /// Setting edgetarget=_graphviz will open a new window if it doesn’t already exist, or reuse it if it does.
+    /// Setting edgetarget=_graphviz will open a new window if it doesn’t already exist,
+    /// or reuse it if it does.
     fn edge_target(&mut self, edge_target: String) -> &mut Self {
         self.add_attribute("edgetarget", AttributeText::escaped(edge_target))
     }
@@ -2386,7 +2439,7 @@ trait EdgeAttributes<'a> {
         self
     }
 
-    /// Font used for text. 
+    /// Font used for text.
     fn font_name(&mut self, font_name: String) -> &mut Self {
         Attributes::font_name(self.get_attributes_mut(), font_name);
         self
@@ -2404,8 +2457,8 @@ trait EdgeAttributes<'a> {
         self.add_attribute("head_lp", AttributeText::from(head_lp))
     }
 
-    /// If true, the head of an edge is clipped to the boundary of the head node; 
-    /// otherwise, the end of the edge goes to the center of the node, or the center 
+    /// If true, the head of an edge is clipped to the boundary of the head node;
+    /// otherwise, the end of the edge goes to the center of the node, or the center
     /// of a port, if applicable.
     fn head_clip(&mut self, head_clip: bool) -> &mut Self {
         self.add_attribute("headclip", AttributeText::from(head_clip))
@@ -2417,14 +2470,14 @@ trait EdgeAttributes<'a> {
     }
 
     /// Indicates where on the head node to attach the head of the edge.
-    /// In the default case, the edge is aimed towards the center of the node, 
+    /// In the default case, the edge is aimed towards the center of the node,
     /// and then clipped at the node boundary.
     fn head_port(&mut self, head_port: PortPosition) -> &mut Self {
         self.add_attribute("headport", AttributeText::from(head_port))
     }
 
-    /// If the edge has a headURL, headtarget determines which window of the browser is used for the URL. 
-    /// Setting headURL=_graphviz will open a new window if the window doesn’t already exist, 
+    /// If the edge has a headURL, headtarget determines which window of the browser is used for the URL.
+    /// Setting headURL=_graphviz will open a new window if the window doesn’t already exist,
     /// or reuse the window if it does.
     /// If undefined, the value of the target is used.
     fn head_target(&mut self, head_target: String) -> &mut Self {
@@ -2450,24 +2503,25 @@ trait EdgeAttributes<'a> {
     }
 
     // TODO: constrain
-    /// Determines, along with labeldistance, where the headlabel / taillabel are 
+    /// Determines, along with labeldistance, where the headlabel / taillabel are
     /// placed with respect to the head / tail in polar coordinates.
-    /// The origin in the coordinate system is the point where the edge touches the node. 
+    /// The origin in the coordinate system is the point where the edge touches the node.
     /// The ray of 0 degrees goes from the origin back along the edge, parallel to the edge at the origin.
-    /// The angle, in degrees, specifies the rotation from the 0 degree ray, 
+    /// The angle, in degrees, specifies the rotation from the 0 degree ray,
     /// with positive angles moving counterclockwise and negative angles moving clockwise.
     /// default: -25.0, minimum: -180.0
     fn label_angle(&mut self, label_angle: f32) -> &mut Self {
         self.add_attribute("labelangle", AttributeText::from(label_angle))
     }
 
-    /// Multiplicative scaling factor adjusting the distance that the headlabel / taillabel is from the head / tail node.
+    /// Multiplicative scaling factor adjusting the distance that the headlabel / taillabel is from
+    /// the head / tail node.
     /// default: 1.0, minimum: 0.0
     fn label_distance(&mut self, label_distance: f32) -> &mut Self {
         self.add_attribute("labeldistance", AttributeText::from(label_distance))
     }
 
-    /// If true, allows edge labels to be less constrained in position. 
+    /// If true, allows edge labels to be less constrained in position.
     /// In particular, it may appear on top of other edges.
     fn label_float(&mut self, label_float: bool) -> &mut Self {
         self.add_attribute("labelfloat", AttributeText::from(label_float))
@@ -2484,7 +2538,7 @@ trait EdgeAttributes<'a> {
         self.add_attribute("labelfontname", AttributeText::attr(label_font_name))
     }
 
-    // TODO: constrains 
+    // TODO: constrains
     /// Font size, in points, used for headlabel and taillabel.
     /// If not set, defaults to edge’s fontsize.
     /// default: 14.0, minimum: 1.0
@@ -2527,7 +2581,7 @@ trait EdgeAttributes<'a> {
     }
 
     /// Logical tail of an edge.
-    /// When compound=true, if ltail is defined and is the name of a cluster 
+    /// When compound=true, if ltail is defined and is the name of a cluster
     /// containing the real tail, the edge is clipped to the boundary of the cluster.
     fn ltail(&mut self, ltail: String) -> &mut Self {
         self.add_attribute("ltail", AttributeText::quoted(ltail))
@@ -2565,7 +2619,8 @@ trait EdgeAttributes<'a> {
     }
 
     // TODO: constrain
-    /// Print guide boxes in PostScript at the beginning of routesplines if showboxes=1, or at the end if showboxes=2.
+    /// Print guide boxes in PostScript at the beginning of routesplines if showboxes=1, or at the
+    /// end if showboxes=2.
     /// (Debugging, TB mode only!)
     /// default: 0, minimum: 0
     fn show_boxes(&mut self, show_boxes: u32) -> &mut Self {
@@ -2585,7 +2640,7 @@ trait EdgeAttributes<'a> {
         self.add_attribute("tail_lp", AttributeText::from(tail_lp))
     }
 
-    /// If true, the tail of an edge is clipped to the boundary of the tail node; otherwise, 
+    /// If true, the tail of an edge is clipped to the boundary of the tail node; otherwise,
     /// the end of the edge goes to the center of the node, or the center of a port, if applicable.
     fn tail_clip(&mut self, tail_clip: bool) -> &mut Self {
         self.add_attribute("tailclip", AttributeText::from(tail_clip))
@@ -2623,16 +2678,16 @@ trait EdgeAttributes<'a> {
     }
 
     /// Tooltip annotation attached to the node or edge.
-    /// If unset, Graphviz will use the object’s label if defined. 
-    /// Note that if the label is a record specification or an HTML-like label, 
-    /// the resulting tooltip may be unhelpful. 
+    /// If unset, Graphviz will use the object’s label if defined.
+    /// Note that if the label is a record specification or an HTML-like label,
+    /// the resulting tooltip may be unhelpful.
     /// In this case, if tooltips will be generated, the user should set a tooltip attribute explicitly.
     fn tooltip(&mut self, tooltip: String) -> &mut Self {
         Attributes::tooltip(self.get_attributes_mut(), tooltip);
         self
     }
 
-    /// Hyperlinks incorporated into device-dependent output. 
+    /// Hyperlinks incorporated into device-dependent output.
     fn url(&mut self, url: String) -> &mut Self {
         Attributes::url(self.get_attributes_mut(), url);
         self
@@ -2649,8 +2704,8 @@ trait EdgeAttributes<'a> {
     /// External label for a node or edge.
     /// The label will be placed outside of the node but near it.
     /// These labels are added after all nodes and edges have been placed.
-    /// The labels will be placed so that they do not overlap any node or label. 
-    /// This means it may not be possible to place all of them. 
+    /// The labels will be placed so that they do not overlap any node or label.
+    /// This means it may not be possible to place all of them.
     /// To force placing all of them, set forcelabels=true.
     fn xlabel(&mut self, xlabel: String) -> &mut Self {
         Attributes::xlabel(self.get_attributes_mut(), xlabel);
@@ -2664,14 +2719,17 @@ trait EdgeAttributes<'a> {
         self
     }
 
-    fn add_attribute<S: Into<String>>(&mut self, key: S, value: AttributeText<'a>) -> &mut Self;
+    fn add_attribute<S: Into<String>>(
+        &mut self,
+        key: S,
+        value: AttributeText<'a>,
+    ) -> &mut Self;
 
     fn get_attributes_mut(&mut self) -> &mut IndexMap<String, AttributeText<'a>>;
 
-
     // fn add_attribute<S: Into<String>>(
     //     &self,
-    //     key: S, 
+    //     key: S,
     //     value: AttributeText<'a>
     // ) {
     //     self.get_attributes().insert(key.into(), value);
@@ -2685,8 +2743,11 @@ trait EdgeAttributes<'a> {
 }
 
 impl<'a> EdgeAttributes<'a> for EdgeAttributeStatementBuilder<'a> {
-
-    fn add_attribute<S: Into<String>>(&mut self, key: S, value: AttributeText<'a>) -> &mut Self {
+    fn add_attribute<S: Into<String>>(
+        &mut self,
+        key: S,
+        value: AttributeText<'a>,
+    ) -> &mut Self {
         self.attributes.insert(key.into(), value);
         self
     }
@@ -2697,7 +2758,6 @@ impl<'a> EdgeAttributes<'a> for EdgeAttributeStatementBuilder<'a> {
 }
 
 impl<'a> AttributeStatement<'a> for EdgeAttributeStatement<'a> {
-
     fn get_attribute_statement_type(&self) -> &'static str {
         "edge"
     }
@@ -2705,7 +2765,6 @@ impl<'a> AttributeStatement<'a> for EdgeAttributeStatement<'a> {
     fn get_attributes(&self) -> &IndexMap<String, AttributeText<'a>> {
         &self.attributes
     }
-
 }
 
 // I'm not a huge fan of needing this builder but having a hard time getting around &mut without it
@@ -2713,8 +2772,7 @@ pub struct EdgeAttributeStatementBuilder<'a> {
     pub attributes: IndexMap<String, AttributeText<'a>>,
 }
 
-impl<'a> EdgeAttributeStatementBuilder<'a>  {
-
+impl<'a> EdgeAttributeStatementBuilder<'a> {
     pub fn new() -> Self {
         Self {
             attributes: IndexMap::new(),
@@ -2726,7 +2784,6 @@ impl<'a> EdgeAttributeStatementBuilder<'a>  {
             attributes: self.attributes.clone(),
         }
     }
-
 }
 
 #[derive(Clone, Debug)]
@@ -2735,14 +2792,17 @@ pub struct EdgeAttributeStatement<'a> {
 }
 
 impl<'a> EdgeAttributeStatement<'a> {
-
     pub fn new() -> Self {
         Self {
             attributes: IndexMap::new(),
         }
     }
 
-    pub fn add_attribute<S: Into<String>>(&mut self, key: S, value: AttributeText<'a>) -> &mut Self {
+    pub fn add_attribute<S: Into<String>>(
+        &mut self,
+        key: S,
+        value: AttributeText<'a>,
+    ) -> &mut Self {
         self.attributes.insert(key.into(), value);
         self
     }
@@ -2911,7 +2971,6 @@ impl<'a> From<ArrowType> for AttributeText<'a> {
     }
 }
 impl<'a> DotString<'a> for ArrowType {
-
     fn dot_string(&self) -> Cow<'a, str> {
         match self {
             ArrowType::Normal => "normal".into(),
@@ -2950,7 +3009,6 @@ impl<'a> From<Direction> for AttributeText<'a> {
     }
 }
 impl<'a> DotString<'a> for Direction {
-
     fn dot_string(&self) -> Cow<'a, str> {
         match self {
             Direction::Forward => "forward".into(),
@@ -2983,7 +3041,7 @@ pub enum Color<'a> {
     RGB {
         red: u8,
         green: u8,
-        blue: u8
+        blue: u8,
     },
     RGBA {
         red: u8,
@@ -2996,27 +3054,33 @@ pub enum Color<'a> {
     HSV {
         hue: f32,
         saturation: f32,
-        value: f32
+        value: f32,
     },
     Named(&'a str),
 }
 
 impl<'a> Color<'a> {
- 
     pub fn to_dot_string(&self) -> String {
         match self {
             Color::RGB { red, green, blue } => {
                 format!("#{:02x?}{:02x?}{:02x?}", red, green, blue)
-            },
-            Color::RGBA { red, green, blue, alpha } => {
-                format!("#{:02x?}{:02x?}{:02x?}{:02x?}", red, green, blue, alpha)
-            }, 
-            Color::HSV { hue, saturation, value } => {
-                format!("{} {} {}", hue, saturation, value)
-            },
-            Color::Named(color) => {
-                (*color).to_string()
             }
+            Color::RGBA {
+                red,
+                green,
+                blue,
+                alpha,
+            } => {
+                format!("#{:02x?}{:02x?}{:02x?}{:02x?}", red, green, blue, alpha)
+            }
+            Color::HSV {
+                hue,
+                saturation,
+                value,
+            } => {
+                format!("{} {} {}", hue, saturation, value)
+            }
+            Color::Named(color) => (*color).to_string(),
         }
     }
 }
@@ -3027,21 +3091,23 @@ impl<'a> From<Color<'a>> for AttributeText<'a> {
     }
 }
 impl<'a> DotString<'a> for Color<'a> {
-
     fn dot_string(&self) -> Cow<'a, str> {
         match self {
             Color::RGB { red, green, blue } => {
                 format!("#{}{}{}", red, green, blue).into()
-            },
-            Color::RGBA { red, green, blue, alpha } => {
-                format!("#{}{}{}{}", red, green, blue, alpha).into()
-            },
-            Color::HSV { hue, saturation, value } => {
-                format!("{} {} {}", hue, saturation, value).into()
-            },
-            Color::Named(color) => {
-                (*color).into()
             }
+            Color::RGBA {
+                red,
+                green,
+                blue,
+                alpha,
+            } => format!("#{}{}{}{}", red, green, blue, alpha).into(),
+            Color::HSV {
+                hue,
+                saturation,
+                value,
+            } => format!("{} {} {}", hue, saturation, value).into(),
+            Color::Named(color) => (*color).into(),
         }
     }
 }
@@ -3052,11 +3118,10 @@ pub struct WeightedColor<'a> {
 
     // TODO: constrain
     /// Must be in range 0 <= W <= 1.
-    weight: Option<f32>
+    weight: Option<f32>,
 }
 
 impl<'a> WeightedColor<'a> {
-
     pub fn to_dot_string(&self) -> String {
         let mut dot_string = self.color.to_dot_string();
         if let Some(weight) = &self.weight {
@@ -3095,7 +3160,6 @@ impl<'a> DotString<'a> for ColorList<'a> {
     }
 }
 
-
 /// Convert an element like `(i, j)` into a WeightedColor
 pub trait IntoWeightedColor<'a> {
     fn into_weighted_color(self) -> WeightedColor<'a>;
@@ -3106,7 +3170,7 @@ impl<'a> IntoWeightedColor<'a> for &'a (Color<'a>, Option<f32>) {
         let (s, t) = *self;
         WeightedColor {
             color: s,
-            weight: t
+            weight: t,
         }
     }
 }
@@ -3153,7 +3217,7 @@ impl<'a> DotString<'a> for NodeStyle {
 pub enum Styles {
     Edge(EdgeStyle),
     Node(NodeStyle),
-    Graph(GraphStyle)
+    Graph(GraphStyle),
 }
 
 impl<'a> From<Styles> for AttributeText<'a> {
@@ -3190,7 +3254,6 @@ impl<'a> From<EdgeStyle> for AttributeText<'a> {
     }
 }
 impl<'a> DotString<'a> for EdgeStyle {
-
     fn dot_string(&self) -> Cow<'a, str> {
         match self {
             EdgeStyle::Bold => "bold".into(),
@@ -3216,7 +3279,6 @@ impl<'a> From<GraphStyle> for AttributeText<'a> {
     }
 }
 impl<'a> DotString<'a> for GraphStyle {
-
     fn dot_string(&self) -> Cow<'a, str> {
         match self {
             GraphStyle::Filled => "filled".into(),
@@ -3233,47 +3295,70 @@ impl Attributes {
         Self::add_attribute(attributes, "class", AttributeText::quoted(class))
     }
 
-    fn color<'a>(attributes: &mut IndexMap<String, AttributeText<'a>>, color: Color<'a>) {
-        Self::add_attribute(attributes,"color", AttributeText::from(color))
+    fn color<'a>(
+        attributes: &mut IndexMap<String, AttributeText<'a>>,
+        color: Color<'a>,
+    ) {
+        Self::add_attribute(attributes, "color", AttributeText::from(color))
     }
 
-    fn color_with_colorlist<'a>(attributes: &mut IndexMap<String, AttributeText<'a>>, color: ColorList<'a>) {
-        Self::add_attribute(attributes,"color", AttributeText::from(color))
+    fn color_with_colorlist<'a>(
+        attributes: &mut IndexMap<String, AttributeText<'a>>,
+        color: ColorList<'a>,
+    ) {
+        Self::add_attribute(attributes, "color", AttributeText::from(color))
     }
 
-    fn color_scheme(attributes: &mut IndexMap<String, AttributeText>, color_scheme: String) {
-        Self::add_attribute(attributes, "colorscheme", AttributeText::quoted(color_scheme))
+    fn color_scheme(
+        attributes: &mut IndexMap<String, AttributeText>,
+        color_scheme: String,
+    ) {
+        Self::add_attribute(
+            attributes,
+            "colorscheme",
+            AttributeText::quoted(color_scheme),
+        )
     }
-    
+
     fn comment(attributes: &mut IndexMap<String, AttributeText>, comment: String) {
         Self::add_attribute(attributes, "comment", AttributeText::quoted(comment))
     }
 
-    fn fill_color<'a>(attributes: &mut IndexMap<String, AttributeText<'a>>, fill_color: Color<'a>) {
+    fn fill_color<'a>(
+        attributes: &mut IndexMap<String, AttributeText<'a>>,
+        fill_color: Color<'a>,
+    ) {
         Self::add_attribute(attributes, "fillcolor", AttributeText::from(fill_color))
     }
 
-    fn fill_color_with_colorlist<'a>(attributes: &mut IndexMap<String, AttributeText<'a>>, fill_colors: ColorList<'a>) {
+    fn fill_color_with_colorlist<'a>(
+        attributes: &mut IndexMap<String, AttributeText<'a>>,
+        fill_colors: ColorList<'a>,
+    ) {
         Self::add_attribute(attributes, "fillcolor", AttributeText::from(fill_colors))
     }
 
-    fn fill_color_with_iter<'a, I>(attributes: &mut IndexMap<String, AttributeText<'a>>, fill_colors: I)
-    where
+    fn fill_color_with_iter<'a, I>(
+        attributes: &mut IndexMap<String, AttributeText<'a>>,
+        fill_colors: I,
+    ) where
         I: IntoIterator,
         I::Item: IntoWeightedColor<'a>,
     {
-        let colors:Vec<WeightedColor> = fill_colors.into_iter()
+        let colors: Vec<WeightedColor> = fill_colors
+            .into_iter()
             .map(|e| e.into_weighted_color())
             .collect();
 
-        let color_list = ColorList {
-            colors
-        };
+        let color_list = ColorList { colors };
 
         Self::add_attribute(attributes, "fillcolor", AttributeText::from(color_list))
     }
 
-    fn font_color<'a>(attributes: &mut IndexMap<String, AttributeText<'a>>, font_color: Color<'a>) {
+    fn font_color<'a>(
+        attributes: &mut IndexMap<String, AttributeText<'a>>,
+        font_color: Color<'a>,
+    ) {
         Self::add_attribute(attributes, "fontcolor", AttributeText::from(font_color))
     }
 
@@ -3284,16 +3369,26 @@ impl Attributes {
     fn font_size(attributes: &mut IndexMap<String, AttributeText>, font_size: f32) {
         Self::add_attribute(attributes, "fontsize", AttributeText::from(font_size))
     }
-    
-    fn gradient_angle(attributes: &mut IndexMap<String, AttributeText>, gradient_angle: u32) {
-        Self::add_attribute(attributes, "gradientangle", AttributeText::from(gradient_angle))
+
+    fn gradient_angle(
+        attributes: &mut IndexMap<String, AttributeText>,
+        gradient_angle: u32,
+    ) {
+        Self::add_attribute(
+            attributes,
+            "gradientangle",
+            AttributeText::from(gradient_angle),
+        )
     }
 
     fn label(attributes: &mut IndexMap<String, AttributeText>, text: String) {
         Self::add_attribute(attributes, "label", AttributeText::quoted(text));
     }
 
-    fn label_location(attributes: &mut IndexMap<String, AttributeText>, label_location: LabelLocation) {
+    fn label_location(
+        attributes: &mut IndexMap<String, AttributeText>,
+        label_location: LabelLocation,
+    ) {
         Self::add_attribute(attributes, "labelloc", AttributeText::from(label_location))
     }
 
@@ -3350,7 +3445,7 @@ impl Attributes {
     fn tooltip(attributes: &mut IndexMap<String, AttributeText>, tooltip: String) {
         Self::add_attribute(attributes, "tooltip", AttributeText::escaped(tooltip))
     }
-    
+
     fn url(attributes: &mut IndexMap<String, AttributeText>, url: String) {
         Self::add_attribute(attributes, "url", AttributeText::escaped(url))
     }
@@ -3365,26 +3460,22 @@ impl Attributes {
 
     fn add_attribute<'a, S: Into<String>>(
         attributes: &mut IndexMap<String, AttributeText<'a>>,
-        key: S, 
-        value: AttributeText<'a>)
-    {
+        key: S,
+        value: AttributeText<'a>,
+    ) {
         attributes.insert(key.into(), value);
     }
 }
 
-fn test_input(g: Graph) -> io::Result<String> 
-{
+fn test_input(g: Graph) -> io::Result<String> {
     let mut writer = Vec::new();
-    let dot = Dot {
-        graph: g
-    };
+    let dot = Dot { graph: g };
 
     dot.render(&mut writer).unwrap();
     let mut s = String::new();
     Read::read_to_string(&mut &*writer, &mut s)?;
     Ok(s)
 }
-
 
 #[test]
 fn empty_digraph_without_id() {
@@ -3402,7 +3493,9 @@ fn empty_digraph_without_id() {
 #[test]
 fn graph_comment() {
     // TODO: support both String and &str
-    let g = GraphBuilder::new_directed(None).comment("Comment goes here").build();
+    let g = GraphBuilder::new_directed(None)
+        .comment("Comment goes here")
+        .build();
     let r = test_input(g);
     assert_eq!(
         r.unwrap(),
@@ -3412,7 +3505,6 @@ digraph {
 "#
     );
 }
-
 
 #[test]
 fn empty_digraph() {
@@ -3520,7 +3612,6 @@ fn builder_support_shape() {
     );
 }
 
-
 #[test]
 fn single_edge() {
     let g = GraphBuilder::new_directed(Some("single_edge".to_string()))
@@ -3530,7 +3621,7 @@ fn single_edge() {
         .build();
 
     let r = test_input(g);
-    
+
     assert_eq!(
         r.unwrap(),
         r#"digraph single_edge {
@@ -3572,16 +3663,16 @@ fn single_edge_with_style() {
 fn colorlist_dot_string() {
     let yellow = WeightedColor {
         color: Color::Named("yellow"),
-        weight: Some(0.3)
+        weight: Some(0.3),
     };
 
     let blue = WeightedColor {
         color: Color::Named("blue"),
-        weight: None
+        weight: None,
     };
 
     let color_list = ColorList {
-        colors: vec![yellow, blue]
+        colors: vec![yellow, blue],
     };
 
     let dot_string = color_list.dot_string();
@@ -3594,7 +3685,7 @@ fn color_rbg_dot_string() {
     let color = Color::RGB {
         red: 160,
         green: 82,
-        blue: 45
+        blue: 45,
     };
     assert_eq!("#a0522d", color.to_dot_string());
 }
@@ -3605,7 +3696,7 @@ fn color_rbga_dot_string() {
         red: 160,
         green: 82,
         blue: 45,
-        alpha: 10
+        alpha: 10,
     };
     assert_eq!("#a0522d0a", color.to_dot_string());
 }
@@ -3628,7 +3719,7 @@ fn spline_type() {
         spline_points: vec![
             Point::new_2d(0.0, 0.0),
             Point::new_2d(1.0, 1.0),
-            Point::new_2d(1.0, -1.0)
+            Point::new_2d(1.0, -1.0),
         ],
     };
 
@@ -3643,11 +3734,14 @@ fn spline_type_end() {
         spline_points: vec![
             Point::new_2d(0.0, 0.0),
             Point::new_2d(1.0, 1.0),
-            Point::new_2d(1.0, -1.0)
+            Point::new_2d(1.0, -1.0),
         ],
     };
 
-    assert_eq!("e,2.0,0.0 0.0,0.0 1.0,1.0 1.0,-1.0", spline_type.dot_string());
+    assert_eq!(
+        "e,2.0,0.0 0.0,0.0 1.0,1.0 1.0,-1.0",
+        spline_type.dot_string()
+    );
 }
 
 #[test]
@@ -3658,11 +3752,14 @@ fn spline_type_start() {
         spline_points: vec![
             Point::new_2d(0.0, 0.0),
             Point::new_2d(1.0, 1.0),
-            Point::new_2d(1.0, -1.0)
+            Point::new_2d(1.0, -1.0),
         ],
     };
 
-    assert_eq!("s,-1.0,0.0 0.0,0.0 1.0,1.0 1.0,-1.0", spline_type.dot_string());
+    assert_eq!(
+        "s,-1.0,0.0 0.0,0.0 1.0,1.0 1.0,-1.0",
+        spline_type.dot_string()
+    );
 }
 
 #[test]
@@ -3673,11 +3770,14 @@ fn spline_type_complete() {
         spline_points: vec![
             Point::new_2d(0.0, 0.0),
             Point::new_2d(1.0, 1.0),
-            Point::new_2d(1.0, -1.0)
+            Point::new_2d(1.0, -1.0),
         ],
     };
 
-    assert_eq!("e,2.0,0.0 s,-1.0,0.0 0.0,0.0 1.0,1.0 1.0,-1.0", spline_type.dot_string());
+    assert_eq!(
+        "e,2.0,0.0 s,-1.0,0.0 0.0,0.0 1.0,1.0 1.0,-1.0",
+        spline_type.dot_string()
+    );
 }
 
 #[test]
@@ -3685,7 +3785,10 @@ fn point_string() {
     assert_eq!("1.0,2.0", Point::new_2d(1.0, 2.0).dot_string());
     assert_eq!("1.0,2.0,0.0", Point::new_3d(1.0, 2.0, 0.0).dot_string());
     assert_eq!("1.0,2.0!", Point::new(1.0, 2.0, None, true).dot_string());
-    assert_eq!("1.0,2.0,0.0!", Point::new(1.0, 2.0, Some(0.0), true).dot_string());
+    assert_eq!(
+        "1.0,2.0,0.0!",
+        Point::new(1.0, 2.0, Some(0.0), true).dot_string()
+    );
 }
 
 #[test]
@@ -3693,11 +3796,14 @@ fn graph_attribute_colorlist_vec_dot_string() {
     let graph_attributes = GraphAttributeStatementBuilder::new()
         .fill_color_with_iter(&[
             (Color::Named("yellow"), Some(0.3)),
-            (Color::Named("blue"), None)
+            (Color::Named("blue"), None),
         ])
         .build();
 
-    assert_eq!("graph [fillcolor=\"yellow;0.3:blue\"];", graph_attributes.to_dot_string());
+    assert_eq!(
+        "graph [fillcolor=\"yellow;0.3:blue\"];",
+        graph_attributes.to_dot_string()
+    );
 }
 
 #[test]
@@ -3721,7 +3827,6 @@ fn edge_statement_port_position() {
             port_name: "port1".to_string(),
             compass_point: Some(CompassPoint::NE),
         })
-
         .build();
 
     let g = GraphBuilder::new_directed(Some("edge_statement_port_position".to_string()))
@@ -3742,7 +3847,6 @@ fn edge_statement_port_position() {
 "#
     );
 }
-
 
 #[test]
 fn port_position_attribute() {
@@ -3765,7 +3869,6 @@ fn port_position_attribute() {
             port_name: "port1".to_string(),
             compass_point: Some(CompassPoint::NE),
         })
-
         .build();
 
     let g = GraphBuilder::new_directed(Some("port_position_attribute".to_string()))
@@ -3789,16 +3892,13 @@ fn port_position_attribute() {
 
 #[test]
 fn graph_attributes() {
-
     let graph_attributes = GraphAttributeStatementBuilder::new()
         .rank_dir(RankDir::LeftRight)
         .build();
     let node_attributes = NodeAttributeStatementBuilder::new()
         .style(NodeStyle::Filled)
         .build();
-    let edge_attributes = EdgeAttributeStatementBuilder::new()
-        .min_len(1)
-        .build();
+    let edge_attributes = EdgeAttributeStatementBuilder::new().min_len(1).build();
 
     let g = GraphBuilder::new_directed(Some("graph_attributes".to_string()))
         .add_graph_attributes(graph_attributes)
