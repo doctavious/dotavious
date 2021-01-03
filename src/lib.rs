@@ -802,24 +802,23 @@ pub trait GraphAttributes<'a> {
         self.add_attribute("lwidth", AttributeText::from(lwidth))
     }
 
-    /// For graphs, this sets x and y margins of canvas, in inches.
-    /// If the margin is a single double, both margins are set equal to the given value.
-    /// Note that the margin is not part of the drawing but just empty space left around the drawing. 
-    /// The margin basically corresponds to a translation of drawing, as would be necessary to
-    /// center a drawing on a page.
-    /// Nothing is actually drawn in the margin. To actually extend the background of a drawing,
-    /// see the pad attribute.
-    /// For clusters, margin specifies the space between the nodes in the cluster and the cluster
-    /// bounding box. By default, this is 8 points.
-    /// For nodes, this attribute specifies space left around the node’s label. 
-    /// By default, the value is 0.11,0.055.
+    /// Sets x and y margins of canvas, in inches.
+    /// Both margins are set equal to the given value.
+    /// See [`crate::GraphAttributes::margin_point`]
     fn margin(&mut self, margin: f32) -> &mut Self {
-        Attributes::margin(self.get_attributes_mut(), margin);
-        self
+        self.margin_point(Point::new_2d(margin, margin))
     }
 
+    /// Sets x and y margins of canvas, in inches.
+    /// Note that the margin is not part of the drawing but just empty space left around the drawing.
+    /// The margin basically corresponds to a translation of drawing, as would be necessary to
+    /// center a drawing on a page. Nothing is actually drawn in the margin.
+    /// To actually extend the background of a drawing, see the pad attribute.
+    /// Whilst it is possible to create a Point value with either a third co-ordinate
+    /// or a forced position, these are ignored for printing.
+    /// By default, the value is 0.11,0.055.
     fn margin_point(&mut self, margin: Point) -> &mut Self {
-        Attributes::margin_point(self.get_attributes_mut(), margin);
+        Attributes::margin(self.get_attributes_mut(), margin);
         self
     }
 
@@ -937,14 +936,15 @@ pub trait GraphAttributes<'a> {
     /// Specifies how much, in inches, to extend the drawing area around the minimal area needed
     /// to draw the graph.
     /// Both the x and y pad values are set equal to the given value. 
-    /// This area is part of the drawing and will be filled with the background color, if appropriate.
-    /// default: 0.0555
+    /// See [`crate::GraphAttributes::pad_point`]
     fn pad(&mut self, pad: f32) -> &mut Self {
-        self.add_attribute("pad", AttributeText::from(pad))
+        self.pad_point(Point::new_2d(pad, pad))
     }
 
     /// Specifies how much, in inches, to extend the drawing area around the minimal area needed to
     /// draw the graph.
+    /// This area is part of the drawing and will be filled with the background color, if appropriate.
+    /// default: 0.0555
     fn pad_point(&mut self, pad: Point) -> &mut Self {
         self.add_attribute("pad", AttributeText::from(pad))
     }
@@ -1025,28 +1025,24 @@ pub trait GraphAttributes<'a> {
     /// If desired_min is true, and both both dimensions of the drawing 
     /// are less than size, the drawing is scaled up uniformly until at 
     /// least one dimension equals its dimension in size.
+    /// See [`crate::GraphAttributes::size_point`]
     fn size(&mut self, size: u32, desired_min: bool) -> &mut Self {
-        let mut text = format!("{}", size);
-        if desired_min {
-            text.push_str("!");
-        }
-        self.add_attribute("size", AttributeText::attr(text))
+        self.size_point(Point {
+            x: size as f32,
+            y: size as f32,
+            z: None,
+            force_pos: desired_min
+        })
     }
 
-    // TODO: both point and desired_min have an '!' which doesnt seem correct.
-    // I think point should be the thing that drives it and dont need desired_min
     /// Maximum width and height of drawing, in inches.
     /// If defined and the drawing is larger than the given size, the drawing 
     /// is uniformly scaled down so that it fits within the given size.
     /// If desired_min is true, and both both dimensions of the drawing 
     /// are less than size, the drawing is scaled up uniformly until at 
     /// least one dimension equals its dimension in size.
-    fn size_point(&mut self, size: Point, desired_min: bool) -> &mut Self {
-        let mut text = format!("{}", size.dot_string());
-        if desired_min {
-            text.push_str("!");
-        }
-        self.add_attribute("size", AttributeText::attr(text))
+    fn size_point(&mut self, size: Point) -> &mut Self {
+        self.add_attribute("size", AttributeText::from(size))
     }
 
     /// If packmode indicates an array packing, sortv specifies an insertion order 
@@ -1098,9 +1094,12 @@ pub trait GraphAttributes<'a> {
     /// The width and height of the viewport specify precisely the final size of the output.
     /// The viewPort W,H,Z,x,y or W,H,Z,N specifies a viewport for the final image. 
     /// The pair (W,H) gives the dimensions (width and height) of the final image, in points.
-    /// The optional Z is the zoom factor, i.e., the image in the original layout will be W/Z by H/Z points in size. By default, Z is 1.
-    /// The optional last part is either a pair (x,y) giving a position in the original layout of the graph, 
-    /// in points, of the center of the viewport, or the name N of a node whose center should used as the focus.
+    /// The optional Z is the zoom factor, i.e., the image in the original layout will be
+    /// W/Z by H/Z points in size. By default, Z is 1.
+    /// The optional last part is either a pair (x,y) giving a position in the original layout
+    /// of the graph,
+    /// in points, of the center of the viewport, or the name N of a node whose center should used
+    /// as the focus.
     fn viewport(&mut self, viewport: String) -> &mut Self {
         self.add_attribute("viewport", AttributeText::attr(viewport))
     }
@@ -2006,19 +2005,25 @@ trait NodeAttributes<'a> {
         self
     }
 
-    /// For nodes, this attribute specifies space left around the node’s label.
-    /// If the margin is a single double, both margins are set equal to the given value.
-    /// Note that the margin is not part of the drawing but just empty space left around the drawing. 
-    /// The margin basically corresponds to a translation of drawing, as would be necessary to center a drawing on a page. 
-    /// Nothing is actually drawn in the margin. To actually extend the background of a drawing, see the pad attribute.
-    /// By default, the value is 0.11,0.055.
+    /// Sets x and y margins of canvas, in inches.
+    /// Both margins are set equal to the given value.
+    /// See [`crate::NodeAttributes::margin_point`]
     fn margin(&mut self, margin: f32) -> &mut Self {
-        Attributes::margin(self.get_attributes_mut(), margin);
-        self
+        self.margin_point(Point::new_2d(margin, margin))
     }
 
+    /// Sets x and y margins of canvas, in inches.
+    /// Specifies space left around the node’s label.
+    /// Note that the margin is not part of the drawing but just empty space left around the drawing.
+    /// The margin basically corresponds to a translation of drawing, as would be necessary to
+    /// center a drawing on a page.
+    /// Nothing is actually drawn in the margin.
+    /// To actually extend the background of a drawing, see the pad attribute.
+    /// Whilst it is possible to create a Point value with either a third co-ordinate
+    /// or a forced position, these are ignored for printing.
+    /// By default, the value is 0.11,0.055.
     fn margin_point(&mut self, margin: Point) -> &mut Self {
-        Attributes::margin_point(self.get_attributes_mut(), margin);
+        Attributes::margin(self.get_attributes_mut(), margin);
         self
     }
 
@@ -3301,11 +3306,7 @@ impl Attributes {
         Self::add_attribute(attributes, "lp", AttributeText::from(lp))
     }
 
-    fn margin(attributes: &mut IndexMap<String, AttributeText>, margin: f32) {
-        Self::add_attribute(attributes, "margin", AttributeText::from(margin))
-    }
-
-    fn margin_point(attributes: &mut IndexMap<String, AttributeText>, margin: Point) {
+    fn margin(attributes: &mut IndexMap<String, AttributeText>, margin: Point) {
         Self::add_attribute(attributes, "margin", AttributeText::from(margin))
     }
 
