@@ -39,12 +39,7 @@ pub enum PortPosition {
     Compass(CompassPoint),
 }
 
-impl<'a> From<PortPosition> for AttributeText<'a> {
-    fn from(port_position: PortPosition) -> Self {
-        AttributeText::quoted(port_position.dot_string())
-    }
-}
-
+// TODO: AsRef vs this?
 impl<'a> DotString<'a> for PortPosition {
     fn dot_string(&self) -> Cow<'a, str> {
         match self {
@@ -61,24 +56,6 @@ impl<'a> DotString<'a> for PortPosition {
             }
             PortPosition::Compass(p) => p.dot_string().into(),
         }
-    }
-}
-
-impl<'a> From<u32> for AttributeText<'a> {
-    fn from(v: u32) -> Self {
-        AttributeText::attr(v.to_string())
-    }
-}
-
-impl<'a> From<f32> for AttributeText<'a> {
-    fn from(v: f32) -> Self {
-        AttributeText::attr(v.to_string())
-    }
-}
-
-impl<'a> From<bool> for AttributeText<'a> {
-    fn from(v: bool) -> Self {
-        AttributeText::attr(v.to_string())
     }
 }
 
@@ -157,7 +134,7 @@ impl<'a> AttributeText<'a> {
 
     /// Renders text as string suitable for a attribute in a .dot file.
     /// This includes quotes or suitable delimiters.
-    pub fn to_dot_string(&self) -> String {
+    pub fn dot_string(&self) -> String {
         match *self {
             AttrStr(ref s) => format!("{}", s),
             EscStr(ref s) => format!("\"{}\"", AttributeText::escape_str(&s)),
@@ -165,38 +142,174 @@ impl<'a> AttributeText<'a> {
             QuotedStr(ref s) => format!("\"{}\"", s.escape_default()),
         }
     }
+}
 
-    /// Decomposes content into string suitable for making EscStr that
-    /// yields same content as self. The result obeys the law
-    /// render(`lt`) == render(`EscStr(lt.pre_escaped_content())`) for
-    /// all `lt: LabelText`.
-    fn pre_escaped_content(self) -> Cow<'a, str> {
-        match self {
-            AttrStr(s) => s,
-            EscStr(s) => s,
-            HtmlStr(s) => s,
-            QuotedStr(s) => {
-                if s.contains('\\') {
-                    (&*s).escape_default().to_string().into()
-                } else {
-                    s
-                }
-            }
+impl<'a> From<ArrowType> for AttributeText<'a> {
+    fn from(arrow_type: ArrowType) -> Self {
+        AttributeText::attr(arrow_type.dot_string())
+    }
+}
+
+impl<'a> From<bool> for AttributeText<'a> {
+    fn from(v: bool) -> Self {
+        AttributeText::attr(v.to_string())
+    }
+}
+
+impl<'a> From<ClusterMode> for AttributeText<'a> {
+    fn from(mode: ClusterMode) -> Self {
+        AttributeText::quoted(mode.dot_string())
+    }
+}
+
+impl<'a> From<Color<'a>> for AttributeText<'a> {
+    fn from(color: Color<'a>) -> Self {
+        AttributeText::quoted(color.dot_string())
+    }
+}
+
+impl<'a> From<ColorList<'a>> for AttributeText<'a> {
+    fn from(color_list: ColorList<'a>) -> Self {
+        AttributeText::quoted(color_list.dot_string())
+    }
+}
+
+impl<'a> From<CompassPoint> for AttributeText<'a> {
+    fn from(compass: CompassPoint) -> Self {
+        AttributeText::quoted(compass.dot_string())
+    }
+}
+
+impl<'a> From<Direction> for AttributeText<'a> {
+    fn from(direction: Direction) -> Self {
+        AttributeText::attr(direction.dot_string())
+    }
+}
+
+impl<'a> From<EdgeStyle> for AttributeText<'a> {
+    fn from(style: EdgeStyle) -> Self {
+        AttributeText::attr(style.dot_string())
+    }
+}
+
+impl<'a> From<f32> for AttributeText<'a> {
+    fn from(v: f32) -> Self {
+        AttributeText::attr(v.to_string())
+    }
+}
+
+impl<'a> From<GraphStyle> for AttributeText<'a> {
+    fn from(style: GraphStyle) -> Self {
+        AttributeText::attr(style.dot_string())
+    }
+}
+
+impl<'a> From<LabelJustification> for AttributeText<'a> {
+    fn from(label_justification: LabelJustification) -> Self {
+        AttributeText::attr(label_justification.dot_string())
+    }
+}
+
+impl<'a> From<LabelLocation> for AttributeText<'a> {
+    fn from(label_location: LabelLocation) -> Self {
+        AttributeText::attr(label_location.dot_string())
+    }
+}
+
+impl<'a> From<NodeStyle> for AttributeText<'a> {
+    fn from(style: NodeStyle) -> Self {
+        AttributeText::attr(style.dot_string())
+    }
+}
+
+impl<'a> From<Ordering> for AttributeText<'a> {
+    fn from(ordering: Ordering) -> Self {
+        AttributeText::quoted(ordering.dot_string())
+    }
+}
+
+impl<'a> From<OutputMode> for AttributeText<'a> {
+    fn from(mode: OutputMode) -> Self {
+        AttributeText::quoted(mode.dot_string())
+    }
+}
+
+impl<'a> From<PackMode> for AttributeText<'a> {
+    fn from(mode: PackMode) -> Self {
+        AttributeText::quoted(mode.dot_string())
+    }
+}
+
+impl<'a> From<PageDirection> for AttributeText<'a> {
+    fn from(page_direction: PageDirection) -> Self {
+        AttributeText::attr(page_direction.dot_string())
+    }
+}
+
+impl<'a> From<Point> for AttributeText<'a> {
+    fn from(point: Point) -> Self {
+        AttributeText::quoted(point.dot_string())
+    }
+}
+
+impl<'a> From<PortPosition> for AttributeText<'a> {
+    fn from(port_position: PortPosition) -> Self {
+        AttributeText::quoted(port_position.dot_string())
+    }
+}
+
+impl<'a> From<RankDir> for AttributeText<'a> {
+    fn from(rank_dir: RankDir) -> Self {
+        AttributeText::attr(rank_dir.dot_string())
+    }
+}
+
+impl<'a> From<Ratio> for AttributeText<'a> {
+    fn from(ratio: Ratio) -> Self {
+        match ratio {
+            Ratio::Aspect(_aspect) => AttributeText::attr(ratio.dot_string()),
+            _ => AttributeText::quoted(ratio.dot_string()),
         }
     }
+}
 
-    /// Puts `prefix` on a line above this label, with a blank line separator.
-    pub fn prefix_line(self, prefix: AttributeText<'_>) -> AttributeText<'static> {
-        prefix.suffix_line(self)
+impl<'a> From<Rectangle> for AttributeText<'a> {
+    fn from(rectangle: Rectangle) -> Self {
+        AttributeText::quoted(rectangle.dot_string())
     }
+}
 
-    /// Puts `suffix` on a line below this label, with a blank line separator.
-    pub fn suffix_line(self, suffix: AttributeText<'_>) -> AttributeText<'static> {
-        let mut prefix = self.pre_escaped_content().into_owned();
-        let suffix = suffix.pre_escaped_content();
-        prefix.push_str(r"\n\n");
-        prefix.push_str(&suffix);
-        EscStr(prefix.into())
+impl<'a> From<Shape> for AttributeText<'a> {
+    fn from(shape: Shape) -> Self {
+        AttributeText::attr(shape.dot_string())
+    }
+}
+
+impl<'a> From<Splines> for AttributeText<'a> {
+    fn from(splines: Splines) -> Self {
+        AttributeText::quoted(splines.dot_string())
+    }
+}
+
+impl<'a> From<SplineType> for AttributeText<'a> {
+    fn from(spline_type: SplineType) -> Self {
+        AttributeText::quoted(spline_type.dot_string())
+    }
+}
+
+impl<'a> From<Styles> for AttributeText<'a> {
+    fn from(styles: Styles) -> Self {
+        match styles {
+            Styles::Edge(s) => AttributeText::from(s),
+            Styles::Node(s) => AttributeText::from(s),
+            Styles::Graph(s) => AttributeText::from(s),
+        }
+    }
+}
+
+impl<'a> From<u32> for AttributeText<'a> {
+    fn from(v: u32) -> Self {
+        AttributeText::attr(v.to_string())
     }
 }
 
@@ -222,11 +335,6 @@ pub enum CompassPoint {
     None,
 }
 
-impl<'a> From<CompassPoint> for AttributeText<'a> {
-    fn from(compass: CompassPoint) -> Self {
-        AttributeText::quoted(compass.dot_string())
-    }
-}
 impl<'a> DotString<'a> for CompassPoint {
     fn dot_string(&self) -> Cow<'a, str> {
         match self {
@@ -286,15 +394,15 @@ impl<'a> Dot<'a> {
         writeln!(w, " {{")?;
 
         if let Some(graph_attributes) = self.graph.graph_attributes {
-            write!(w, "{}{}\n", INDENT, graph_attributes.to_dot_string())?;
+            write!(w, "{}{}\n", INDENT, graph_attributes.dot_string())?;
         }
 
         if let Some(node_attributes) = self.graph.node_attributes {
-            write!(w, "{}{}\n", INDENT, node_attributes.to_dot_string())?;
+            write!(w, "{}{}\n", INDENT, node_attributes.dot_string())?;
         }
 
         if let Some(edge_attributes) = self.graph.edge_attributes {
-            write!(w, "{}{}\n", INDENT, edge_attributes.to_dot_string())?;
+            write!(w, "{}{}\n", INDENT, edge_attributes.dot_string())?;
         }
 
         for n in self.graph.nodes {
@@ -302,7 +410,7 @@ impl<'a> Dot<'a> {
             // Are render options something we need?
             // we could clone the node or and remove the attributes based on render options
             // or maybe we keep a set of attributes to ignore based on the options
-            writeln!(w, "{}{}", INDENT, n.to_dot_string())?;
+            writeln!(w, "{}{}", INDENT, n.dot_string())?;
         }
 
         for e in self.graph.edges {
@@ -325,10 +433,10 @@ impl<'a> Dot<'a> {
 
                 let mut iter = e.attributes.iter();
                 let first = iter.next().unwrap();
-                write!(w, "{}={}", first.0, first.1.to_dot_string())?;
+                write!(w, "{}={}", first.0, first.1.dot_string())?;
                 for (key, value) in iter {
                     write!(w, ", ")?;
-                    write!(w, "{}={}", key, value.to_dot_string())?;
+                    write!(w, "{}={}", key, value.dot_string())?;
                 }
                 write!(w, "]")?;
             }
@@ -581,11 +689,8 @@ pub trait GraphAttributes<'a> {
     }
 
     /// The color used as the background for entire canvas.
-    fn background_color(&mut self, background_color: Color) -> &mut Self {
-        self.add_attribute(
-            "bgcolor",
-            AttributeText::quoted(background_color.to_dot_string()),
-        )
+    fn background_color(&mut self, background_color: Color<'a>) -> &mut Self {
+        self.add_attribute("bgcolor", AttributeText::from(background_color))
     }
 
     // TODO: constrain
@@ -1208,12 +1313,6 @@ pub enum ClusterMode {
     None,
 }
 
-impl<'a> From<ClusterMode> for AttributeText<'a> {
-    fn from(mode: ClusterMode) -> Self {
-        AttributeText::quoted(mode.dot_string())
-    }
-}
-
 impl<'a> DotString<'a> for ClusterMode {
     fn dot_string(&self) -> Cow<'a, str> {
         match self {
@@ -1230,15 +1329,6 @@ pub enum Ratio {
     Compress,
     Expand,
     Auto,
-}
-
-impl<'a> From<Ratio> for AttributeText<'a> {
-    fn from(ratio: Ratio) -> Self {
-        match ratio {
-            Ratio::Aspect(_aspect) => AttributeText::attr(ratio.dot_string()),
-            _ => AttributeText::quoted(ratio.dot_string()),
-        }
-    }
 }
 
 impl<'a> DotString<'a> for Ratio {
@@ -1263,12 +1353,6 @@ pub enum LabelJustification {
     Center,
 }
 
-impl<'a> From<LabelJustification> for AttributeText<'a> {
-    fn from(label_justification: LabelJustification) -> Self {
-        AttributeText::attr(label_justification.dot_string())
-    }
-}
-
 impl<'a> DotString<'a> for LabelJustification {
     fn dot_string(&self) -> Cow<'a, str> {
         match self {
@@ -1285,11 +1369,6 @@ pub enum LabelLocation {
     Bottom,
 }
 
-impl<'a> From<LabelLocation> for AttributeText<'a> {
-    fn from(label_location: LabelLocation) -> Self {
-        AttributeText::attr(label_location.dot_string())
-    }
-}
 impl<'a> DotString<'a> for LabelLocation {
     fn dot_string(&self) -> Cow<'a, str> {
         match self {
@@ -1305,11 +1384,6 @@ pub enum Ordering {
     Out,
 }
 
-impl<'a> From<Ordering> for AttributeText<'a> {
-    fn from(ordering: Ordering) -> Self {
-        AttributeText::quoted(ordering.dot_string())
-    }
-}
 impl<'a> DotString<'a> for Ordering {
     fn dot_string(&self) -> Cow<'a, str> {
         match self {
@@ -1334,12 +1408,6 @@ pub enum OutputMode {
     BreadthFirst,
     NodesFirst,
     EdgesFirst,
-}
-
-impl<'a> From<OutputMode> for AttributeText<'a> {
-    fn from(mode: OutputMode) -> Self {
-        AttributeText::quoted(mode.dot_string())
-    }
 }
 
 impl<'a> DotString<'a> for OutputMode {
@@ -1370,11 +1438,6 @@ pub enum PackMode {
     // TODO: array - "array(_flags)?(%d)?"
 }
 
-impl<'a> From<PackMode> for AttributeText<'a> {
-    fn from(mode: PackMode) -> Self {
-        AttributeText::quoted(mode.dot_string())
-    }
-}
 impl<'a> DotString<'a> for PackMode {
     fn dot_string(&self) -> Cow<'a, str> {
         match self {
@@ -1409,12 +1472,6 @@ impl Point {
     }
 }
 
-impl<'a> From<Point> for AttributeText<'a> {
-    fn from(point: Point) -> Self {
-        AttributeText::quoted(point.dot_string())
-    }
-}
-
 impl<'a> DotString<'a> for Point {
     fn dot_string(&self) -> Cow<'a, str> {
         let mut slice = format!("{:.1},{:.1}", self.x, self.y);
@@ -1431,12 +1488,6 @@ impl<'a> DotString<'a> for Point {
 pub struct Rectangle {
     lower_left: Point,
     upper_right: Point,
-}
-
-impl<'a> From<Rectangle> for AttributeText<'a> {
-    fn from(rectangle: Rectangle) -> Self {
-        AttributeText::quoted(rectangle.dot_string())
-    }
 }
 
 impl<'a> DotString<'a> for Rectangle {
@@ -1465,11 +1516,6 @@ pub enum PageDirection {
     LeftTop,
 }
 
-impl<'a> From<PageDirection> for AttributeText<'a> {
-    fn from(page_direction: PageDirection) -> Self {
-        AttributeText::attr(page_direction.dot_string())
-    }
-}
 impl<'a> DotString<'a> for PageDirection {
     fn dot_string(&self) -> Cow<'a, str> {
         match self {
@@ -1494,11 +1540,6 @@ pub enum RankDir {
     RightLeft,
 }
 
-impl<'a> From<RankDir> for AttributeText<'a> {
-    fn from(rank_dir: RankDir) -> Self {
-        AttributeText::attr(rank_dir.dot_string())
-    }
-}
 impl<'a> DotString<'a> for RankDir {
     fn dot_string(&self) -> Cow<'a, str> {
         match self {
@@ -1526,12 +1567,6 @@ pub enum Splines {
     Ortho,
 }
 
-impl<'a> From<Splines> for AttributeText<'a> {
-    fn from(splines: Splines) -> Self {
-        AttributeText::quoted(splines.dot_string())
-    }
-}
-
 impl<'a> DotString<'a> for Splines {
     fn dot_string(&self) -> Cow<'a, str> {
         match self {
@@ -1553,11 +1588,6 @@ pub struct SplineType {
     spline_points: Vec<Point>,
 }
 
-impl<'a> From<SplineType> for AttributeText<'a> {
-    fn from(spline_type: SplineType) -> Self {
-        AttributeText::quoted(spline_type.dot_string())
-    }
-}
 impl<'a> DotString<'a> for SplineType {
     fn dot_string(&self) -> Cow<'a, str> {
         let mut dot_string = String::from("");
@@ -1596,25 +1626,26 @@ impl<'a> Node<'a> {
             attributes: IndexMap::new(),
         }
     }
+}
 
-    pub fn to_dot_string(&self) -> String {
+impl<'a> DotString<'a> for Node<'a> {
+    fn dot_string(&self) -> Cow<'a, str> {
         let mut dot_string = format!("{}", &self.id);
         if !self.attributes.is_empty() {
             dot_string.push_str(" [");
             let mut iter = self.attributes.iter();
             let first = iter.next().unwrap();
             dot_string
-                .push_str(format!("{}={}", first.0, first.1.to_dot_string()).as_str());
+                .push_str(format!("{}={}", first.0, first.1.dot_string()).as_str());
             for (key, value) in iter {
                 dot_string.push_str(", ");
-                dot_string
-                    .push_str(format!("{}={}", key, value.to_dot_string()).as_str());
+                dot_string.push_str(format!("{}={}", key, value.dot_string()).as_str());
             }
 
             dot_string.push_str("]");
         }
         dot_string.push_str(";");
-        return dot_string.to_string();
+        dot_string.into()
     }
 }
 
@@ -1844,7 +1875,7 @@ trait AttributeStatement<'a> {
 
     fn get_attributes(&self) -> &IndexMap<String, AttributeText<'a>>;
 
-    fn to_dot_string(&self) -> String {
+    fn dot_string(&self) -> String {
         if self.get_attributes().is_empty() {
             return String::from("");
         }
@@ -1852,10 +1883,10 @@ trait AttributeStatement<'a> {
         let attributes = &self.get_attributes();
         let mut iter = attributes.iter();
         let first = iter.next().unwrap();
-        dot_string.push_str(format!("{}={}", first.0, first.1.to_dot_string()).as_str());
+        dot_string.push_str(format!("{}={}", first.0, first.1.dot_string()).as_str());
         for (key, value) in iter {
             dot_string.push_str(", ");
-            dot_string.push_str(format!("{}={}", key, value.to_dot_string()).as_str());
+            dot_string.push_str(format!("{}={}", key, value.dot_string()).as_str());
         }
         dot_string.push_str("];");
         dot_string.to_string()
@@ -2852,11 +2883,6 @@ pub enum Shape {
     Lpromotor,
 }
 
-impl<'a> From<Shape> for AttributeText<'a> {
-    fn from(shape: Shape) -> Self {
-        AttributeText::attr(shape.dot_string())
-    }
-}
 impl<'a> DotString<'a> for Shape {
     fn dot_string(&self) -> Cow<'a, str> {
         match self {
@@ -2946,11 +2972,6 @@ pub enum ArrowType {
     Halfopen,
 }
 
-impl<'a> From<ArrowType> for AttributeText<'a> {
-    fn from(arrow_type: ArrowType) -> Self {
-        AttributeText::attr(arrow_type.dot_string())
-    }
-}
 impl<'a> DotString<'a> for ArrowType {
     fn dot_string(&self) -> Cow<'a, str> {
         match self {
@@ -2984,11 +3005,6 @@ pub enum Direction {
     None,
 }
 
-impl<'a> From<Direction> for AttributeText<'a> {
-    fn from(direction: Direction) -> Self {
-        AttributeText::attr(direction.dot_string())
-    }
-}
 impl<'a> DotString<'a> for Direction {
     fn dot_string(&self) -> Cow<'a, str> {
         match self {
@@ -3040,49 +3056,20 @@ pub enum Color<'a> {
     Named(&'a str),
 }
 
-impl<'a> Color<'a> {
-    pub fn to_dot_string(&self) -> String {
-        match self {
-            Color::RGB { red, green, blue } => {
-                format!("#{:02x?}{:02x?}{:02x?}", red, green, blue)
-            }
-            Color::RGBA {
-                red,
-                green,
-                blue,
-                alpha,
-            } => {
-                format!("#{:02x?}{:02x?}{:02x?}{:02x?}", red, green, blue, alpha)
-            }
-            Color::HSV {
-                hue,
-                saturation,
-                value,
-            } => {
-                format!("{} {} {}", hue, saturation, value)
-            }
-            Color::Named(color) => (*color).to_string(),
-        }
-    }
-}
-
-impl<'a> From<Color<'a>> for AttributeText<'a> {
-    fn from(color: Color<'a>) -> Self {
-        AttributeText::quoted(color.dot_string())
-    }
-}
 impl<'a> DotString<'a> for Color<'a> {
     fn dot_string(&self) -> Cow<'a, str> {
         match self {
             Color::RGB { red, green, blue } => {
-                format!("#{}{}{}", red, green, blue).into()
+                format!("#{:02x?}{:02x?}{:02x?}", red, green, blue).into()
             }
             Color::RGBA {
                 red,
                 green,
                 blue,
                 alpha,
-            } => format!("#{}{}{}{}", red, green, blue, alpha).into(),
+            } => {
+                format!("#{:02x?}{:02x?}{:02x?}{:02x?}", red, green, blue, alpha).into()
+            }
             Color::HSV {
                 hue,
                 saturation,
@@ -3102,13 +3089,13 @@ pub struct WeightedColor<'a> {
     weight: Option<f32>,
 }
 
-impl<'a> WeightedColor<'a> {
-    pub fn to_dot_string(&self) -> String {
-        let mut dot_string = self.color.to_dot_string();
+impl<'a> DotString<'a> for WeightedColor<'a> {
+    fn dot_string(&self) -> Cow<'a, str> {
+        let mut dot_string = self.color.dot_string().to_string();
         if let Some(weight) = &self.weight {
             dot_string.push_str(format!(";{}", weight).as_str());
         }
-        dot_string
+        dot_string.into()
     }
 }
 
@@ -3116,11 +3103,6 @@ pub struct ColorList<'a> {
     colors: Vec<WeightedColor<'a>>,
 }
 
-impl<'a> From<ColorList<'a>> for AttributeText<'a> {
-    fn from(color_list: ColorList<'a>) -> Self {
-        AttributeText::quoted(color_list.dot_string())
-    }
-}
 impl<'a> DotString<'a> for ColorList<'a> {
     /// A colon-separated list of weighted color values: WC(:WC)* where each WC has the form C(;F)?
     /// Ex: fillcolor=yellow;0.3:blue
@@ -3131,10 +3113,10 @@ impl<'a> DotString<'a> for ColorList<'a> {
         if first.is_none() {
             return dot_string.into();
         }
-        dot_string.push_str(first.unwrap().to_dot_string().as_str());
+        dot_string.push_str(&first.unwrap().dot_string());
         for weighted_color in iter {
             dot_string.push_str(":");
-            dot_string.push_str(weighted_color.to_dot_string().as_str())
+            dot_string.push_str(&weighted_color.dot_string())
         }
 
         dot_string.into()
@@ -3170,11 +3152,6 @@ pub enum NodeStyle {
     Wedged,
 }
 
-impl<'a> From<NodeStyle> for AttributeText<'a> {
-    fn from(style: NodeStyle) -> Self {
-        AttributeText::attr(style.dot_string())
-    }
-}
 impl<'a> DotString<'a> for NodeStyle {
     fn dot_string(&self) -> Cow<'a, str> {
         match self {
@@ -3201,15 +3178,6 @@ pub enum Styles {
     Graph(GraphStyle),
 }
 
-impl<'a> From<Styles> for AttributeText<'a> {
-    fn from(styles: Styles) -> Self {
-        match styles {
-            Styles::Edge(s) => AttributeText::from(s),
-            Styles::Node(s) => AttributeText::from(s),
-            Styles::Graph(s) => AttributeText::from(s),
-        }
-    }
-}
 impl<'a> DotString<'a> for Styles {
     fn dot_string(&self) -> Cow<'a, str> {
         match self {
@@ -3229,11 +3197,6 @@ pub enum EdgeStyle {
     Tapered,
 }
 
-impl<'a> From<EdgeStyle> for AttributeText<'a> {
-    fn from(style: EdgeStyle) -> Self {
-        AttributeText::attr(style.dot_string())
-    }
-}
 impl<'a> DotString<'a> for EdgeStyle {
     fn dot_string(&self) -> Cow<'a, str> {
         match self {
@@ -3254,11 +3217,6 @@ pub enum GraphStyle {
     Striped,
 }
 
-impl<'a> From<GraphStyle> for AttributeText<'a> {
-    fn from(style: GraphStyle) -> Self {
-        AttributeText::attr(style.dot_string())
-    }
-}
 impl<'a> DotString<'a> for GraphStyle {
     fn dot_string(&self) -> Cow<'a, str> {
         match self {
@@ -3668,7 +3626,7 @@ fn color_rbg_dot_string() {
         green: 82,
         blue: 45,
     };
-    assert_eq!("#a0522d", color.to_dot_string());
+    assert_eq!("#a0522d", color.dot_string());
 }
 
 #[test]
@@ -3679,7 +3637,7 @@ fn color_rbga_dot_string() {
         blue: 45,
         alpha: 10,
     };
-    assert_eq!("#a0522d0a", color.to_dot_string());
+    assert_eq!("#a0522d0a", color.dot_string());
 }
 
 #[test]
@@ -3689,7 +3647,7 @@ fn color_hsv_dot_string() {
         saturation: 0.718,
         value: 0.627,
     };
-    assert_eq!("0.051 0.718 0.627", color.to_dot_string());
+    assert_eq!("0.051 0.718 0.627", color.dot_string());
 }
 
 #[test]
@@ -3783,7 +3741,7 @@ fn graph_attribute_colorlist_vec_dot_string() {
 
     assert_eq!(
         "graph [fillcolor=\"yellow;0.3:blue\"];",
-        graph_attributes.to_dot_string()
+        graph_attributes.dot_string()
     );
 }
 
