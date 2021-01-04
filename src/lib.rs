@@ -26,6 +26,415 @@ static INDENT: &str = "    ";
 //     Point(Point),
 // }
 
+
+trait DotString<'a> {
+    fn dot_string(&self) -> Cow<'a, str>;
+}
+
+pub enum ArrowType {
+    Normal,
+    Dot,
+    Odot,
+    None,
+    Empty,
+    Diamond,
+    Ediamond,
+    Box,
+    Open,
+    Vee,
+    Inv,
+    Invdot,
+    Invodot,
+    Tee,
+    Invempty,
+    Odiamond,
+    Crow,
+    Obox,
+    Halfopen,
+}
+
+impl<'a> DotString<'a> for ArrowType {
+    fn dot_string(&self) -> Cow<'a, str> {
+        match self {
+            ArrowType::Normal => "normal".into(),
+            ArrowType::Dot => "dot".into(),
+            ArrowType::Odot => "odot".into(),
+            ArrowType::None => "none".into(),
+            ArrowType::Empty => "empty".into(),
+            ArrowType::Diamond => "diamond".into(),
+            ArrowType::Ediamond => "ediamond".into(),
+            ArrowType::Box => "box".into(),
+            ArrowType::Open => "open".into(),
+            ArrowType::Vee => "vee".into(),
+            ArrowType::Inv => "inv".into(),
+            ArrowType::Invdot => "invdot".into(),
+            ArrowType::Invodot => "invodot".into(),
+            ArrowType::Tee => "tee".into(),
+            ArrowType::Invempty => "invempty".into(),
+            ArrowType::Odiamond => "odiamond".into(),
+            ArrowType::Crow => "crow".into(),
+            ArrowType::Obox => "obox".into(),
+            ArrowType::Halfopen => "halfopen".into(),
+        }
+    }
+}
+
+pub enum ClusterMode {
+    Local,
+    Global,
+    None,
+}
+
+impl<'a> DotString<'a> for ClusterMode {
+    fn dot_string(&self) -> Cow<'a, str> {
+        match self {
+            ClusterMode::Local => "local".into(),
+            ClusterMode::Global => "global".into(),
+            ClusterMode::None => "none".into(),
+        }
+    }
+}
+
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub enum Color<'a> {
+    RGB {
+        red: u8,
+        green: u8,
+        blue: u8,
+    },
+    RGBA {
+        red: u8,
+        green: u8,
+        blue: u8,
+        alpha: u8,
+    },
+    // TODO: constrain?
+    // Hue-Saturation-Value (HSV) 0.0 <= H,S,V <= 1.0
+    HSV {
+        hue: f32,
+        saturation: f32,
+        value: f32,
+    },
+    Named(&'a str),
+}
+
+impl<'a> DotString<'a> for Color<'a> {
+    fn dot_string(&self) -> Cow<'a, str> {
+        match self {
+            Color::RGB { red, green, blue } => {
+                format!("#{:02x?}{:02x?}{:02x?}", red, green, blue).into()
+            }
+            Color::RGBA {
+                red,
+                green,
+                blue,
+                alpha,
+            } => {
+                format!("#{:02x?}{:02x?}{:02x?}{:02x?}", red, green, blue, alpha).into()
+            }
+            Color::HSV {
+                hue,
+                saturation,
+                value,
+            } => format!("{} {} {}", hue, saturation, value).into(),
+            Color::Named(color) => (*color).into(),
+        }
+    }
+}
+
+// The sum of the optional weightings must sum to at most 1.
+pub struct WeightedColor<'a> {
+    color: Color<'a>,
+
+    // TODO: constrain
+    /// Must be in range 0 <= W <= 1.
+    weight: Option<f32>,
+}
+
+impl<'a> DotString<'a> for WeightedColor<'a> {
+    fn dot_string(&self) -> Cow<'a, str> {
+        let mut dot_string = self.color.dot_string().to_string();
+        if let Some(weight) = &self.weight {
+            dot_string.push_str(format!(";{}", weight).as_str());
+        }
+        dot_string.into()
+    }
+}
+
+pub struct ColorList<'a> {
+    colors: Vec<WeightedColor<'a>>,
+}
+
+impl<'a> DotString<'a> for ColorList<'a> {
+    /// A colon-separated list of weighted color values: WC(:WC)* where each WC has the form C(;F)?
+    /// Ex: fillcolor=yellow;0.3:blue
+    fn dot_string(&self) -> Cow<'a, str> {
+        let mut dot_string = String::new();
+        let mut iter = self.colors.iter();
+        let first = iter.next();
+        if first.is_none() {
+            return dot_string.into();
+        }
+        dot_string.push_str(&first.unwrap().dot_string());
+        for weighted_color in iter {
+            dot_string.push_str(":");
+            dot_string.push_str(&weighted_color.dot_string())
+        }
+
+        dot_string.into()
+    }
+}
+
+/// Convert an element like `(i, j)` into a WeightedColor
+pub trait IntoWeightedColor<'a> {
+    fn into_weighted_color(self) -> WeightedColor<'a>;
+}
+
+impl<'a> IntoWeightedColor<'a> for &'a (Color<'a>, Option<f32>) {
+    fn into_weighted_color(self) -> WeightedColor<'a> {
+        let (s, t) = *self;
+        WeightedColor {
+            color: s,
+            weight: t,
+        }
+    }
+}
+
+
+// TODO: not sure we need this enum but should support setting nodeport either via
+// headport / tailport attributes e.g. a -> b [tailport=se]
+// or via edge declaration using the syntax node name:port_name e.g. a -> b:se
+// aka compass
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum CompassPoint {
+    N,
+    NE,
+    E,
+    SE,
+    S,
+    SW,
+    W,
+    NW,
+    C,
+    // TODO: none might not be a good name
+    // The compass point "_" specifies that an appropriate side of the port adjacent to the exterior
+    // of the node should be used, if such exists. Otherwise, the center is used.
+    // If no compass point is used with a portname, the default value is "_".
+    None,
+}
+
+impl<'a> DotString<'a> for CompassPoint {
+    fn dot_string(&self) -> Cow<'a, str> {
+        match self {
+            CompassPoint::N => "n".into(),
+            CompassPoint::NE => "ne".into(),
+            CompassPoint::E => "e".into(),
+            CompassPoint::SE => "se".into(),
+            CompassPoint::S => "s".into(),
+            CompassPoint::SW => "sw".into(),
+            CompassPoint::W => "w".into(),
+            CompassPoint::NW => "nw".into(),
+            CompassPoint::C => "c".into(),
+            CompassPoint::None => "_".into(),
+        }
+    }
+}
+
+pub enum Direction {
+    Forward,
+    Back,
+    Both,
+    None,
+}
+
+impl<'a> DotString<'a> for Direction {
+    fn dot_string(&self) -> Cow<'a, str> {
+        match self {
+            Direction::Forward => "forward".into(),
+            Direction::Back => "back".into(),
+            Direction::Both => "both".into(),
+            Direction::None => "none".into(),
+        }
+    }
+}
+
+pub enum ImagePosition {
+    TopLeft,
+    TopCentered,
+    TopRight,
+    MiddleLeft,
+    MiddleCentered,
+    MiddleRight,
+    BottomLeft,
+    BottomCentered,
+    BottomRight,
+}
+
+// TODO: change to AsRef<str>? What about something for &'static str?
+impl ImagePosition {
+    pub fn as_slice(&self) -> &'static str {
+        match self {
+            ImagePosition::TopLeft => "tl",
+            ImagePosition::TopCentered => "tc",
+            ImagePosition::TopRight => "tr",
+            ImagePosition::MiddleLeft => "ml",
+            ImagePosition::MiddleCentered => "mc",
+            ImagePosition::MiddleRight => "mr",
+            ImagePosition::BottomLeft => "bl",
+            ImagePosition::BottomCentered => "bc",
+            ImagePosition::BottomRight => "br",
+        }
+    }
+}
+
+pub enum ImageScale {
+    Width,
+    Height,
+    Both,
+}
+
+impl ImageScale {
+    pub fn as_slice(&self) -> &'static str {
+        match self {
+            ImageScale::Width => "width",
+            ImageScale::Height => "height",
+            ImageScale::Both => "both",
+        }
+    }
+}
+
+pub enum LabelJustification {
+    Left,
+    Right,
+    Center,
+}
+
+impl<'a> DotString<'a> for LabelJustification {
+    fn dot_string(&self) -> Cow<'a, str> {
+        match self {
+            LabelJustification::Left => "l".into(),
+            LabelJustification::Right => "r".into(),
+            LabelJustification::Center => "c".into(),
+        }
+    }
+}
+
+pub enum LabelLocation {
+    Top,
+    Center,
+    Bottom,
+}
+
+impl<'a> DotString<'a> for LabelLocation {
+    fn dot_string(&self) -> Cow<'a, str> {
+        match self {
+            LabelLocation::Top => "t".into(),
+            LabelLocation::Center => "c".into(),
+            LabelLocation::Bottom => "b".into(),
+        }
+    }
+}
+
+pub enum Ordering {
+    In,
+    Out,
+}
+
+impl<'a> DotString<'a> for Ordering {
+    fn dot_string(&self) -> Cow<'a, str> {
+        match self {
+            Ordering::In => "in".into(),
+            Ordering::Out => "out".into(),
+        }
+    }
+}
+
+/// These specify the order in which nodes and edges are drawn in concrete output.
+///
+/// The default "breadthfirst" is the simplest, but when the graph layout does not avoid edge-node
+/// overlap, this mode will sometimes have edges drawn over nodes and sometimes on top of nodes.
+///
+/// If the mode "nodesfirst" is chosen, all nodes are drawn first, followed by the edges.
+/// This guarantees an edge-node overlap will not be mistaken for an edge ending at a node.
+///
+/// On the other hand, usually for aesthetic reasons, it may be desirable that all edges appear
+/// beneath nodes, even if the resulting drawing is ambiguous.
+/// This can be achieved by choosing "edgesfirst".
+pub enum OutputMode {
+    BreadthFirst,
+    NodesFirst,
+    EdgesFirst,
+}
+
+impl<'a> DotString<'a> for OutputMode {
+    fn dot_string(&self) -> Cow<'a, str> {
+        match self {
+            OutputMode::BreadthFirst => "breadthfirst".into(),
+            OutputMode::NodesFirst => "nodesfirst".into(),
+            OutputMode::EdgesFirst => "edgesfirst".into(),
+        }
+    }
+}
+
+/// The modes "node", "clust" or "graph" specify that the components should be packed together
+/// tightly, using the specified granularity.
+pub enum PackMode {
+    /// causes packing at the node and edge level, with no overlapping of these objects.
+    /// This produces a layout with the least area, but it also allows interleaving,
+    /// where a node of one component may lie between two nodes in another component.
+    Node,
+
+    /// guarantees that top-level clusters are kept intact.
+    /// What effect a value has also depends on the layout algorithm.
+    Cluster,
+
+    /// does a packing using the bounding box of the component.
+    /// Thus, there will be a rectangular region around a component free of elements of any other component.
+    Graph,
+    // TODO: array - "array(_flags)?(%d)?"
+}
+
+impl<'a> DotString<'a> for PackMode {
+    fn dot_string(&self) -> Cow<'a, str> {
+        match self {
+            PackMode::Node => "node".into(),
+            PackMode::Cluster => "clust".into(),
+            PackMode::Graph => "graph".into(),
+        }
+    }
+}
+
+/// These specify the 8 row or column major orders for traversing a rectangular array,
+/// the first character corresponding to the major order and the second to the minor order.
+/// Thus, for “BL”, the major order is from bottom to top, and the minor order is from left to right.
+/// This means the bottom row is traversed first, from left to right, then the next row up,
+/// from left to right, and so on, until the topmost row is traversed
+pub enum PageDirection {
+    BottomLeft,
+    BottomRight,
+    TopLeft,
+    TopRight,
+    RightBottom,
+    RightTop,
+    LeftBottom,
+    LeftTop,
+}
+
+impl<'a> DotString<'a> for PageDirection {
+    fn dot_string(&self) -> Cow<'a, str> {
+        match self {
+            PageDirection::BottomLeft => "BL".into(),
+            PageDirection::BottomRight => "BR".into(),
+            PageDirection::TopLeft => "TL".into(),
+            PageDirection::TopRight => "TR".into(),
+            PageDirection::RightBottom => "RB".into(),
+            PageDirection::RightTop => "RT".into(),
+            PageDirection::LeftBottom => "LB".into(),
+            PageDirection::LeftTop => "LT".into(),
+        }
+    }
+}
+
 /// Modifier indicating where on a node an edge should be aimed.
 /// If Port is used, the corresponding node must either have record shape with one of its
 /// fields having the given portname, or have an HTML-like label, one of whose components has a
@@ -40,6 +449,7 @@ pub enum PortPosition {
 }
 
 // TODO: AsRef vs this?
+// See https://github.com/Peternator7/strum/blob/96ee0a9a307ec7d1a39809fb59037bd4e11557cc/strum/src/lib.rs
 impl<'a> DotString<'a> for PortPosition {
     fn dot_string(&self) -> Cow<'a, str> {
         match self {
@@ -55,6 +465,205 @@ impl<'a> DotString<'a> for PortPosition {
                 dot_string.into()
             }
             PortPosition::Compass(p) => p.dot_string().into(),
+        }
+    }
+}
+
+/// Corresponding to directed graphs drawn from top to bottom, from left to right,
+/// from bottom to top, and from right to left, respectively.
+pub enum RankDir {
+    TopBottom,
+    LeftRight,
+    BottomTop,
+    RightLeft,
+}
+
+impl<'a> DotString<'a> for RankDir {
+    fn dot_string(&self) -> Cow<'a, str> {
+        match self {
+            RankDir::TopBottom => "TB".into(),
+            RankDir::LeftRight => "LR".into(),
+            RankDir::BottomTop => "BT".into(),
+            RankDir::RightLeft => "RL".into(),
+        }
+    }
+}
+
+pub enum Ratio {
+    Aspect(f32),
+    Fill,
+    Compress,
+    Expand,
+    Auto,
+}
+
+impl<'a> DotString<'a> for Ratio {
+    fn dot_string(&self) -> Cow<'a, str> {
+        match self {
+            Ratio::Aspect(aspect) => aspect.to_string().into(),
+            Ratio::Fill => "fill".into(),
+            Ratio::Compress => "compress".into(),
+            Ratio::Expand => "expand".into(),
+            Ratio::Auto => "auto".into(),
+        }
+    }
+}
+
+pub enum Shape {
+    Box,
+    Polygon,
+    Ellipse,
+    Oval,
+    Circle,
+    Point,
+    Egg,
+    Triangle,
+    Plaintext,
+    Plain,
+    Diamond,
+    Trapezium,
+    Parallelogram,
+    House,
+    Pentagon,
+    Hexagon,
+    Septagon,
+    Octagon,
+    DoubleCircle,
+    DoubleOctagon,
+    TripleOctagon,
+    Invtriangle,
+    Invtrapezium,
+    Invhouse,
+    Mdiamond,
+    Msquare,
+    Mcircle,
+    Record,
+    Rect,
+    Rectangle,
+    Square,
+    Star,
+    None,
+    Underline,
+    Cylinder,
+    Note,
+    Tab,
+    Folder,
+    Box3D,
+    Component,
+    Promoter,
+    Cds,
+    Terminator,
+    Utr,
+    Primersite,
+    Restrictionsite,
+    FivePoverHang,
+    ThreePoverHang,
+    NoverHang,
+    Assemply,
+    Signature,
+    Insulator,
+    Ribosite,
+    Rnastab,
+    Proteasesite,
+    Proteinstab,
+    Rpromotor,
+    Rarrow,
+    Larrow,
+    Lpromotor,
+}
+
+impl<'a> DotString<'a> for Shape {
+    fn dot_string(&self) -> Cow<'a, str> {
+        match self {
+            Shape::Box => "box".into(),
+            Shape::Polygon => "polygon".into(),
+            Shape::Ellipse => "ellipse".into(),
+            Shape::Oval => "oval".into(),
+            Shape::Circle => "circle".into(),
+            Shape::Point => "point".into(),
+            Shape::Egg => "egg".into(),
+            Shape::Triangle => "triangle".into(),
+            Shape::Plaintext => "plaintext".into(),
+            Shape::Plain => "plain".into(),
+            Shape::Diamond => "diamond".into(),
+            Shape::Trapezium => "trapezium".into(),
+            Shape::Parallelogram => "parallelogram".into(),
+            Shape::House => "house".into(),
+            Shape::Pentagon => "pentagon".into(),
+            Shape::Hexagon => "hexagon".into(),
+            Shape::Septagon => "septagon".into(),
+            Shape::Octagon => "octagon".into(),
+            Shape::DoubleCircle => "doublecircle".into(),
+            Shape::DoubleOctagon => "doubleoctagon".into(),
+            Shape::TripleOctagon => "tripleocctagon".into(),
+            Shape::Invtriangle => "invtriangle".into(),
+            Shape::Invtrapezium => "invtrapezium".into(),
+            Shape::Invhouse => "invhouse".into(),
+            Shape::Mdiamond => "mdiamond".into(),
+            Shape::Msquare => "msquare".into(),
+            Shape::Mcircle => "mcircle".into(),
+            Shape::Record => "record".into(),
+            Shape::Rect => "rect".into(),
+            Shape::Rectangle => "rectangle".into(),
+            Shape::Square => "square".into(),
+            Shape::Star => "star".into(),
+            Shape::None => "none".into(),
+            Shape::Underline => "underline".into(),
+            Shape::Cylinder => "cylinder".into(),
+            Shape::Note => "note".into(),
+            Shape::Tab => "tab".into(),
+            Shape::Folder => "folder".into(),
+            Shape::Box3D => "box3d".into(),
+            Shape::Component => "component".into(),
+            Shape::Promoter => "promoter".into(),
+            Shape::Cds => "cds".into(),
+            Shape::Terminator => "terminator".into(),
+            Shape::Utr => "utr".into(),
+            Shape::Primersite => "primersite".into(),
+            Shape::Restrictionsite => "restrictionsite".into(),
+            Shape::FivePoverHang => "fivepoverhang".into(),
+            Shape::ThreePoverHang => "threepoverhang".into(),
+            Shape::NoverHang => "noverhang".into(),
+            Shape::Assemply => "assemply".into(),
+            Shape::Signature => "signature".into(),
+            Shape::Insulator => "insulator".into(),
+            Shape::Ribosite => "ribosite".into(),
+            Shape::Rnastab => "rnastab".into(),
+            Shape::Proteasesite => "proteasesite".into(),
+            Shape::Proteinstab => "proteinstab".into(),
+            Shape::Rpromotor => "rpromotor".into(),
+            Shape::Rarrow => "rarrow".into(),
+            Shape::Larrow => "larrow".into(),
+            Shape::Lpromotor => "lpromotor".into(),
+        }
+    }
+}
+
+/// Spline, edges are drawn as splines routed around nodes
+/// Line, edges are drawn as line segments
+/// Polygon, specifies that edges should be drawn as polylines.
+/// Ortho, specifies edges should be routed as polylines of axis-aligned segments.
+/// Curved, specifies edges should be drawn as curved arcs.
+/// splines=line and splines=spline can be used as synonyms for
+/// splines=false and splines=true, respectively.
+pub enum Splines {
+    Line,
+    Spline,
+    None,
+    Curved,
+    Polyline,
+    Ortho,
+}
+
+impl<'a> DotString<'a> for Splines {
+    fn dot_string(&self) -> Cow<'a, str> {
+        match self {
+            Splines::Line => "line".into(),
+            Splines::Spline => "spline".into(),
+            Splines::None => "none".into(),
+            Splines::Curved => "curved".into(),
+            Splines::Polyline => "polyline".into(),
+            Splines::Ortho => "ortho".into(),
         }
     }
 }
@@ -313,44 +922,6 @@ impl<'a> From<u32> for AttributeText<'a> {
     }
 }
 
-// TODO: not sure we need this enum but should support setting nodeport either via
-// headport / tailport attributes e.g. a -> b [tailport=se]
-// or via edge declaration using the syntax node name:port_name e.g. a -> b:se
-// aka compass
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub enum CompassPoint {
-    N,
-    NE,
-    E,
-    SE,
-    S,
-    SW,
-    W,
-    NW,
-    C,
-    // TODO: none might not be a good name
-    // The compass point "_" specifies that an appropriate side of the port adjacent to the exterior
-    // of the node should be used, if such exists. Otherwise, the center is used.
-    // If no compass point is used with a portname, the default value is "_".
-    None,
-}
-
-impl<'a> DotString<'a> for CompassPoint {
-    fn dot_string(&self) -> Cow<'a, str> {
-        match self {
-            CompassPoint::N => "n".into(),
-            CompassPoint::NE => "ne".into(),
-            CompassPoint::E => "e".into(),
-            CompassPoint::SE => "se".into(),
-            CompassPoint::S => "s".into(),
-            CompassPoint::SW => "sw".into(),
-            CompassPoint::W => "w".into(),
-            CompassPoint::NW => "nw".into(),
-            CompassPoint::C => "c".into(),
-            CompassPoint::None => "_".into(),
-        }
-    }
-}
 
 // TODO: probably dont need this struct and can move impl methods into lib module
 pub struct Dot<'a> {
@@ -871,7 +1442,8 @@ pub trait GraphAttributes<'a> {
         self.add_attribute("landscape", AttributeText::from(landscape))
     }
 
-    /// Specifies the separator characters used to split an attribute of type layerRange into a list of ranges.
+    /// Specifies the separator characters used to split an attribute of type layerRange into a
+    /// list of ranges.
     fn layer_list_sep(&mut self, layer_list_sep: String) -> &mut Self {
         self.add_attribute("layerlistsep", AttributeText::attr(layer_list_sep))
     }
@@ -1307,147 +1879,6 @@ impl<'a> AttributeStatement<'a> for GraphAttributeStatement<'a> {
     }
 }
 
-pub enum ClusterMode {
-    Local,
-    Global,
-    None,
-}
-
-impl<'a> DotString<'a> for ClusterMode {
-    fn dot_string(&self) -> Cow<'a, str> {
-        match self {
-            ClusterMode::Local => "local".into(),
-            ClusterMode::Global => "global".into(),
-            ClusterMode::None => "none".into(),
-        }
-    }
-}
-
-pub enum Ratio {
-    Aspect(f32),
-    Fill,
-    Compress,
-    Expand,
-    Auto,
-}
-
-impl<'a> DotString<'a> for Ratio {
-    fn dot_string(&self) -> Cow<'a, str> {
-        match self {
-            Ratio::Aspect(aspect) => aspect.to_string().into(),
-            Ratio::Fill => "fill".into(),
-            Ratio::Compress => "compress".into(),
-            Ratio::Expand => "expand".into(),
-            Ratio::Auto => "auto".into(),
-        }
-    }
-}
-
-trait DotString<'a> {
-    fn dot_string(&self) -> Cow<'a, str>;
-}
-
-pub enum LabelJustification {
-    Left,
-    Right,
-    Center,
-}
-
-impl<'a> DotString<'a> for LabelJustification {
-    fn dot_string(&self) -> Cow<'a, str> {
-        match self {
-            LabelJustification::Left => "l".into(),
-            LabelJustification::Right => "r".into(),
-            LabelJustification::Center => "c".into(),
-        }
-    }
-}
-
-pub enum LabelLocation {
-    Top,
-    Center,
-    Bottom,
-}
-
-impl<'a> DotString<'a> for LabelLocation {
-    fn dot_string(&self) -> Cow<'a, str> {
-        match self {
-            LabelLocation::Top => "t".into(),
-            LabelLocation::Center => "c".into(),
-            LabelLocation::Bottom => "b".into(),
-        }
-    }
-}
-
-pub enum Ordering {
-    In,
-    Out,
-}
-
-impl<'a> DotString<'a> for Ordering {
-    fn dot_string(&self) -> Cow<'a, str> {
-        match self {
-            Ordering::In => "in".into(),
-            Ordering::Out => "out".into(),
-        }
-    }
-}
-
-/// These specify the order in which nodes and edges are drawn in concrete output.
-///
-/// The default "breadthfirst" is the simplest, but when the graph layout does not avoid edge-node
-/// overlap, this mode will sometimes have edges drawn over nodes and sometimes on top of nodes.
-///
-/// If the mode "nodesfirst" is chosen, all nodes are drawn first, followed by the edges.
-/// This guarantees an edge-node overlap will not be mistaken for an edge ending at a node.
-///
-/// On the other hand, usually for aesthetic reasons, it may be desirable that all edges appear
-/// beneath nodes, even if the resulting drawing is ambiguous.
-/// This can be achieved by choosing "edgesfirst".
-pub enum OutputMode {
-    BreadthFirst,
-    NodesFirst,
-    EdgesFirst,
-}
-
-impl<'a> DotString<'a> for OutputMode {
-    fn dot_string(&self) -> Cow<'a, str> {
-        match self {
-            OutputMode::BreadthFirst => "breadthfirst".into(),
-            OutputMode::NodesFirst => "nodesfirst".into(),
-            OutputMode::EdgesFirst => "edgesfirst".into(),
-        }
-    }
-}
-
-/// The modes "node", "clust" or "graph" specify that the components should be packed together
-/// tightly, using the specified granularity.
-pub enum PackMode {
-    /// causes packing at the node and edge level, with no overlapping of these objects.
-    /// This produces a layout with the least area, but it also allows interleaving,
-    /// where a node of one component may lie between two nodes in another component.
-    Node,
-
-    /// guarantees that top-level clusters are kept intact.
-    /// What effect a value has also depends on the layout algorithm.
-    Cluster,
-
-    /// does a packing using the bounding box of the component.
-    /// Thus, there will be a rectangular region around a component free of elements of any other component.
-    Graph,
-    // TODO: array - "array(_flags)?(%d)?"
-}
-
-impl<'a> DotString<'a> for PackMode {
-    fn dot_string(&self) -> Cow<'a, str> {
-        match self {
-            PackMode::Node => "node".into(),
-            PackMode::Cluster => "clust".into(),
-            PackMode::Graph => "graph".into(),
-        }
-    }
-}
-
 // The optional '!' indicates the node position should not change (input-only).
 pub struct Point {
     pub x: f32,
@@ -1497,86 +1928,6 @@ impl<'a> DotString<'a> for Rectangle {
             self.lower_left.x, self.lower_left.y, self.upper_right.x, self.upper_right.y
         )
         .into()
-    }
-}
-
-/// These specify the 8 row or column major orders for traversing a rectangular array,
-/// the first character corresponding to the major order and the second to the minor order.
-/// Thus, for “BL”, the major order is from bottom to top, and the minor order is from left to right.
-/// This means the bottom row is traversed first, from left to right, then the next row up,
-/// from left to right, and so on, until the topmost row is traversed
-pub enum PageDirection {
-    BottomLeft,
-    BottomRight,
-    TopLeft,
-    TopRight,
-    RightBottom,
-    RightTop,
-    LeftBottom,
-    LeftTop,
-}
-
-impl<'a> DotString<'a> for PageDirection {
-    fn dot_string(&self) -> Cow<'a, str> {
-        match self {
-            PageDirection::BottomLeft => "BL".into(),
-            PageDirection::BottomRight => "BR".into(),
-            PageDirection::TopLeft => "TL".into(),
-            PageDirection::TopRight => "TR".into(),
-            PageDirection::RightBottom => "RB".into(),
-            PageDirection::RightTop => "RT".into(),
-            PageDirection::LeftBottom => "LB".into(),
-            PageDirection::LeftTop => "LT".into(),
-        }
-    }
-}
-
-/// Corresponding to directed graphs drawn from top to bottom, from left to right,
-/// from bottom to top, and from right to left, respectively.
-pub enum RankDir {
-    TopBottom,
-    LeftRight,
-    BottomTop,
-    RightLeft,
-}
-
-impl<'a> DotString<'a> for RankDir {
-    fn dot_string(&self) -> Cow<'a, str> {
-        match self {
-            RankDir::TopBottom => "TB".into(),
-            RankDir::LeftRight => "LR".into(),
-            RankDir::BottomTop => "BT".into(),
-            RankDir::RightLeft => "RL".into(),
-        }
-    }
-}
-
-/// Spline, edges are drawn as splines routed around nodes
-/// Line, edges are drawn as line segments
-/// Polygon, specifies that edges should be drawn as polylines.
-/// Ortho, specifies edges should be routed as polylines of axis-aligned segments.
-/// Curved, specifies edges should be drawn as curved arcs.
-/// splines=line and splines=spline can be used as synonyms for
-/// splines=false and splines=true, respectively.
-pub enum Splines {
-    Line,
-    Spline,
-    None,
-    Curved,
-    Polyline,
-    Ortho,
-}
-
-impl<'a> DotString<'a> for Splines {
-    fn dot_string(&self) -> Cow<'a, str> {
-        match self {
-            Splines::Line => "line".into(),
-            Splines::Spline => "spline".into(),
-            Splines::None => "none".into(),
-            Splines::Curved => "curved".into(),
-            Splines::Polyline => "polyline".into(),
-            Splines::Ortho => "ortho".into(),
-        }
     }
 }
 
@@ -1691,50 +2042,6 @@ impl<'a> NodeBuilder<'a> {
             // TODO: are these to_owned and clones necessary?
             id: self.id.to_owned(),
             attributes: self.attributes.clone(),
-        }
-    }
-}
-
-pub enum ImagePosition {
-    TopLeft,
-    TopCentered,
-    TopRight,
-    MiddleLeft,
-    MiddleCentered,
-    MiddleRight,
-    BottomLeft,
-    BottomCentered,
-    BottomRight,
-}
-
-impl ImagePosition {
-    pub fn as_slice(&self) -> &'static str {
-        match self {
-            ImagePosition::TopLeft => "tl",
-            ImagePosition::TopCentered => "tc",
-            ImagePosition::TopRight => "tr",
-            ImagePosition::MiddleLeft => "ml",
-            ImagePosition::MiddleCentered => "mc",
-            ImagePosition::MiddleRight => "mr",
-            ImagePosition::BottomLeft => "bl",
-            ImagePosition::BottomCentered => "bc",
-            ImagePosition::BottomRight => "br",
-        }
-    }
-}
-
-pub enum ImageScale {
-    Width,
-    Height,
-    Both,
-}
-
-impl ImageScale {
-    pub fn as_slice(&self) -> &'static str {
-        match self {
-            ImageScale::Width => "width",
-            ImageScale::Height => "height",
-            ImageScale::Both => "both",
         }
     }
 }
@@ -2820,202 +3127,6 @@ impl<'a> EdgeAttributeStatement<'a> {
     }
 }
 
-pub enum Shape {
-    Box,
-    Polygon,
-    Ellipse,
-    Oval,
-    Circle,
-    Point,
-    Egg,
-    Triangle,
-    Plaintext,
-    Plain,
-    Diamond,
-    Trapezium,
-    Parallelogram,
-    House,
-    Pentagon,
-    Hexagon,
-    Septagon,
-    Octagon,
-    DoubleCircle,
-    DoubleOctagon,
-    TripleOctagon,
-    Invtriangle,
-    Invtrapezium,
-    Invhouse,
-    Mdiamond,
-    Msquare,
-    Mcircle,
-    Record,
-    Rect,
-    Rectangle,
-    Square,
-    Star,
-    None,
-    Underline,
-    Cylinder,
-    Note,
-    Tab,
-    Folder,
-    Box3D,
-    Component,
-    Promoter,
-    Cds,
-    Terminator,
-    Utr,
-    Primersite,
-    Restrictionsite,
-    FivePoverHang,
-    ThreePoverHang,
-    NoverHang,
-    Assemply,
-    Signature,
-    Insulator,
-    Ribosite,
-    Rnastab,
-    Proteasesite,
-    Proteinstab,
-    Rpromotor,
-    Rarrow,
-    Larrow,
-    Lpromotor,
-}
-
-impl<'a> DotString<'a> for Shape {
-    fn dot_string(&self) -> Cow<'a, str> {
-        match self {
-            Shape::Box => "box".into(),
-            Shape::Polygon => "polygon".into(),
-            Shape::Ellipse => "ellipse".into(),
-            Shape::Oval => "oval".into(),
-            Shape::Circle => "circle".into(),
-            Shape::Point => "point".into(),
-            Shape::Egg => "egg".into(),
-            Shape::Triangle => "triangle".into(),
-            Shape::Plaintext => "plaintext".into(),
-            Shape::Plain => "plain".into(),
-            Shape::Diamond => "diamond".into(),
-            Shape::Trapezium => "trapezium".into(),
-            Shape::Parallelogram => "parallelogram".into(),
-            Shape::House => "house".into(),
-            Shape::Pentagon => "pentagon".into(),
-            Shape::Hexagon => "hexagon".into(),
-            Shape::Septagon => "septagon".into(),
-            Shape::Octagon => "octagon".into(),
-            Shape::DoubleCircle => "doublecircle".into(),
-            Shape::DoubleOctagon => "doubleoctagon".into(),
-            Shape::TripleOctagon => "tripleocctagon".into(),
-            Shape::Invtriangle => "invtriangle".into(),
-            Shape::Invtrapezium => "invtrapezium".into(),
-            Shape::Invhouse => "invhouse".into(),
-            Shape::Mdiamond => "mdiamond".into(),
-            Shape::Msquare => "msquare".into(),
-            Shape::Mcircle => "mcircle".into(),
-            Shape::Record => "record".into(),
-            Shape::Rect => "rect".into(),
-            Shape::Rectangle => "rectangle".into(),
-            Shape::Square => "square".into(),
-            Shape::Star => "star".into(),
-            Shape::None => "none".into(),
-            Shape::Underline => "underline".into(),
-            Shape::Cylinder => "cylinder".into(),
-            Shape::Note => "note".into(),
-            Shape::Tab => "tab".into(),
-            Shape::Folder => "folder".into(),
-            Shape::Box3D => "box3d".into(),
-            Shape::Component => "component".into(),
-            Shape::Promoter => "promoter".into(),
-            Shape::Cds => "cds".into(),
-            Shape::Terminator => "terminator".into(),
-            Shape::Utr => "utr".into(),
-            Shape::Primersite => "primersite".into(),
-            Shape::Restrictionsite => "restrictionsite".into(),
-            Shape::FivePoverHang => "fivepoverhang".into(),
-            Shape::ThreePoverHang => "threepoverhang".into(),
-            Shape::NoverHang => "noverhang".into(),
-            Shape::Assemply => "assemply".into(),
-            Shape::Signature => "signature".into(),
-            Shape::Insulator => "insulator".into(),
-            Shape::Ribosite => "ribosite".into(),
-            Shape::Rnastab => "rnastab".into(),
-            Shape::Proteasesite => "proteasesite".into(),
-            Shape::Proteinstab => "proteinstab".into(),
-            Shape::Rpromotor => "rpromotor".into(),
-            Shape::Rarrow => "rarrow".into(),
-            Shape::Larrow => "larrow".into(),
-            Shape::Lpromotor => "lpromotor".into(),
-        }
-    }
-}
-
-pub enum ArrowType {
-    Normal,
-    Dot,
-    Odot,
-    None,
-    Empty,
-    Diamond,
-    Ediamond,
-    Box,
-    Open,
-    Vee,
-    Inv,
-    Invdot,
-    Invodot,
-    Tee,
-    Invempty,
-    Odiamond,
-    Crow,
-    Obox,
-    Halfopen,
-}
-
-impl<'a> DotString<'a> for ArrowType {
-    fn dot_string(&self) -> Cow<'a, str> {
-        match self {
-            ArrowType::Normal => "normal".into(),
-            ArrowType::Dot => "dot".into(),
-            ArrowType::Odot => "odot".into(),
-            ArrowType::None => "none".into(),
-            ArrowType::Empty => "empty".into(),
-            ArrowType::Diamond => "diamond".into(),
-            ArrowType::Ediamond => "ediamond".into(),
-            ArrowType::Box => "box".into(),
-            ArrowType::Open => "open".into(),
-            ArrowType::Vee => "vee".into(),
-            ArrowType::Inv => "inv".into(),
-            ArrowType::Invdot => "invdot".into(),
-            ArrowType::Invodot => "invodot".into(),
-            ArrowType::Tee => "tee".into(),
-            ArrowType::Invempty => "invempty".into(),
-            ArrowType::Odiamond => "odiamond".into(),
-            ArrowType::Crow => "crow".into(),
-            ArrowType::Obox => "obox".into(),
-            ArrowType::Halfopen => "halfopen".into(),
-        }
-    }
-}
-
-pub enum Direction {
-    Forward,
-    Back,
-    Both,
-    None,
-}
-
-impl<'a> DotString<'a> for Direction {
-    fn dot_string(&self) -> Cow<'a, str> {
-        match self {
-            Direction::Forward => "forward".into(),
-            Direction::Back => "back".into(),
-            Direction::Both => "both".into(),
-            Direction::None => "none".into(),
-        }
-    }
-}
-
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum RenderOption {
     NoEdgeLabels,
@@ -3030,112 +3141,6 @@ pub enum RenderOption {
 /// Returns vec holding all the default render options.
 pub fn default_options() -> Vec<RenderOption> {
     vec![]
-}
-
-// TODO: is this a good representation of color?
-#[derive(Copy, Clone, PartialEq, Debug)]
-pub enum Color<'a> {
-    RGB {
-        red: u8,
-        green: u8,
-        blue: u8,
-    },
-    RGBA {
-        red: u8,
-        green: u8,
-        blue: u8,
-        alpha: u8,
-    },
-    // TODO: constrain?
-    // Hue-Saturation-Value (HSV) 0.0 <= H,S,V <= 1.0
-    HSV {
-        hue: f32,
-        saturation: f32,
-        value: f32,
-    },
-    Named(&'a str),
-}
-
-impl<'a> DotString<'a> for Color<'a> {
-    fn dot_string(&self) -> Cow<'a, str> {
-        match self {
-            Color::RGB { red, green, blue } => {
-                format!("#{:02x?}{:02x?}{:02x?}", red, green, blue).into()
-            }
-            Color::RGBA {
-                red,
-                green,
-                blue,
-                alpha,
-            } => {
-                format!("#{:02x?}{:02x?}{:02x?}{:02x?}", red, green, blue, alpha).into()
-            }
-            Color::HSV {
-                hue,
-                saturation,
-                value,
-            } => format!("{} {} {}", hue, saturation, value).into(),
-            Color::Named(color) => (*color).into(),
-        }
-    }
-}
-
-// The sum of the optional weightings must sum to at most 1.
-pub struct WeightedColor<'a> {
-    color: Color<'a>,
-
-    // TODO: constrain
-    /// Must be in range 0 <= W <= 1.
-    weight: Option<f32>,
-}
-
-impl<'a> DotString<'a> for WeightedColor<'a> {
-    fn dot_string(&self) -> Cow<'a, str> {
-        let mut dot_string = self.color.dot_string().to_string();
-        if let Some(weight) = &self.weight {
-            dot_string.push_str(format!(";{}", weight).as_str());
-        }
-        dot_string.into()
-    }
-}
-
-pub struct ColorList<'a> {
-    colors: Vec<WeightedColor<'a>>,
-}
-
-impl<'a> DotString<'a> for ColorList<'a> {
-    /// A colon-separated list of weighted color values: WC(:WC)* where each WC has the form C(;F)?
-    /// Ex: fillcolor=yellow;0.3:blue
-    fn dot_string(&self) -> Cow<'a, str> {
-        let mut dot_string = String::new();
-        let mut iter = self.colors.iter();
-        let first = iter.next();
-        if first.is_none() {
-            return dot_string.into();
-        }
-        dot_string.push_str(&first.unwrap().dot_string());
-        for weighted_color in iter {
-            dot_string.push_str(":");
-            dot_string.push_str(&weighted_color.dot_string())
-        }
-
-        dot_string.into()
-    }
-}
-
-/// Convert an element like `(i, j)` into a WeightedColor
-pub trait IntoWeightedColor<'a> {
-    fn into_weighted_color(self) -> WeightedColor<'a>;
-}
-
-impl<'a> IntoWeightedColor<'a> for &'a (Color<'a>, Option<f32>) {
-    fn into_weighted_color(self) -> WeightedColor<'a> {
-        let (s, t) = *self;
-        WeightedColor {
-            color: s,
-            weight: t,
-        }
-    }
 }
 
 pub enum NodeStyle {
