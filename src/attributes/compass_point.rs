@@ -15,11 +15,10 @@ pub enum CompassPoint {
     SW,
     W,
     NW,
+    /// pecifies the center of the node or port
     C,
-    // TODO: none might not be a good name
-    // The compass point "_" specifies that an appropriate side of the port adjacent to the exterior
-    // of the node should be used, if such exists. Otherwise, the center is used.
-    // If no compass point is used with a portname, the default value is "_".
+    /// specifies that an appropriate side of the port adjacent to the exterior of the node should
+    /// be used, if such exists.
     None,
 }
 

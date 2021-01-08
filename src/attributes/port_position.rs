@@ -6,6 +6,7 @@ use std::borrow::Cow;
 /// If Port is used, the corresponding node must either have record shape with one of its
 /// fields having the given portname, or have an HTML-like label, one of whose components has a
 /// PORT attribute set to portname.
+/// If no compass point is used with a portname, the default value is "_".
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum PortPosition {
     Port {
@@ -15,8 +16,6 @@ pub enum PortPosition {
     Compass(CompassPoint),
 }
 
-// TODO: AsRef vs this?
-// See https://github.com/Peternator7/strum/blob/96ee0a9a307ec7d1a39809fb59037bd4e11557cc/strum/src/lib.rs
 impl<'a> DotString<'a> for PortPosition {
     fn dot_string(&self) -> Cow<'a, str> {
         match self {
