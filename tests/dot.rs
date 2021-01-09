@@ -30,6 +30,18 @@ fn empty_digraph_without_id() {
 }
 
 #[test]
+fn display() {
+    let g = GraphBuilder::new_directed(None).build();
+    let dot = Dot { graph: g };
+    assert_eq!(
+        format!("{}", dot),
+        r#"digraph {
+}
+"#
+    );
+}
+
+#[test]
 fn graph_comment() {
     let g = GraphBuilder::new_directed(None)
         .comment("Comment goes here")

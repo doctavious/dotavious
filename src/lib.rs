@@ -18,7 +18,7 @@
 //! use std::io;
 //! use std::io::Read;
 //!
-//! let g = GraphBuilder::new_directed(Some("single_edge".to_string()))
+//! let g = GraphBuilder::new_directed(Some("example".to_string()))
 //!         .add_node(Node::new("N0".to_string()))
 //!         .add_node(Node::new("N1".to_string()))
 //!         .add_edge(Edge::new("N0".to_string(), "N1".to_string()))
@@ -32,12 +32,14 @@
 //! let mut dot_string = String::new();
 //! Read::read_to_string(&mut &*writer, &mut dot_string).unwrap();
 //! println!("{}", dot_string);
-//!
-//! // digraph graph_attributes {
-//! //     N0;
-//! //     N1;
-//! //     N0 -> N1;
-//! // }
+//! ```
+//! Produces
+//! ```dot
+//! digraph example {
+//!     N0;
+//!     N1;
+//!     N0 -> N1;
+//! }
 //! ```
 
 

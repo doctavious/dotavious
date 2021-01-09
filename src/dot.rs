@@ -11,6 +11,7 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 use std::io;
 use std::io::prelude::*;
+use std::fmt::{Display, Formatter, Debug};
 
 static INDENT: &str = "    ";
 
@@ -35,8 +36,6 @@ impl<'a> Dot<'a> {
         self.render_opts(w, &[])
     }
 
-    // io::Result<()> vs Result<(), Box<dyn Error>>
-    // https://doc.rust-lang.org/book/ch09-02-recoverable-errors-with-result.html#the--operator-can-be-used-in-functions-that-return-result
     /// Renders directed graph `g` into the writer `w` in DOT syntax.
     /// (Main entry point for the library.)
     // pub fn render_opts<W>(self, graph: Graph, w: &mut W, options: &[RenderOption]) -> io::Result<()>
@@ -44,34 +43,45 @@ impl<'a> Dot<'a> {
     where
         W: Write,
     {
-        if let Some(comment) = &self.graph.comment {
+        self.internal_render(&self.graph, w)
+    }
+
+    fn internal_render<W>(
+        &self,
+        graph: &Graph,
+        w: &mut W
+    ) -> io::Result<()>
+        where
+            W: Write,
+    {
+        if let Some(comment) = &graph.comment {
             // TODO: split comment into lines of 80 or so characters
             writeln!(w, "// {}", comment)?;
         }
 
-        let edge_op = &self.graph.edge_op();
-        let strict = if self.graph.strict { "strict " } else { "" };
-        write!(w, "{}{}", strict, &self.graph.graph_type())?;
+        let edge_op = &graph.edge_op();
+        let strict = if graph.strict { "strict " } else { "" };
+        write!(w, "{}{}", strict, &graph.graph_type())?;
 
-        if let Some(id) = &self.graph.id {
+        if let Some(id) = &graph.id {
             write!(w, " {}", id)?;
         }
 
         writeln!(w, " {{")?;
 
-        if let Some(graph_attributes) = self.graph.graph_attributes {
+        if let Some(graph_attributes) = &graph.graph_attributes {
             write!(w, "{}{}\n", INDENT, graph_attributes.dot_string())?;
         }
 
-        if let Some(node_attributes) = self.graph.node_attributes {
+        if let Some(node_attributes) = &graph.node_attributes {
             write!(w, "{}{}\n", INDENT, node_attributes.dot_string())?;
         }
 
-        if let Some(edge_attributes) = self.graph.edge_attributes {
+        if let Some(edge_attributes) = &graph.edge_attributes {
             write!(w, "{}{}\n", INDENT, edge_attributes.dot_string())?;
         }
 
-        for n in self.graph.nodes {
+        for n in &graph.nodes {
             // TODO: handle render options
             // Are render options something we need?
             // we could clone the node or and remove the attributes based on render options
@@ -79,15 +89,15 @@ impl<'a> Dot<'a> {
             writeln!(w, "{}{}", INDENT, n.dot_string())?;
         }
 
-        for e in self.graph.edges {
-            let mut edge_source = e.source;
-            if let Some(source_port_position) = e.source_port_position {
+        for e in &graph.edges {
+            let mut edge_source = e.source.to_owned();
+            if let Some(source_port_position) = &e.source_port_position {
                 edge_source
                     .push_str(format!(":{}", source_port_position.dot_string()).as_str())
             }
 
-            let mut edge_target = e.target;
-            if let Some(target_port_position) = e.target_port_position {
+            let mut edge_target = e.target.to_owned();
+            if let Some(target_port_position) = &e.target_port_position {
                 edge_target
                     .push_str(format!(":{}", target_port_position.dot_string()).as_str())
             }
@@ -113,15 +123,30 @@ impl<'a> Dot<'a> {
     }
 }
 
+impl<'a> Display for Dot<'a> {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        let mut writer= Vec::new();
+        self.internal_render(&self.graph, &mut writer).unwrap();
+
+        let mut s = String::new();
+        Read::read_to_string(&mut &*writer, &mut s).unwrap();
+
+        write!(f, "{}", s)?;
+
+        Ok(())
+    }
+}
+
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum RenderOption {
     NoEdgeLabels,
     NoNodeLabels,
     NoEdgeStyles,
     NoNodeStyles,
-
-    // TODO: replace with Fontname(String),
-    Monospace,
+    /// Use indices for node labels.
+    NodeIndexLabel,
+    /// Use indices for edge labels.
+    EdgeIndexLabel,
 }
 
 /// Returns vec holding all the default render options.
