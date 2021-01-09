@@ -1,3 +1,5 @@
+// TODO: docs
+
 mod arrow_type;
 mod cluster_mode;
 mod color;
@@ -39,6 +41,7 @@ pub use crate::attributes::shape::Shape;
 pub use crate::attributes::spline_type::SplineType;
 pub use crate::attributes::splines::Splines;
 pub use crate::attributes::style::{EdgeStyle, GraphStyle, NodeStyle, Styles};
+#[doc(hidden)]
 pub use crate::attributes::AttributeText::{AttrStr, EscStr, HtmlStr, QuotedStr};
 use crate::dot::DotString;
 use indexmap::map::IndexMap;
@@ -441,7 +444,7 @@ pub trait GraphAttributes<'a> {
     /// Color used to fill the background, with a gradient, of a node or cluster assuming
     /// style=filled, or a filled arrowhead.
     /// TODO: example
-    /// [crate::GraphAttributes::dpi]
+    /// [crate::attributes::GraphAttributes::dpi]
     fn fill_color_with_iter<I>(&mut self, fill_colors: I) -> &mut Self
     where
         I: IntoIterator,
@@ -573,7 +576,7 @@ pub trait GraphAttributes<'a> {
 
     /// Sets x and y margins of canvas, in inches.
     /// Both margins are set equal to the given value.
-    /// See [`crate::GraphAttributes::margin_point`]
+    /// See [`crate::attributes::GraphAttributes::margin_point`]
     fn margin(&mut self, margin: f32) -> &mut Self {
         self.margin_point(Point::new_2d(margin, margin))
     }
@@ -662,9 +665,6 @@ pub trait GraphAttributes<'a> {
     }
 
     // TODO: constrain to 0 - 360. Docs say min is 360 which should be max right?
-    /// When used on nodes: Angle, in degrees, to rotate polygon node shapes.
-    /// For any number of polygon sides, 0 degrees rotation results in a flat base.
-    /// When used on graphs: If "[lL]*", sets graph orientation to landscape.
     /// Used only if rotate is not defined.
     /// Default: 0.0 and minimum: 360.0
     fn orientation(&mut self, orientation: f32) -> &mut Self {
@@ -705,7 +705,7 @@ pub trait GraphAttributes<'a> {
     /// Specifies how much, in inches, to extend the drawing area around the minimal area needed
     /// to draw the graph.
     /// Both the x and y pad values are set equal to the given value.
-    /// See [`crate::GraphAttributes::pad_point`]
+    /// See [`crate::attributes::GraphAttributes::pad_point`]
     fn pad(&mut self, pad: f32) -> &mut Self {
         self.pad_point(Point::new_2d(pad, pad))
     }
@@ -794,7 +794,7 @@ pub trait GraphAttributes<'a> {
     /// If desired_min is true, and both both dimensions of the drawing
     /// are less than size, the drawing is scaled up uniformly until at
     /// least one dimension equals its dimension in size.
-    /// See [`crate::GraphAttributes::size_point`]
+    /// See [`crate::attributes::GraphAttributes::size_point`]
     fn size(&mut self, size: u32, desired_min: bool) -> &mut Self {
         self.size_point(Point {
             x: size as f32,

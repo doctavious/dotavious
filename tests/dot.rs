@@ -1,4 +1,4 @@
-use dotavious::attributes::{AttributeText, CompassPoint, GraphAttributeStatementBuilder, GraphAttributes, NodeStyle, PortPosition, RankDir, Shape, EdgeStyle};
+use dotavious::attributes::{AttributeText, CompassPoint, GraphAttributeStatementBuilder, GraphAttributes, NodeStyle, PortPosition, RankDir, Shape, EdgeStyle, Color};
 use dotavious::{
     Dot, Edge, EdgeAttributeStatementBuilder, EdgeAttributes, EdgeBuilder, Graph,
     GraphBuilder, Node, NodeAttributeStatementBuilder, NodeAttributes, NodeBuilder,
@@ -7,10 +7,11 @@ use std::io;
 use std::io::Read;
 
 fn test_input(g: Graph) -> io::Result<String> {
-    let mut writer = Vec::new();
+    let mut writer= Vec::new();
     let dot = Dot { graph: g };
 
     dot.render(&mut writer).unwrap();
+
     let mut s = String::new();
     Read::read_to_string(&mut &*writer, &mut s)?;
     Ok(s)
@@ -285,7 +286,9 @@ fn graph_attributes() {
     let node_attributes = NodeAttributeStatementBuilder::new()
         .style(NodeStyle::Filled)
         .build();
-    let edge_attributes = EdgeAttributeStatementBuilder::new().min_len(1).build();
+    let edge_attributes = EdgeAttributeStatementBuilder::new()
+        .color(Color::Named("red"))
+        .build();
 
     let g = GraphBuilder::new_directed(Some("graph_attributes".to_string()))
         .add_graph_attributes(graph_attributes)
@@ -300,7 +303,7 @@ fn graph_attributes() {
         r#"digraph graph_attributes {
     graph [rankdir=LR];
     node [style=filled];
-    edge [minlen=1];
+    edge [color="red"];
 }
 "#
     );

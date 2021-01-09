@@ -1,3 +1,5 @@
+// TODO: docs
+
 use crate::attributes::{
     ArrowType, AttributeStatement, AttributeText, AttributeType, Attributes, Color,
     ColorList, Direction, EdgeStyle, GraphAttributeStatement, ImagePosition, ImageScale,
@@ -786,9 +788,8 @@ pub trait NodeAttributes<'a> {
     }
 
     // TODO: constrain to 0 - 360. Docs say min is 360 which should be max right?
-    /// When used on nodes: Angle, in degrees, to rotate polygon node shapes.
+    /// Angle, in degrees, to rotate polygon node shapes.
     /// For any number of polygon sides, 0 degrees rotation results in a flat base.
-    /// When used on graphs: If "[lL]*", sets graph orientation to landscape.
     /// Used only if rotate is not defined.
     /// Default: 0.0 and minimum: 360.0
     fn orientation(&mut self, orientation: f32) -> &mut Self {
