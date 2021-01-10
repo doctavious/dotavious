@@ -37,7 +37,7 @@ impl<'a> DotString<'a> for PortPosition {
 
 #[cfg(test)]
 mod test {
-    use crate::attributes::{PortPosition, CompassPoint};
+    use crate::attributes::{CompassPoint, PortPosition};
     use crate::DotString;
 
     #[test]
@@ -47,14 +47,16 @@ mod test {
             PortPosition::Port {
                 port_name: "port_0".to_string(),
                 compass_point: None
-            }.dot_string()
+            }
+            .dot_string()
         );
         assert_eq!(
             "port_0:ne",
             PortPosition::Port {
                 port_name: "port_0".to_string(),
                 compass_point: Some(CompassPoint::NE)
-            }.dot_string()
+            }
+            .dot_string()
         );
     }
 

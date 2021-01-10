@@ -1,4 +1,7 @@
-use dotavious::attributes::{AttributeText, CompassPoint, GraphAttributeStatementBuilder, GraphAttributes, NodeStyle, PortPosition, RankDir, Shape, EdgeStyle, Color};
+use dotavious::attributes::{
+    AttributeText, Color, CompassPoint, EdgeStyle, GraphAttributeStatementBuilder,
+    GraphAttributes, NodeStyle, PortPosition, RankDir, Shape,
+};
 use dotavious::{
     Dot, Edge, EdgeAttributeStatementBuilder, EdgeAttributes, EdgeBuilder, Graph,
     GraphBuilder, Node, NodeAttributeStatementBuilder, NodeAttributes, NodeBuilder,
@@ -7,7 +10,7 @@ use std::io;
 use std::io::Read;
 
 fn test_input(g: Graph) -> io::Result<String> {
-    let mut writer= Vec::new();
+    let mut writer = Vec::new();
     let dot = Dot { graph: g };
 
     dot.render(&mut writer).unwrap();
@@ -33,6 +36,7 @@ fn empty_digraph_without_id() {
 fn display() {
     let g = GraphBuilder::new_directed(None).build();
     let dot = Dot { graph: g };
+
     assert_eq!(
         format!("{}", dot),
         r#"digraph {

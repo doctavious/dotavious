@@ -9,9 +9,9 @@ use crate::attributes::{
 use indexmap::IndexMap;
 use std::borrow::Cow;
 use std::collections::HashMap;
+use std::fmt::{Debug, Display, Formatter};
 use std::io;
 use std::io::prelude::*;
-use std::fmt::{Display, Formatter, Debug};
 
 static INDENT: &str = "    ";
 
@@ -25,34 +25,32 @@ pub struct Dot<'a> {
 }
 
 impl<'a> Dot<'a> {
-    /// Renders directed graph `g` into the writer `w` in DOT syntax.
+    /// Renders graph into the writer `w` in DOT syntax.
     /// (Simple wrapper around `render_opts` that passes a default set of options.)
-    //pub fn render<W>(self, g: Graph, w: &mut W) -> io::Result<()>
     pub fn render<W>(self, w: &mut W) -> io::Result<()>
     where
         W: Write,
     {
-        // TODO: use default_options?
         self.render_opts(w, &[])
     }
 
-    /// Renders directed graph `g` into the writer `w` in DOT syntax.
+    /// Renders graph into the writer `w` in DOT syntax.
     /// (Main entry point for the library.)
-    // pub fn render_opts<W>(self, graph: Graph, w: &mut W, options: &[RenderOption]) -> io::Result<()>
     pub fn render_opts<W>(self, w: &mut W, options: &[RenderOption]) -> io::Result<()>
     where
         W: Write,
     {
-        self.internal_render(&self.graph, w)
+        self.internal_render(&self.graph, w, options)
     }
 
     fn internal_render<W>(
         &self,
         graph: &Graph,
-        w: &mut W
+        w: &mut W,
+        options: &[RenderOption],
     ) -> io::Result<()>
-        where
-            W: Write,
+    where
+        W: Write,
     {
         if let Some(comment) = &graph.comment {
             // TODO: split comment into lines of 80 or so characters
@@ -125,8 +123,8 @@ impl<'a> Dot<'a> {
 
 impl<'a> Display for Dot<'a> {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        let mut writer= Vec::new();
-        self.internal_render(&self.graph, &mut writer).unwrap();
+        let mut writer = Vec::new();
+        self.internal_render(&self.graph, &mut writer, &[]).unwrap();
 
         let mut s = String::new();
         Read::read_to_string(&mut &*writer, &mut s).unwrap();
@@ -147,11 +145,6 @@ pub enum RenderOption {
     NodeIndexLabel,
     /// Use indices for edge labels.
     EdgeIndexLabel,
-}
-
-/// Returns vec holding all the default render options.
-pub fn default_options() -> Vec<RenderOption> {
-    vec![]
 }
 
 pub struct Graph<'a> {

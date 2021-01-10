@@ -19,15 +19,18 @@ impl<'a> DotString<'a> for Rectangle {
 
 #[cfg(test)]
 mod test {
-    use crate::attributes::{Rectangle, Point};
+    use crate::attributes::{Point, Rectangle};
     use crate::DotString;
 
     #[test]
     fn dot_string() {
-        assert_eq!("0.0,0.0,1.0,1.0", Rectangle {
-            lower_left: Point::new_2d(0.0, 0.0),
-            upper_right: Point::new_2d(1.0, 1.0)
-        }.dot_string());
+        assert_eq!(
+            "0.0,0.0,1.0,1.0",
+            Rectangle {
+                lower_left: Point::new_2d(0.0, 0.0),
+                upper_right: Point::new_2d(1.0, 1.0)
+            }
+            .dot_string()
+        );
     }
-
 }
