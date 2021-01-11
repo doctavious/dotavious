@@ -3,18 +3,16 @@
 
 //! Dotavious provides bindings to generate [DOT](https://graphviz.org/doc/info/lang.html)
 //! code used by the Graphviz (http://graphviz.org/) for visualising graphs.
+//! Provides strongly typed attribute functions and offers almost complete
+//! coverage of all Graphviz attributes and syntax
 //!
-//! Main features of the graphviz library include:
-//! * Almost complete coverage of all Graphviz attributes and syntax.
+//! # Examples
 //!
-//! # Example
+//! First example provides a basic directed graph:
+//! 2 nodes connected by a single edge
 //!
 //! ```rust
-//! use dotavious::attributes::{AttributeText, GraphAttributeStatementBuilder, GraphAttributes};
-//! use dotavious::{
-//!     Dot, Edge, EdgeAttributeStatementBuilder, EdgeAttributes, EdgeBuilder, Graph,
-//!     GraphBuilder, Node, NodeAttributeStatementBuilder, NodeAttributes, NodeBuilder,
-//! };
+//! use dotavious::{Dot, Edge, Graph, GraphBuilder, Node};
 //! use std::io;
 //! use std::io::Read;
 //!
@@ -40,6 +38,28 @@
 //!     N1;
 //!     N0 -> N1;
 //! }
+//! ```
+//!
+//! Second example provides a more complex graph showcasing
+//! Dotavious' various builders and strongly typed attribute
+//! functions.
+//!
+//! ```rust
+//! use dotavious::attributes::{
+//!     AttributeText, Color, CompassPoint, EdgeStyle, GraphAttributeStatementBuilder,
+//!     GraphAttributes, NodeStyle, PortPosition, RankDir, Shape,
+//! };
+//! use dotavious::{
+//!     Dot, Edge, EdgeAttributeStatementBuilder, EdgeAttributes, EdgeBuilder, Graph,
+//!     GraphBuilder, Node, NodeAttributeStatementBuilder, NodeAttributes, NodeBuilder,
+//! };
+//! use std::io;
+//! use std::io::Read;
+//! ```
+//!
+//! Produces
+//! ```dot
+//!
 //! ```
 
 pub mod attributes;
