@@ -15,3 +15,12 @@ Cargo.lock
 #Added by cargo
 
 /target
+
+# ---- Sonar
+.sonar
+
+# ---- IntelliJ IDEA
+*.iws
+*.iml
+*.ipr
+.idea
