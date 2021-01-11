@@ -7,7 +7,7 @@ use crate::attributes::{
     Rectangle, Shape, Styles,
 };
 use indexmap::IndexMap;
-use std::borrow::Cow;
+use std::borrow::{Cow};
 use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
 use std::io;
@@ -26,28 +26,17 @@ pub struct Dot<'a> {
 
 impl<'a> Dot<'a> {
     /// Renders graph into the writer `w` in DOT syntax.
-    /// (Simple wrapper around `render_opts` that passes a default set of options.)
     pub fn render<W>(self, w: &mut W) -> io::Result<()>
     where
         W: Write,
     {
-        self.render_opts(w, &[])
-    }
-
-    /// Renders graph into the writer `w` in DOT syntax.
-    /// (Main entry point for the library.)
-    pub fn render_opts<W>(self, w: &mut W, options: &[RenderOption]) -> io::Result<()>
-    where
-        W: Write,
-    {
-        self.internal_render(&self.graph, w, options)
+        self.internal_render(&self.graph, w)
     }
 
     fn internal_render<W>(
         &self,
         graph: &Graph,
         w: &mut W,
-        options: &[RenderOption],
     ) -> io::Result<()>
     where
         W: Write,
@@ -87,7 +76,7 @@ impl<'a> Dot<'a> {
             writeln!(w, "{}{}", INDENT, n.dot_string())?;
         }
 
-        for e in &graph.edges {
+        for e in graph.edges.iter() {
             let mut edge_source = e.source.to_owned();
             if let Some(source_port_position) = &e.source_port_position {
                 edge_source
@@ -124,7 +113,7 @@ impl<'a> Dot<'a> {
 impl<'a> Display for Dot<'a> {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         let mut writer = Vec::new();
-        self.internal_render(&self.graph, &mut writer, &[]).unwrap();
+        self.internal_render(&self.graph, &mut writer).unwrap();
 
         let mut s = String::new();
         Read::read_to_string(&mut &*writer, &mut s).unwrap();
@@ -428,7 +417,7 @@ impl<'a> NodeAttributes<'a> for NodeBuilder<'a> {
         self
     }
 
-    /// Add multiple attribures to the edge.
+    /// Add multiple attributes to the edge.
     fn add_attributes(
         &'a mut self,
         attributes: HashMap<String, AttributeText<'a>>,
