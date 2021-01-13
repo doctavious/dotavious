@@ -1,10 +1,12 @@
 use dotavious::attributes::{
-    AttributeText, Color, CompassPoint, EdgeStyle, GraphAttributeStatementBuilder,
-    GraphAttributes, NodeStyle, PortPosition, RankDir, Shape,
+    AttributeText, Color, CompassPoint, EdgeAttributes, EdgeStyle,
+    GraphAttributeStatementBuilder, GraphAttributes, GraphStyle, NodeAttributes,
+    NodeStyle, PortPosition, RankDir, Shape,
 };
+use dotavious::dot::SubGraphBuilder;
 use dotavious::{
-    Dot, Edge, EdgeAttributeStatementBuilder, EdgeAttributes, EdgeBuilder, Graph,
-    GraphBuilder, Node, NodeAttributeStatementBuilder, NodeAttributes, NodeBuilder,
+    Dot, Edge, EdgeAttributeStatementBuilder, EdgeBuilder, Graph, GraphBuilder, Node,
+    NodeAttributeStatementBuilder, NodeBuilder,
 };
 use std::io;
 use std::io::Read;
@@ -320,6 +322,102 @@ fn graph_attributes() {
     graph [rankdir=LR];
     node [style=filled];
     edge [color="red"];
+}
+"#
+    );
+}
+
+#[test]
+fn clusters() {
+    let cluster_0 = SubGraphBuilder::new(Some("cluster_0".to_string()))
+        .add_graph_attributes(
+            GraphAttributeStatementBuilder::new()
+                .label("process #1".to_string())
+                .style(GraphStyle::Filled)
+                .color(Color::Named("lightgrey"))
+                .build(),
+        )
+        .add_node_attributes(
+            NodeAttributeStatementBuilder::new()
+                .style(NodeStyle::Filled)
+                .color(Color::Named("white"))
+                .build(),
+        )
+        .add_edge(Edge::new("a0".to_string(), "a1".to_string()))
+        .add_edge(Edge::new("a1".to_string(), "a2".to_string()))
+        .add_edge(Edge::new("a2".to_string(), "a3".to_string()))
+        .build();
+
+    let cluster_1 = SubGraphBuilder::new(Some("cluster_1".to_string()))
+        .add_graph_attributes(
+            GraphAttributeStatementBuilder::new()
+                .label("process #2".to_string())
+                .style(GraphStyle::Filled)
+                .color(Color::Named("blue"))
+                .build(),
+        )
+        .add_node_attributes(
+            NodeAttributeStatementBuilder::new()
+                .style(NodeStyle::Filled)
+                .build(),
+        )
+        .add_edge(Edge::new("b0".to_string(), "b1".to_string()))
+        .add_edge(Edge::new("b1".to_string(), "b2".to_string()))
+        .add_edge(Edge::new("b2".to_string(), "b3".to_string()))
+        .build();
+
+    let g = GraphBuilder::new_directed(Some("G".to_string()))
+        .add_node(
+            NodeBuilder::new("start".to_string())
+                .shape(Shape::Mdiamond)
+                .build(),
+        )
+        .add_node(
+            NodeBuilder::new("end".to_string())
+                .shape(Shape::Msquare)
+                .build(),
+        )
+        .add_sub_graph(cluster_0)
+        .add_sub_graph(cluster_1)
+        .add_edge(Edge::new("start".to_string(), "a0".to_string()))
+        .add_edge(Edge::new("start".to_string(), "b0".to_string()))
+        .add_edge(Edge::new("a1".to_string(), "b3".to_string()))
+        .add_edge(Edge::new("b2".to_string(), "a3".to_string()))
+        .add_edge(Edge::new("a3".to_string(), "a0".to_string()))
+        .add_edge(Edge::new("a3".to_string(), "end".to_string()))
+        .add_edge(Edge::new("b3".to_string(), "end".to_string()))
+        .build();
+
+    let r = test_input(g);
+
+    assert_eq!(
+        r.unwrap(),
+        r#"digraph G {
+    subgraph cluster_0 {
+        graph [label="process #1", style=filled, color="lightgrey"];
+        node [style=filled, color="white"];
+        a0 -> a1;
+        a1 -> a2;
+        a2 -> a3;
+    }
+
+    subgraph cluster_1 {
+        graph [label="process #2", style=filled, color="blue"];
+        node [style=filled];
+        b0 -> b1;
+        b1 -> b2;
+        b2 -> b3;
+    }
+
+    start [shape=Mdiamond];
+    end [shape=Msquare];
+    start -> a0;
+    start -> b0;
+    a1 -> b3;
+    b2 -> a3;
+    a3 -> a0;
+    a3 -> end;
+    b3 -> end;
 }
 "#
     );

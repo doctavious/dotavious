@@ -46,12 +46,12 @@
 //!
 //! ```rust
 //! use dotavious::attributes::{
-//!     AttributeText, Color, CompassPoint, EdgeStyle, GraphAttributeStatementBuilder,
-//!     GraphAttributes, NodeStyle, PortPosition, RankDir, Shape,
+//!     AttributeText, Color, CompassPoint, EdgeAttributes, EdgeStyle, GraphAttributeStatementBuilder,
+//!     GraphAttributes, NodeAttributes, NodeStyle, PortPosition, RankDir, Shape,
 //! };
 //! use dotavious::{
-//!     Dot, Edge, EdgeAttributeStatementBuilder, EdgeAttributes, EdgeBuilder, Graph,
-//!     GraphBuilder, Node, NodeAttributeStatementBuilder, NodeAttributes, NodeBuilder,
+//!     Dot, Edge, EdgeAttributeStatementBuilder, EdgeBuilder, Graph,
+//!     GraphBuilder, Node, NodeAttributeStatementBuilder, NodeBuilder,
 //! };
 //! use std::io;
 //! use std::io::Read;
@@ -67,9 +67,8 @@ pub mod dot;
 
 #[doc(hidden)]
 pub use crate::dot::{
-    Dot, DotString, Edge, EdgeAttributeStatementBuilder, EdgeAttributes, EdgeBuilder,
-    Graph, GraphBuilder, Node, NodeAttributeStatementBuilder, NodeAttributes,
-    NodeBuilder,
+    Dot, DotString, Edge, EdgeAttributeStatementBuilder, EdgeBuilder, Graph,
+    GraphBuilder, Node, NodeAttributeStatementBuilder, NodeBuilder,
 };
 
 // TODO: support adding edge based on index of nodes?
