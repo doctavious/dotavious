@@ -1,8 +1,8 @@
 // TODO: docs
 
 use crate::attributes::{
-    fmt_attributes, AttributeStatement, AttributeText, AttributeType, EdgeAttributes,
-    GraphAttributeStatement, NodeAttributes, PortPosition,
+    fmt_attributes, AttributeText, AttributeType, EdgeAttributes, NodeAttributes,
+    PortPosition,
 };
 use indexmap::IndexMap;
 use std::borrow::Cow;
@@ -49,16 +49,31 @@ impl<'a> Dot<'a> {
 
         writeln!(w, " {{")?;
 
-        if let Some(graph_attributes) = &graph.graph_attributes {
-            write!(w, "{}{}\n", INDENT, graph_attributes.dot_string())?;
+        if !&graph.graph_attributes.is_empty() {
+            write!(
+                w,
+                "{}graph{};\n",
+                INDENT,
+                fmt_attributes(&graph.graph_attributes)
+            )?;
         }
 
-        if let Some(node_attributes) = &graph.node_attributes {
-            write!(w, "{}{}\n", INDENT, node_attributes.dot_string())?;
+        if !&graph.node_attributes.is_empty() {
+            write!(
+                w,
+                "{}node{};\n",
+                INDENT,
+                fmt_attributes(&graph.node_attributes)
+            )?;
         }
 
-        if let Some(edge_attributes) = &graph.edge_attributes {
-            write!(w, "{}{}\n", INDENT, edge_attributes.dot_string())?;
+        if !&graph.edge_attributes.is_empty() {
+            write!(
+                w,
+                "{}edge{};\n",
+                INDENT,
+                fmt_attributes(&graph.edge_attributes)
+            )?;
         }
 
         for g in &graph.sub_graphs {
@@ -94,16 +109,32 @@ impl<'a> Dot<'a> {
         writeln!(w, " {{")?;
 
         let indent = get_indentation(indentation_level + 1);
-        if let Some(graph_attributes) = &sub_graph.graph_attributes {
-            write!(w, "{}{}\n", indent, graph_attributes.dot_string())?;
+
+        if !&sub_graph.graph_attributes.is_empty() {
+            write!(
+                w,
+                "{}graph{};\n",
+                indent,
+                fmt_attributes(&sub_graph.graph_attributes)
+            )?;
         }
 
-        if let Some(node_attributes) = &sub_graph.node_attributes {
-            write!(w, "{}{}\n", indent, node_attributes.dot_string())?;
+        if !&sub_graph.node_attributes.is_empty() {
+            write!(
+                w,
+                "{}node{};\n",
+                indent,
+                fmt_attributes(&sub_graph.node_attributes)
+            )?;
         }
 
-        if let Some(edge_attributes) = &sub_graph.edge_attributes {
-            write!(w, "{}{}\n", indent, edge_attributes.dot_string())?;
+        if !&sub_graph.edge_attributes.is_empty() {
+            write!(
+                w,
+                "{}edge{};\n",
+                indent,
+                fmt_attributes(&sub_graph.edge_attributes)
+            )?;
         }
 
         for g in &sub_graph.sub_graphs {
@@ -193,11 +224,11 @@ pub struct Graph<'a> {
     /// Comment added to the first line of the source.
     pub comment: Option<String>,
 
-    pub graph_attributes: Option<GraphAttributeStatement<'a>>,
+    pub graph_attributes: IndexMap<String, AttributeText<'a>>,
 
-    pub node_attributes: Option<NodeAttributeStatement<'a>>,
+    pub node_attributes: IndexMap<String, AttributeText<'a>>,
 
-    pub edge_attributes: Option<EdgeAttributeStatement<'a>>,
+    pub edge_attributes: IndexMap<String, AttributeText<'a>>,
 
     pub sub_graphs: Vec<SubGraph<'a>>,
 
@@ -212,9 +243,9 @@ impl<'a> Graph<'a> {
         is_directed: bool,
         strict: bool,
         comment: Option<String>,
-        graph_attributes: Option<GraphAttributeStatement<'a>>,
-        node_attributes: Option<NodeAttributeStatement<'a>>,
-        edge_attributes: Option<EdgeAttributeStatement<'a>>,
+        graph_attributes: IndexMap<String, AttributeText<'a>>,
+        node_attributes: IndexMap<String, AttributeText<'a>>,
+        edge_attributes: IndexMap<String, AttributeText<'a>>,
         sub_graphs: Vec<SubGraph<'a>>,
         nodes: Vec<Node<'a>>,
         edges: Vec<Edge<'a>>,
@@ -257,11 +288,11 @@ pub struct GraphBuilder<'a> {
 
     strict: bool,
 
-    graph_attributes: Option<GraphAttributeStatement<'a>>,
+    graph_attributes: IndexMap<String, AttributeText<'a>>,
 
-    node_attributes: Option<NodeAttributeStatement<'a>>,
+    node_attributes: IndexMap<String, AttributeText<'a>>,
 
-    edge_attributes: Option<EdgeAttributeStatement<'a>>,
+    edge_attributes: IndexMap<String, AttributeText<'a>>,
 
     sub_graphs: Vec<SubGraph<'a>>,
 
@@ -279,9 +310,9 @@ impl<'a> GraphBuilder<'a> {
             id,
             is_directed: true,
             strict: false,
-            graph_attributes: None,
-            node_attributes: None,
-            edge_attributes: None,
+            graph_attributes: IndexMap::new(),
+            node_attributes: IndexMap::new(),
+            edge_attributes: IndexMap::new(),
             sub_graphs: Vec::new(),
             nodes: Vec::new(),
             edges: Vec::new(),
@@ -294,9 +325,9 @@ impl<'a> GraphBuilder<'a> {
             id,
             is_directed: false,
             strict: false,
-            graph_attributes: None,
-            node_attributes: None,
-            edge_attributes: None,
+            graph_attributes: IndexMap::new(),
+            node_attributes: IndexMap::new(),
+            edge_attributes: IndexMap::new(),
             sub_graphs: Vec::new(),
             nodes: Vec::new(),
             edges: Vec::new(),
@@ -311,46 +342,27 @@ impl<'a> GraphBuilder<'a> {
 
     pub fn add_graph_attributes(
         &mut self,
-        graph_attributes: GraphAttributeStatement<'a>,
+        attributes: IndexMap<String, AttributeText<'a>>,
     ) -> &mut Self {
-        self.graph_attributes = Some(graph_attributes);
+        self.graph_attributes.extend(attributes);
         self
     }
 
     pub fn add_node_attributes(
         &mut self,
-        node_attributes: NodeAttributeStatement<'a>,
+        node_attributes: IndexMap<String, AttributeText<'a>>,
     ) -> &mut Self {
-        self.node_attributes = Some(node_attributes);
+        self.node_attributes.extend(node_attributes);
         self
     }
 
     pub fn add_edge_attributes(
         &mut self,
-        edge_attributes: EdgeAttributeStatement<'a>,
+        edge_attributes: IndexMap<String, AttributeText<'a>>,
     ) -> &mut Self {
-        self.edge_attributes = Some(edge_attributes);
+        self.edge_attributes.extend(edge_attributes);
         self
     }
-
-    // TODO: update to insert into appropriate statement or remove?
-    // pub fn add_attribute(
-    //     &mut self,
-    //     attribute_type: AttributeType,
-    //     key: String, value: AttributeText<'a>
-    // ) -> &mut Self {
-    //     self.get_attributes(attribute_type).insert(key, value);
-    //     self
-    // }
-    //
-    // pub fn add_attributes(
-    //     &mut self,
-    //     attribute_type: AttributeType,
-    //     attributes: HashMap<String, AttributeText<'a>>
-    // ) -> &mut Self {
-    //     self.get_attributes(attribute_type).extend(attributes);
-    //     self
-    // }
 
     pub fn add_attribute(
         &mut self,
@@ -359,34 +371,23 @@ impl<'a> GraphBuilder<'a> {
         value: AttributeText<'a>,
     ) -> &mut Self {
         match attribute_type {
-            AttributeType::Graph => {
-                if self.graph_attributes.is_none() {
-                    self.graph_attributes = Some(GraphAttributeStatement::new());
-                }
-                self.graph_attributes
-                    .as_mut()
-                    .unwrap()
-                    .add_attribute(key, value);
-            }
-            AttributeType::Edge => {
-                if self.edge_attributes.is_none() {
-                    self.edge_attributes = Some(EdgeAttributeStatement::new());
-                }
-                self.edge_attributes
-                    .as_mut()
-                    .unwrap()
-                    .add_attribute(key, value);
-            }
-            AttributeType::Node => {
-                if self.node_attributes.is_none() {
-                    self.node_attributes = Some(NodeAttributeStatement::new());
-                }
-                self.node_attributes
-                    .as_mut()
-                    .unwrap()
-                    .add_attribute(key, value);
-            }
-        }
+            AttributeType::Graph => self.graph_attributes.insert(key, value),
+            AttributeType::Edge => self.edge_attributes.insert(key, value),
+            AttributeType::Node => self.node_attributes.insert(key, value),
+        };
+        self
+    }
+
+    pub fn extend_with_attributes(
+        &mut self,
+        attribute_type: AttributeType,
+        attributes: HashMap<String, AttributeText<'a>>,
+    ) -> &mut Self {
+        match attribute_type {
+            AttributeType::Graph => self.graph_attributes.extend(attributes),
+            AttributeType::Edge => self.edge_attributes.extend(attributes),
+            AttributeType::Node => self.node_attributes.extend(attributes),
+        };
         self
     }
 
@@ -430,12 +431,11 @@ impl<'a> GraphBuilder<'a> {
 pub struct SubGraph<'a> {
     pub id: Option<String>,
 
-    pub graph_attributes: Option<GraphAttributeStatement<'a>>,
+    pub graph_attributes: IndexMap<String, AttributeText<'a>>,
 
-    pub node_attributes: Option<NodeAttributeStatement<'a>>,
+    pub node_attributes: IndexMap<String, AttributeText<'a>>,
 
-    pub edge_attributes: Option<EdgeAttributeStatement<'a>>,
-
+    pub edge_attributes: IndexMap<String, AttributeText<'a>>,
     pub sub_graphs: Vec<SubGraph<'a>>,
 
     pub nodes: Vec<Node<'a>>,
@@ -446,9 +446,9 @@ pub struct SubGraph<'a> {
 impl<'a> SubGraph<'a> {
     pub fn new(
         id: Option<String>,
-        graph_attributes: Option<GraphAttributeStatement<'a>>,
-        node_attributes: Option<NodeAttributeStatement<'a>>,
-        edge_attributes: Option<EdgeAttributeStatement<'a>>,
+        graph_attributes: IndexMap<String, AttributeText<'a>>,
+        node_attributes: IndexMap<String, AttributeText<'a>>,
+        edge_attributes: IndexMap<String, AttributeText<'a>>,
         sub_graphs: Vec<SubGraph<'a>>,
         nodes: Vec<Node<'a>>,
         edges: Vec<Edge<'a>>,
@@ -468,11 +468,11 @@ impl<'a> SubGraph<'a> {
 pub struct SubGraphBuilder<'a> {
     id: Option<String>,
 
-    graph_attributes: Option<GraphAttributeStatement<'a>>,
+    graph_attributes: IndexMap<String, AttributeText<'a>>,
 
-    node_attributes: Option<NodeAttributeStatement<'a>>,
+    node_attributes: IndexMap<String, AttributeText<'a>>,
 
-    edge_attributes: Option<EdgeAttributeStatement<'a>>,
+    edge_attributes: IndexMap<String, AttributeText<'a>>,
 
     sub_graphs: Vec<SubGraph<'a>>,
 
@@ -486,9 +486,9 @@ impl<'a> SubGraphBuilder<'a> {
     pub fn new(id: Option<String>) -> Self {
         Self {
             id,
-            graph_attributes: None,
-            node_attributes: None,
-            edge_attributes: None,
+            graph_attributes: IndexMap::new(),
+            node_attributes: IndexMap::new(),
+            edge_attributes: IndexMap::new(),
             sub_graphs: Vec::new(),
             nodes: Vec::new(),
             edges: Vec::new(),
@@ -497,25 +497,25 @@ impl<'a> SubGraphBuilder<'a> {
 
     pub fn add_graph_attributes(
         &mut self,
-        graph_attributes: GraphAttributeStatement<'a>,
+        graph_attributes: IndexMap<String, AttributeText<'a>>,
     ) -> &mut Self {
-        self.graph_attributes = Some(graph_attributes);
+        self.graph_attributes.extend(graph_attributes);
         self
     }
 
     pub fn add_node_attributes(
         &mut self,
-        node_attributes: NodeAttributeStatement<'a>,
+        node_attributes: IndexMap<String, AttributeText<'a>>,
     ) -> &mut Self {
-        self.node_attributes = Some(node_attributes);
+        self.node_attributes.extend(node_attributes);
         self
     }
 
     pub fn add_edge_attributes(
         &mut self,
-        edge_attributes: EdgeAttributeStatement<'a>,
+        edge_attributes: IndexMap<String, AttributeText<'a>>,
     ) -> &mut Self {
-        self.edge_attributes = Some(edge_attributes);
+        self.edge_attributes.extend(edge_attributes);
         self
     }
 
@@ -546,31 +546,13 @@ impl<'a> SubGraphBuilder<'a> {
     ) -> &mut Self {
         match attribute_type {
             AttributeType::Graph => {
-                if self.graph_attributes.is_none() {
-                    self.graph_attributes = Some(GraphAttributeStatement::new());
-                }
-                self.graph_attributes
-                    .as_mut()
-                    .unwrap()
-                    .add_attribute(key, value);
+                self.graph_attributes.insert(key, value);
             }
             AttributeType::Edge => {
-                if self.edge_attributes.is_none() {
-                    self.edge_attributes = Some(EdgeAttributeStatement::new());
-                }
-                self.edge_attributes
-                    .as_mut()
-                    .unwrap()
-                    .add_attribute(key, value);
+                self.edge_attributes.insert(key, value);
             }
             AttributeType::Node => {
-                if self.node_attributes.is_none() {
-                    self.node_attributes = Some(NodeAttributeStatement::new());
-                }
-                self.node_attributes
-                    .as_mut()
-                    .unwrap()
-                    .add_attribute(key, value);
+                self.node_attributes.insert(key, value);
             }
         }
         self
@@ -732,12 +714,6 @@ impl<'a> EdgeAttributes<'a> for EdgeBuilder<'a> {
     fn get_attributes_mut(&mut self) -> &mut IndexMap<String, AttributeText<'a>> {
         &mut self.attributes
     }
-
-    // /// Add multiple attributes to the edge.
-    // fn add_attributes(&'a mut self, attributes: HashMap<String, AttributeText<'a>>) -> &mut Self {
-    //     self.attributes.extend(attributes);
-    //     self
-    // }
 }
 
 impl<'a> EdgeBuilder<'a> {
@@ -842,42 +818,8 @@ impl<'a> NodeAttributeStatementBuilder<'a> {
         }
     }
 
-    pub fn build(&self) -> NodeAttributeStatement<'a> {
-        NodeAttributeStatement {
-            attributes: self.attributes.clone(),
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct NodeAttributeStatement<'a> {
-    pub attributes: IndexMap<String, AttributeText<'a>>,
-}
-
-impl<'a> NodeAttributeStatement<'a> {
-    pub fn new() -> Self {
-        Self {
-            attributes: IndexMap::new(),
-        }
-    }
-
-    pub fn add_attribute<S: Into<String>>(
-        &mut self,
-        key: S,
-        value: AttributeText<'a>,
-    ) -> &mut Self {
-        self.attributes.insert(key.into(), value);
-        self
-    }
-}
-
-impl<'a> AttributeStatement<'a> for NodeAttributeStatement<'a> {
-    fn get_attribute_statement_type(&self) -> &'static str {
-        "node"
-    }
-
-    fn get_attributes(&self) -> &IndexMap<String, AttributeText<'a>> {
-        &self.attributes
+    pub fn build(&self) -> IndexMap<String, AttributeText<'a>> {
+        self.attributes.clone()
     }
 }
 
@@ -896,16 +838,6 @@ impl<'a> EdgeAttributes<'a> for EdgeAttributeStatementBuilder<'a> {
     }
 }
 
-impl<'a> AttributeStatement<'a> for EdgeAttributeStatement<'a> {
-    fn get_attribute_statement_type(&self) -> &'static str {
-        "edge"
-    }
-
-    fn get_attributes(&self) -> &IndexMap<String, AttributeText<'a>> {
-        &self.attributes
-    }
-}
-
 // I'm not a huge fan of needing this builder but having a hard time getting around &mut without it
 pub struct EdgeAttributeStatementBuilder<'a> {
     pub attributes: IndexMap<String, AttributeText<'a>>,
@@ -918,32 +850,8 @@ impl<'a> EdgeAttributeStatementBuilder<'a> {
         }
     }
 
-    pub fn build(&self) -> EdgeAttributeStatement<'a> {
-        EdgeAttributeStatement {
-            attributes: self.attributes.clone(),
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct EdgeAttributeStatement<'a> {
-    pub attributes: IndexMap<String, AttributeText<'a>>,
-}
-
-impl<'a> EdgeAttributeStatement<'a> {
-    pub fn new() -> Self {
-        Self {
-            attributes: IndexMap::new(),
-        }
-    }
-
-    pub fn add_attribute<S: Into<String>>(
-        &mut self,
-        key: S,
-        value: AttributeText<'a>,
-    ) -> &mut Self {
-        self.attributes.insert(key.into(), value);
-        self
+    pub fn build(&self) -> IndexMap<String, AttributeText<'a>> {
+        self.attributes.clone()
     }
 }
 

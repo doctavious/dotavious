@@ -1,5 +1,5 @@
 use dotavious::attributes::{
-    AttributeText, Color, CompassPoint, EdgeAttributes, EdgeStyle,
+    AttributeText, AttributeType, Color, CompassPoint, EdgeAttributes, EdgeStyle,
     GraphAttributeStatementBuilder, GraphAttributes, GraphStyle, NodeAttributes,
     NodeStyle, PortPosition, RankDir, Shape,
 };
@@ -298,6 +298,84 @@ fn port_position_attribute() {
 
 #[test]
 fn graph_attributes() {
+    let g = GraphBuilder::new_directed(Some("graph_attributes".to_string()))
+        .add_attribute(
+            AttributeType::Graph,
+            "rankdir".to_string(),
+            AttributeText::from(RankDir::LeftRight),
+        )
+        .add_attribute(
+            AttributeType::Node,
+            "style".to_string(),
+            AttributeText::from(NodeStyle::Filled),
+        )
+        .add_attribute(
+            AttributeType::Edge,
+            "color".to_string(),
+            AttributeText::from(Color::Named("red")),
+        )
+        .build();
+
+    let r = test_input(g);
+
+    assert_eq!(
+        r.unwrap(),
+        r#"digraph graph_attributes {
+    graph [rankdir=LR];
+    node [style=filled];
+    edge [color="red"];
+}
+"#
+    );
+}
+
+#[test]
+fn graph_attributes_extend() {
+    let g = GraphBuilder::new_directed(Some("graph_attributes".to_string()))
+        .extend_with_attributes(
+            AttributeType::Graph,
+            [(
+                "rankdir".to_string(),
+                AttributeText::from(RankDir::LeftRight),
+            )]
+            .iter()
+            .cloned()
+            .collect(),
+        )
+        .extend_with_attributes(
+            AttributeType::Node,
+            [("style".to_string(), AttributeText::from(NodeStyle::Filled))]
+                .iter()
+                .cloned()
+                .collect(),
+        )
+        .extend_with_attributes(
+            AttributeType::Edge,
+            [(
+                "color".to_string(),
+                AttributeText::from(Color::Named("red")),
+            )]
+            .iter()
+            .cloned()
+            .collect(),
+        )
+        .build();
+
+    let r = test_input(g);
+
+    assert_eq!(
+        r.unwrap(),
+        r#"digraph graph_attributes {
+    graph [rankdir=LR];
+    node [style=filled];
+    edge [color="red"];
+}
+"#
+    );
+}
+
+#[test]
+fn graph_attributes_statement_builders() {
     let graph_attributes = GraphAttributeStatementBuilder::new()
         .rank_dir(RankDir::LeftRight)
         .build();
