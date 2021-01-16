@@ -3,8 +3,8 @@
 
 //! Dotavious provides bindings to generate [DOT](https://graphviz.org/doc/info/lang.html)
 //! code used by the Graphviz (http://graphviz.org/) for visualising graphs.
-//! Provides strongly typed attribute functions and offers almost complete
-//! coverage of all Graphviz attributes and syntax
+//! It also provides strongly typed attribute functions and offers almost complete
+//! coverage of all Graphviz attributes and syntax.
 //!
 //! # Examples
 //!
@@ -46,8 +46,9 @@
 //!
 //! ```rust
 //! use dotavious::attributes::{
-//!     AttributeText, Color, CompassPoint, EdgeAttributes, EdgeStyle, GraphAttributeStatementBuilder,
-//!     GraphAttributes, NodeAttributes, NodeStyle, PortPosition, RankDir, Shape,
+//!     AttributeText, Color, CompassPoint, EdgeAttributes, EdgeStyle,
+//!     GraphAttributeStatementBuilder, GraphAttributes, NodeAttributes,
+//!     NodeStyle, PortPosition, RankDir, Shape,
 //! };
 //! use dotavious::{
 //!     Dot, Edge, EdgeAttributeStatementBuilder, EdgeBuilder, Graph,

@@ -1279,7 +1279,7 @@ pub trait NodeAttributes<'a> {
 
     /// Sets x and y margins of canvas, in inches.
     /// Both margins are set equal to the given value.
-    /// See [`crate::NodeAttributes::margin_point`]
+    /// See [`crate::attributes::NodeAttributes::margin_point`]
     fn margin(&mut self, margin: f32) -> &mut Self {
         self.margin_point(Point::new_2d(margin, margin))
     }
