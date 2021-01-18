@@ -3,10 +3,9 @@ use dotavious::attributes::{
     GraphAttributeStatementBuilder, GraphAttributes, GraphStyle, NodeAttributes,
     NodeStyle, PortPosition, RankDir, Shape,
 };
-use dotavious::dot::SubGraphBuilder;
 use dotavious::{
     Dot, Edge, EdgeAttributeStatementBuilder, EdgeBuilder, Graph, GraphBuilder, Node,
-    NodeAttributeStatementBuilder, NodeBuilder,
+    NodeAttributeStatementBuilder, NodeBuilder, SubGraphBuilder,
 };
 use std::io;
 use std::io::Read;
@@ -35,7 +34,7 @@ fn empty_digraph_without_id() {
 }
 
 #[test]
-fn display() {
+fn support_display() {
     let g = GraphBuilder::new_directed(None).build();
     let dot = Dot { graph: g };
 
