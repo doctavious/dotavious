@@ -18,7 +18,8 @@
 //!         .add_node(Node::new("N0".to_string()))
 //!         .add_node(Node::new("N1".to_string()))
 //!         .add_edge(Edge::new("N0".to_string(), "N1".to_string()))
-//!         .build();
+//!         .build()
+//!         .unwrap();
 //!
 //! let dot = Dot { graph: g };
 //! println!("{}", dot);
@@ -42,7 +43,8 @@
 //!         .add_node(Node::new("N0".to_string()))
 //!         .add_node(Node::new("N1".to_string()))
 //!         .add_edge(Edge::new("N0".to_string(), "N1".to_string()))
-//!         .build();
+//!         .build()
+//!         .unwrap();
 //!
 //! let dot = Dot { graph: g };
 //! let mut writer= Vec::new();
@@ -78,18 +80,21 @@
 //!             .label("process #1".to_string())
 //!             .style(GraphStyle::Filled)
 //!             .color(Color::Named("lightgrey"))
-//!             .build(),
+//!             .build()
+//!             .unwrap(),
 //!     )
 //!     .add_node_attributes(
 //!         NodeAttributeStatementBuilder::new()
 //!             .style(NodeStyle::Filled)
 //!             .color(Color::Named("white"))
-//!             .build(),
+//!             .build()
+//!             .unwrap(),
 //!     )
 //!     .add_edge(Edge::new("a0".to_string(), "a1".to_string()))
 //!     .add_edge(Edge::new("a1".to_string(), "a2".to_string()))
 //!     .add_edge(Edge::new("a2".to_string(), "a3".to_string()))
-//!     .build();
+//!     .build()
+//!     .unwrap();
 //!
 //! let cluster_1 = SubGraphBuilder::new(Some("cluster_1".to_string()))
 //!     .add_graph_attributes(
@@ -97,28 +102,33 @@
 //!             .label("process #2".to_string())
 //!             .style(GraphStyle::Filled)
 //!             .color(Color::Named("blue"))
-//!             .build(),
+//!             .build()
+//!             .unwrap(),
 //!     )
 //!     .add_node_attributes(
 //!         NodeAttributeStatementBuilder::new()
 //!             .style(NodeStyle::Filled)
-//!             .build(),
+//!             .build()
+//!             .unwrap(),
 //!     )
 //!     .add_edge(Edge::new("b0".to_string(), "b1".to_string()))
 //!     .add_edge(Edge::new("b1".to_string(), "b2".to_string()))
 //!     .add_edge(Edge::new("b2".to_string(), "b3".to_string()))
-//!     .build();
+//!     .build()
+//!     .unwrap();
 //!
 //! let g = GraphBuilder::new_directed(Some("G".to_string()))
 //!     .add_node(
 //!         NodeBuilder::new("start".to_string())
 //!             .shape(Shape::Mdiamond)
-//!             .build(),
+//!             .build()
+//!             .unwrap(),
 //!     )
 //!     .add_node(
 //!         NodeBuilder::new("end".to_string())
 //!             .shape(Shape::Msquare)
-//!             .build(),
+//!             .build()
+//!             .unwrap(),
 //!     )
 //!     .add_sub_graph(cluster_0)
 //!     .add_sub_graph(cluster_1)
@@ -165,6 +175,7 @@
 
 pub mod attributes;
 pub mod dot;
+pub mod validation;
 
 #[doc(hidden)]
 pub use crate::dot::{

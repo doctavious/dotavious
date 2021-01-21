@@ -44,9 +44,11 @@ pub use crate::attributes::style::{EdgeStyle, GraphStyle, NodeStyle, Styles};
 #[doc(hidden)]
 pub use crate::attributes::AttributeText::{AttrStr, EscStr, HtmlStr, QuotedStr};
 use crate::dot::DotString;
+use crate::validation::{ValidationError, ValidationResult};
 use indexmap::map::IndexMap;
 use std::borrow::Cow;
 use std::collections::HashMap;
+use Cow::Borrowed;
 
 /// The text for a graphviz label on a node or edge.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -459,10 +461,12 @@ pub trait GraphAttributes<'a> {
         self.add_attribute("fontpath", AttributeText::quoted(font_path))
     }
 
-    // TODO: constrain
     /// Font size, in points, used for text.
     /// default: 14.0, minimum: 1.0
     fn font_size(&mut self, font_size: f32) -> &mut Self {
+        if font_size < 1.0 {
+            self.add_validation_error("fontsize", "Must be greater than or equal to 1.0")
+        }
         Attributes::font_size(self.get_attributes_mut(), font_size);
         self
     }
@@ -605,10 +609,12 @@ pub trait GraphAttributes<'a> {
         self.add_attribute("newrank", AttributeText::from(newrank))
     }
 
-    // TODO: add constraint
     /// specifies the minimum space between two adjacent nodes in the same rank, in inches.
     /// default: 0.25, minimum: 0.02
     fn nodesep(&mut self, nodesep: f32) -> &mut Self {
+        if nodesep < 0.02 {
+            self.add_validation_error("nodesep", "Must be greater than or equal to 0.02")
+        }
         self.add_attribute("nodesep", AttributeText::from(nodesep))
     }
 
@@ -653,6 +659,9 @@ pub trait GraphAttributes<'a> {
     /// Used only if rotate is not defined.
     /// Default: 0.0 and minimum: 360.0
     fn orientation(&mut self, orientation: f32) -> &mut Self {
+        if orientation < 0.0 || orientation > 360.0 {
+            self.add_validation_error("orientation", "Must be between 0 and 360")
+        }
         Attributes::orientation(self.get_attributes_mut(), orientation);
         self
     }
@@ -671,7 +680,6 @@ pub trait GraphAttributes<'a> {
         self.add_attribute("pack", AttributeText::from(pack))
     }
 
-    // TODO: constrain to non-negative integer.
     /// Whether each connected component of the graph should be laid out separately, and then
     /// the graphs packed together.
     /// This is used as the size, in points,of a margin around each part; otherwise, a default
@@ -721,10 +729,12 @@ pub trait GraphAttributes<'a> {
         self.add_attribute("pagedir", AttributeText::from(page_dir))
     }
 
-    // TODO: constrain
     /// If quantum > 0.0, node label dimensions will be rounded to integral multiples of the quantum.
     /// default: 0.0, minimum: 0.0
     fn quantum(&mut self, quantum: f32) -> &mut Self {
+        if quantum < 0.0 {
+            self.add_validation_error("quantum", "Must be greater than or equal to 0")
+        }
         self.add_attribute("quantum", AttributeText::from(quantum))
     }
 
@@ -762,7 +772,6 @@ pub trait GraphAttributes<'a> {
         self.add_attribute("rotate", AttributeText::from(rotate))
     }
 
-    // TODO: constrain
     /// Print guide boxes in PostScript at the beginning of routesplines if showboxes=1, or at
     /// the end if showboxes=2.
     /// (Debugging, TB mode only!)
@@ -874,6 +883,8 @@ pub trait GraphAttributes<'a> {
     ) -> &mut Self;
 
     fn get_attributes_mut(&mut self) -> &mut IndexMap<String, AttributeText<'a>>;
+
+    fn add_validation_error(&mut self, field: &'static str, message: &'static str);
 }
 
 impl<'a> GraphAttributes<'a> for GraphAttributeStatementBuilder<'a> {
@@ -898,21 +909,37 @@ impl<'a> GraphAttributes<'a> for GraphAttributeStatementBuilder<'a> {
     fn get_attributes_mut(&mut self) -> &mut IndexMap<String, AttributeText<'a>> {
         &mut self.attributes
     }
+
+    fn add_validation_error(&mut self, field: &'static str, message: &'static str) {
+        self.errors.push(ValidationError {
+            field: Borrowed(field),
+            message: Borrowed(message),
+        })
+    }
 }
 
 // I'm not a huge fan of needing this builder but having a hard time getting around &mut without it
 pub struct GraphAttributeStatementBuilder<'a> {
     pub attributes: IndexMap<String, AttributeText<'a>>,
+    errors: Vec<ValidationError>,
 }
 
 impl<'a> GraphAttributeStatementBuilder<'a> {
     pub fn new() -> Self {
         Self {
             attributes: IndexMap::new(),
+            errors: Vec::new(),
         }
     }
 
-    pub fn build(&self) -> IndexMap<String, AttributeText<'a>> {
+    pub fn build(&self) -> ValidationResult<IndexMap<String, AttributeText<'a>>> {
+        if !self.errors.is_empty() {
+            return Err(self.errors.clone());
+        }
+        Ok(self.build_ignore_validation())
+    }
+
+    pub fn build_ignore_validation(&self) -> IndexMap<String, AttributeText<'a>> {
         self.attributes.clone()
     }
 }
@@ -1112,10 +1139,12 @@ impl Attributes {
 }
 
 pub trait NodeAttributes<'a> {
-    // TODO: constrain
     /// Indicates the preferred area for a node or empty cluster when laid out by patchwork.
-    /// default: 1.0, minimum: >0
+    /// default: 1.0, minimum: > 0
     fn area(&mut self, area: f32) -> &mut Self {
+        if area <= 0.0 {
+            self.add_validation_error("area", "Must be greater than 0")
+        }
         self.add_attribute("area", AttributeText::from(area))
     }
 
@@ -1219,10 +1248,12 @@ pub trait NodeAttributes<'a> {
         self.add_attribute("group", AttributeText::attr(group))
     }
 
-    // TODO: constrain
     /// Height of node, in inches.
     /// default: 0.5, minimum: 0.02
     fn height(&mut self, height: f32) -> &mut Self {
+        if height < 0.02 {
+            self.add_validation_error("height", "Must be greater than or equal to 0.02")
+        }
         self.add_attribute("height", AttributeText::from(height))
     }
 
@@ -1336,6 +1367,9 @@ pub trait NodeAttributes<'a> {
     /// Used only if rotate is not defined.
     /// Default: 0.0 and minimum: 360.0
     fn orientation(&mut self, orientation: f32) -> &mut Self {
+        if orientation < 0.0 || orientation > 360.0 {
+            self.add_validation_error("orientation", "Must be between 0 and 360")
+        }
         Attributes::orientation(self.get_attributes_mut(), orientation);
         self
     }
@@ -1383,7 +1417,6 @@ pub trait NodeAttributes<'a> {
         self.add_attribute("shape", AttributeText::from(shape))
     }
 
-    // TODO: constrain
     /// Print guide boxes in PostScript at the beginning of routesplines if
     /// showboxes=1, or at the end if showboxes=2.
     /// (Debugging, TB mode only!)
@@ -1398,11 +1431,13 @@ pub trait NodeAttributes<'a> {
         self.add_attribute("sides", AttributeText::from(sides))
     }
 
-    // TODO: constrain
     /// Skew factor for shape=polygon.
     /// Positive values skew top of polygon to right; negative to left.
     /// default: 0.0, minimum: -100.0
     fn skew(&mut self, skew: f32) -> &mut Self {
+        if skew < -100.0 {
+            self.add_validation_error("skew", "Must be greater than or equal to -100")
+        }
         self.add_attribute("skew", AttributeText::from(skew))
     }
 
@@ -1491,6 +1526,8 @@ pub trait NodeAttributes<'a> {
     ) -> &mut Self;
 
     fn get_attributes_mut(&mut self) -> &mut IndexMap<String, AttributeText<'a>>;
+
+    fn add_validation_error(&mut self, field: &'static str, message: &'static str);
 }
 
 pub trait EdgeAttributes<'a> {
@@ -1500,10 +1537,12 @@ pub trait EdgeAttributes<'a> {
         self.add_attribute("arrowhead", AttributeText::from(arrowhead))
     }
 
-    // TODO: constrain
     /// Multiplicative scale factor for arrowheads.
     /// default: 1.0, minimum: 0.0
     fn arrow_size(&mut self, arrow_size: f32) -> &mut Self {
+        if arrow_size < 0.0 {
+            self.add_validation_error("arrowsize", "Must be greater than or equal to 0")
+        }
         self.add_attribute("arrowsize", AttributeText::from(arrow_size))
     }
 
@@ -1685,7 +1724,6 @@ pub trait EdgeAttributes<'a> {
         self
     }
 
-    // TODO: constrain
     /// Determines, along with labeldistance, where the headlabel / taillabel are
     /// placed with respect to the head / tail in polar coordinates.
     /// The origin in the coordinate system is the point where the edge touches the node.
@@ -1694,6 +1732,12 @@ pub trait EdgeAttributes<'a> {
     /// with positive angles moving counterclockwise and negative angles moving clockwise.
     /// default: -25.0, minimum: -180.0
     fn label_angle(&mut self, label_angle: f32) -> &mut Self {
+        if label_angle < -180.0 {
+            self.add_validation_error(
+                "labelangle",
+                "Must be greater than or equal to -180",
+            )
+        }
         self.add_attribute("labelangle", AttributeText::from(label_angle))
     }
 
@@ -1721,11 +1765,16 @@ pub trait EdgeAttributes<'a> {
         self.add_attribute("labelfontname", AttributeText::attr(label_font_name))
     }
 
-    // TODO: constrains
     /// Font size, in points, used for headlabel and taillabel.
     /// If not set, defaults to edge’s fontsize.
     /// default: 14.0, minimum: 1.0
     fn label_font_size(&mut self, label_font_size: f32) -> &mut Self {
+        if label_font_size < 1.0 {
+            self.add_validation_error(
+                "labelfontsize",
+                "Must be greater than or equal to 1",
+            )
+        }
         self.add_attribute("labelfontsize", AttributeText::from(label_font_size))
     }
 
@@ -1801,7 +1850,6 @@ pub trait EdgeAttributes<'a> {
         self.add_attribute("sametail", AttributeText::quoted(same_tail))
     }
 
-    // TODO: constrain
     /// Print guide boxes in PostScript at the beginning of routesplines if showboxes=1, or at the
     /// end if showboxes=2.
     /// (Debugging, TB mode only!)
@@ -1876,12 +1924,11 @@ pub trait EdgeAttributes<'a> {
         self
     }
 
-    // TODO: contrain
     /// Weight of edge.
     /// The heavier the weight, the shorter, straighter and more vertical the edge is.
     /// default: 1, minimum: 0
     fn weight(&mut self, weight: u32) -> &mut Self {
-        self.add_attribute("weight", AttributeText::attr(weight.to_string()))
+        self.add_attribute("weight", AttributeText::from(weight))
     }
 
     /// External label for a node or edge.
@@ -1909,6 +1956,8 @@ pub trait EdgeAttributes<'a> {
     ) -> &mut Self;
 
     fn get_attributes_mut(&mut self) -> &mut IndexMap<String, AttributeText<'a>>;
+
+    fn add_validation_error(&mut self, field: &'static str, message: &'static str);
 }
 
 pub(crate) fn fmt_attributes(attributes: &IndexMap<String, AttributeText>) -> String {
@@ -1943,7 +1992,8 @@ mod test {
                 (Color::Named("yellow"), Some(0.3)),
                 (Color::Named("blue"), None),
             ])
-            .build();
+            .build()
+            .unwrap();
 
         assert_eq!(
             graph_attributes.get("fillcolor").unwrap().dot_string(),

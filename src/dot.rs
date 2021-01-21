@@ -6,12 +6,21 @@ use crate::attributes::{
 };
 use indexmap::IndexMap;
 use std::borrow::Cow;
+use std::borrow::Cow::Borrowed;
 use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
 use std::io;
 use std::io::prelude::*;
 
 static INDENT: &str = "    ";
+
+pub type ValidationResult<T> = std::result::Result<T, Vec<ValidationError>>;
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct ValidationError {
+    pub message: Cow<'static, str>,
+    pub field: Cow<'static, str>,
+}
 
 pub trait DotString<'a> {
     fn dot_string(&self) -> Cow<'a, str>;
@@ -301,6 +310,8 @@ pub struct GraphBuilder<'a> {
     edges: Vec<Edge<'a>>,
 
     comment: Option<String>,
+
+    errors: Vec<ValidationError>,
 }
 
 // TODO: id should be an escString
@@ -317,6 +328,7 @@ impl<'a> GraphBuilder<'a> {
             nodes: Vec::new(),
             edges: Vec::new(),
             comment: None,
+            errors: Vec::new(),
         }
     }
 
@@ -332,6 +344,7 @@ impl<'a> GraphBuilder<'a> {
             nodes: Vec::new(),
             edges: Vec::new(),
             comment: None,
+            errors: Vec::new(),
         }
     }
 
@@ -411,7 +424,14 @@ impl<'a> GraphBuilder<'a> {
         self
     }
 
-    pub fn build(&self) -> Graph<'a> {
+    pub fn build(&self) -> ValidationResult<Graph<'a>> {
+        if !self.errors.is_empty() {
+            return Err(self.errors.clone());
+        }
+        Ok(self.build_ignore_validation())
+    }
+
+    pub fn build_ignore_validation(&self) -> Graph<'a> {
         Graph {
             id: self.id.to_owned(),
             is_directed: self.is_directed,
@@ -479,6 +499,8 @@ pub struct SubGraphBuilder<'a> {
     nodes: Vec<Node<'a>>,
 
     edges: Vec<Edge<'a>>,
+
+    errors: Vec<ValidationError>,
 }
 
 // TODO: id should be an escString
@@ -492,6 +514,7 @@ impl<'a> SubGraphBuilder<'a> {
             sub_graphs: Vec::new(),
             nodes: Vec::new(),
             edges: Vec::new(),
+            errors: Vec::new(),
         }
     }
 
@@ -573,8 +596,12 @@ impl<'a> SubGraphBuilder<'a> {
         self
     }
 
-    pub fn build(&self) -> SubGraph<'a> {
-        SubGraph {
+    pub fn build(&self) -> ValidationResult<SubGraph<'a>> {
+        if !self.errors.is_empty() {
+            return Err(self.errors.clone());
+        }
+
+        Ok(SubGraph {
             id: self.id.to_owned(),
             graph_attributes: self.graph_attributes.clone(),
             node_attributes: self.node_attributes.clone(),
@@ -582,7 +609,7 @@ impl<'a> SubGraphBuilder<'a> {
             sub_graphs: self.sub_graphs.clone(),
             nodes: self.nodes.clone(), // TODO: is clone the only option here?
             edges: self.edges.clone(), // TODO: is clone the only option here?
-        }
+        })
     }
 }
 
@@ -614,6 +641,7 @@ impl<'a> DotString<'a> for Node<'a> {
 pub struct NodeBuilder<'a> {
     id: String,
     attributes: IndexMap<String, AttributeText<'a>>,
+    errors: Vec<ValidationError>,
 }
 
 impl<'a> NodeAttributes<'a> for NodeBuilder<'a> {
@@ -638,6 +666,13 @@ impl<'a> NodeAttributes<'a> for NodeBuilder<'a> {
     fn get_attributes_mut(&mut self) -> &mut IndexMap<String, AttributeText<'a>> {
         &mut self.attributes
     }
+
+    fn add_validation_error(&mut self, field: &'static str, message: &'static str) {
+        self.errors.push(ValidationError {
+            field: Borrowed(field),
+            message: Borrowed(message),
+        })
+    }
 }
 
 impl<'a> NodeBuilder<'a> {
@@ -645,10 +680,18 @@ impl<'a> NodeBuilder<'a> {
         Self {
             id,
             attributes: IndexMap::new(),
+            errors: Vec::new(),
         }
     }
 
-    pub fn build(&self) -> Node<'a> {
+    pub fn build(&self) -> ValidationResult<Node<'a>> {
+        if !self.errors.is_empty() {
+            return Err(self.errors.clone());
+        }
+        Ok(self.build_ignore_validation())
+    }
+
+    pub fn build_ignore_validation(&self) -> Node<'a> {
         Node {
             // TODO: are these to_owned and clones necessary?
             id: self.id.to_owned(),
@@ -699,6 +742,7 @@ pub struct EdgeBuilder<'a> {
     pub target: String,
     pub target_port_position: Option<PortPosition>,
     attributes: IndexMap<String, AttributeText<'a>>,
+    errors: Vec<ValidationError>,
 }
 
 impl<'a> EdgeAttributes<'a> for EdgeBuilder<'a> {
@@ -714,6 +758,13 @@ impl<'a> EdgeAttributes<'a> for EdgeBuilder<'a> {
     fn get_attributes_mut(&mut self) -> &mut IndexMap<String, AttributeText<'a>> {
         &mut self.attributes
     }
+
+    fn add_validation_error(&mut self, field: &'static str, message: &'static str) {
+        self.errors.push(ValidationError {
+            field: Borrowed(field),
+            message: Borrowed(message),
+        })
+    }
 }
 
 impl<'a> EdgeBuilder<'a> {
@@ -724,6 +775,7 @@ impl<'a> EdgeBuilder<'a> {
             source_port_position: None,
             target_port_position: None,
             attributes: IndexMap::new(),
+            errors: Vec::new(),
         }
     }
 
@@ -739,6 +791,7 @@ impl<'a> EdgeBuilder<'a> {
             source_port_position: Some(source_port_position),
             target_port_position: Some(target_port_position),
             attributes: IndexMap::new(),
+            errors: Vec::new(),
         }
     }
 
@@ -770,7 +823,14 @@ impl<'a> EdgeBuilder<'a> {
         self
     }
 
-    pub fn build(&self) -> Edge<'a> {
+    pub fn build(&self) -> ValidationResult<Edge<'a>> {
+        if !self.errors.is_empty() {
+            return Err(self.errors.clone());
+        }
+        Ok(self.build_ignore_validation())
+    }
+
+    pub fn build_ignore_validation(&self) -> Edge<'a> {
         Edge {
             // TODO: are these to_owned and clones necessary?
             source: self.source.to_owned(),
@@ -804,21 +864,37 @@ impl<'a> NodeAttributes<'a> for NodeAttributeStatementBuilder<'a> {
     fn get_attributes_mut(&mut self) -> &mut IndexMap<String, AttributeText<'a>> {
         &mut self.attributes
     }
+
+    fn add_validation_error(&mut self, field: &'static str, message: &'static str) {
+        self.errors.push(ValidationError {
+            field: Borrowed(field),
+            message: Borrowed(message),
+        })
+    }
 }
 
 // I'm not a huge fan of needing this builder but having a hard time getting around &mut without it
 pub struct NodeAttributeStatementBuilder<'a> {
     pub attributes: IndexMap<String, AttributeText<'a>>,
+    errors: Vec<ValidationError>,
 }
 
 impl<'a> NodeAttributeStatementBuilder<'a> {
     pub fn new() -> Self {
         Self {
             attributes: IndexMap::new(),
+            errors: Vec::new(),
         }
     }
 
-    pub fn build(&self) -> IndexMap<String, AttributeText<'a>> {
+    pub fn build(&self) -> ValidationResult<IndexMap<String, AttributeText<'a>>> {
+        if !self.errors.is_empty() {
+            return Err(self.errors.clone());
+        }
+        Ok(self.build_ignore_validation())
+    }
+
+    pub fn build_ignore_validation(&self) -> IndexMap<String, AttributeText<'a>> {
         self.attributes.clone()
     }
 }
@@ -836,21 +912,37 @@ impl<'a> EdgeAttributes<'a> for EdgeAttributeStatementBuilder<'a> {
     fn get_attributes_mut(&mut self) -> &mut IndexMap<String, AttributeText<'a>> {
         &mut self.attributes
     }
+
+    fn add_validation_error(&mut self, field: &'static str, message: &'static str) {
+        self.errors.push(ValidationError {
+            field: Borrowed(field),
+            message: Borrowed(message),
+        })
+    }
 }
 
 // I'm not a huge fan of needing this builder but having a hard time getting around &mut without it
 pub struct EdgeAttributeStatementBuilder<'a> {
     pub attributes: IndexMap<String, AttributeText<'a>>,
+    errors: Vec<ValidationError>,
 }
 
 impl<'a> EdgeAttributeStatementBuilder<'a> {
     pub fn new() -> Self {
         Self {
             attributes: IndexMap::new(),
+            errors: Vec::new(),
         }
     }
 
-    pub fn build(&self) -> IndexMap<String, AttributeText<'a>> {
+    pub fn build(&self) -> ValidationResult<IndexMap<String, AttributeText<'a>>> {
+        if !self.errors.is_empty() {
+            return Err(self.errors.clone());
+        }
+        Ok(self.build_ignore_validation())
+    }
+
+    pub fn build_ignore_validation(&self) -> IndexMap<String, AttributeText<'a>> {
         self.attributes.clone()
     }
 }
