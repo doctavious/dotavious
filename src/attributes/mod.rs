@@ -20,6 +20,7 @@ mod shape;
 mod spline_type;
 mod splines;
 mod style;
+mod viewport;
 
 pub use crate::attributes::arrow_type::ArrowType;
 pub use crate::attributes::cluster_mode::ClusterMode;
@@ -49,6 +50,7 @@ use indexmap::map::IndexMap;
 use std::borrow::Cow;
 use std::collections::HashMap;
 use Cow::Borrowed;
+use crate::attributes::viewport::ViewPort;
 
 /// The text for a graphviz label on a node or edge.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -309,6 +311,13 @@ impl<'a> From<Styles> for AttributeText<'a> {
         }
     }
 }
+
+impl<'a> From<ViewPort> for AttributeText<'a> {
+    fn from(viewport: ViewPort) -> Self {
+        AttributeText::quoted(viewport.dot_string())
+    }
+}
+
 
 impl<'a> From<u32> for AttributeText<'a> {
     fn from(v: u32) -> Self {
@@ -853,7 +862,6 @@ pub trait GraphAttributes<'a> {
         self
     }
 
-    // TODO: add a ViewPort Struct?
     /// Clipping window on final drawing.
     /// viewport supersedes any size attribute.
     /// The width and height of the viewport specify precisely the final size of the output.
@@ -865,8 +873,8 @@ pub trait GraphAttributes<'a> {
     /// of the graph,
     /// in points, of the center of the viewport, or the name N of a node whose center should used
     /// as the focus.
-    fn viewport(&mut self, viewport: String) -> &mut Self {
-        self.add_attribute("viewport", AttributeText::attr(viewport))
+    fn viewport(&mut self, viewport: ViewPort) -> &mut Self {
+        self.add_attribute("viewport", AttributeText::from(viewport))
     }
 
     /// Add an attribute to the node.
