@@ -9,4 +9,4 @@ repository = "https://github.com/doctavious/dotavious"
 license = "MIT"
 
 [dependencies]
-indexmap = "1.6.1"
+indexmap = "1.6.2"
