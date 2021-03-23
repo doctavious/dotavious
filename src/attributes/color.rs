@@ -91,7 +91,7 @@ impl<'a> DotString<'a> for ColorList<'a> {
     }
 }
 
-/// Convert an element like `(i, j)` into a WeightedColor
+/// Convert an element like `(Color, Option<f32>)` into a WeightedColor
 pub trait IntoWeightedColor<'a> {
     fn into_weighted_color(self) -> WeightedColor<'a>;
 }

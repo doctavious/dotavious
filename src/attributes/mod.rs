@@ -1556,8 +1556,8 @@ pub trait EdgeAttributes<'a> {
 
     /// Style of arrowhead on the tail node of an edge.
     /// This will only appear if the dir attribute is back or both.
-    fn arrowtail(&mut self, arrowtail: ArrowType) -> &mut Self {
-        self.add_attribute("arrowtail", AttributeText::from(arrowtail))
+    fn arrow_tail(&mut self, arrow_tail: ArrowType) -> &mut Self {
+        self.add_attribute("arrowtail", AttributeText::from(arrow_tail))
     }
 
     /// Classnames to attach to the edge’s SVG element.
