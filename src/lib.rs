@@ -1,4 +1,4 @@
-#![doc(html_root_url = "https://docs.rs/dotavious/0.1.0")]
+#![doc(html_root_url = "https://docs.rs/dotavious")]
 #![cfg_attr(docsrs, deny(broken_intra_doc_links))]
 
 //! Dotavious provides bindings to generate [DOT](https://graphviz.org/doc/info/lang.html)
