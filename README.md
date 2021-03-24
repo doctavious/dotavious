@@ -22,11 +22,11 @@ use dotavious::{Dot, Edge, Graph, GraphBuilder, Node};
 use std::io;
 use std::io::Read;
 
-// can also start building a undirected graph via `GraphBuilder::new_undirected`
-let graph = GraphBuilder::new_directed(Some("example".to_string()))
-        .add_node(Node::new("N0".to_string()))
-        .add_node(Node::new("N1".to_string()))
-        .add_edge(Edge::new("N0".to_string(), "N1".to_string()))
+// can also start building a named undirected graph via `GraphBuilder::new_named_undirected`
+let graph = GraphBuilder::new_named_directed("example")
+        .add_node(Node::new("N0"))
+        .add_node(Node::new("N1"))
+        .add_edge(Edge::new("N0", "N1"))
         .build()
         .unwrap();
 
@@ -42,4 +42,5 @@ digraph example {
 }
 ```
 and when rendered will look like
+
 ![README example rendered](readme-example.png?raw=true)

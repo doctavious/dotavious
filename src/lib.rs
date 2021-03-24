@@ -2,7 +2,7 @@
 #![cfg_attr(docsrs, deny(broken_intra_doc_links))]
 
 //! Dotavious provides bindings to generate [DOT](https://graphviz.org/doc/info/lang.html)
-//! code used by the Graphviz (http://graphviz.org/) for visualising graphs.
+//! code used by the [Graphviz](http://graphviz.org/) for visualising graphs.
 //! It also provides strongly typed attribute functions and offers almost complete
 //! coverage of all Graphviz attributes and syntax.
 //!
@@ -14,10 +14,10 @@
 //! ```rust
 //! use dotavious::{Dot, Edge, Graph, GraphBuilder, Node};
 //!
-//! let g = GraphBuilder::new_directed(Some("example".to_string()))
-//!         .add_node(Node::new("N0".to_string()))
-//!         .add_node(Node::new("N1".to_string()))
-//!         .add_edge(Edge::new("N0".to_string(), "N1".to_string()))
+//! let g = GraphBuilder::new_named_directed("example")
+//!         .add_node(Node::new("N0"))
+//!         .add_node(Node::new("N1"))
+//!         .add_edge(Edge::new("N0", "N1"))
 //!         .build()
 //!         .unwrap();
 //!
@@ -39,7 +39,7 @@
 //! use std::io;
 //! use std::io::Read;
 //!
-//! let g = GraphBuilder::new_directed(Some("example".to_string()))
+//! let g = GraphBuilder::new_named_directed("example")
 //!         .add_node(Node::new("N0".to_string()))
 //!         .add_node(Node::new("N1".to_string()))
 //!         .add_edge(Edge::new("N0".to_string(), "N1".to_string()))
@@ -74,10 +74,10 @@
 //! use std::io;
 //! use std::io::Read;
 //!
-//! let cluster_0 = SubGraphBuilder::new(Some("cluster_0".to_string()))
+//! let cluster_0 = SubGraphBuilder::new_named("cluster_0")
 //!     .add_graph_attributes(
 //!         GraphAttributeStatementBuilder::new()
-//!             .label("process #1".to_string())
+//!             .label("process #1")
 //!             .style(GraphStyle::Filled)
 //!             .color(Color::Named("lightgrey"))
 //!             .build()
@@ -90,16 +90,16 @@
 //!             .build()
 //!             .unwrap(),
 //!     )
-//!     .add_edge(Edge::new("a0".to_string(), "a1".to_string()))
-//!     .add_edge(Edge::new("a1".to_string(), "a2".to_string()))
-//!     .add_edge(Edge::new("a2".to_string(), "a3".to_string()))
+//!     .add_edge(Edge::new("a0", "a1"))
+//!     .add_edge(Edge::new("a1", "a2"))
+//!     .add_edge(Edge::new("a2", "a3"))
 //!     .build()
 //!     .unwrap();
 //!
-//! let cluster_1 = SubGraphBuilder::new(Some("cluster_1".to_string()))
+//! let cluster_1 = SubGraphBuilder::new_named("cluster_1")
 //!     .add_graph_attributes(
 //!         GraphAttributeStatementBuilder::new()
-//!             .label("process #2".to_string())
+//!             .label("process #2")
 //!             .style(GraphStyle::Filled)
 //!             .color(Color::Named("blue"))
 //!             .build()
@@ -111,13 +111,13 @@
 //!             .build()
 //!             .unwrap(),
 //!     )
-//!     .add_edge(Edge::new("b0".to_string(), "b1".to_string()))
-//!     .add_edge(Edge::new("b1".to_string(), "b2".to_string()))
-//!     .add_edge(Edge::new("b2".to_string(), "b3".to_string()))
+//!     .add_edge(Edge::new("b0", "b1"))
+//!     .add_edge(Edge::new("b1", "b2"))
+//!     .add_edge(Edge::new("b2", "b3"))
 //!     .build()
 //!     .unwrap();
 //!
-//! let g = GraphBuilder::new_directed(Some("G".to_string()))
+//! let g = GraphBuilder::new_named_directed("G")
 //!     .add_node(
 //!         NodeBuilder::new("start".to_string())
 //!             .shape(Shape::Mdiamond)
@@ -125,20 +125,20 @@
 //!             .unwrap(),
 //!     )
 //!     .add_node(
-//!         NodeBuilder::new("end".to_string())
+//!         NodeBuilder::new("end")
 //!             .shape(Shape::Msquare)
 //!             .build()
 //!             .unwrap(),
 //!     )
 //!     .add_sub_graph(cluster_0)
 //!     .add_sub_graph(cluster_1)
-//!     .add_edge(Edge::new("start".to_string(), "a0".to_string()))
-//!     .add_edge(Edge::new("start".to_string(), "b0".to_string()))
-//!     .add_edge(Edge::new("a1".to_string(), "b3".to_string()))
-//!     .add_edge(Edge::new("b2".to_string(), "a3".to_string()))
-//!     .add_edge(Edge::new("a3".to_string(), "a0".to_string()))
-//!     .add_edge(Edge::new("a3".to_string(), "end".to_string()))
-//!     .add_edge(Edge::new("b3".to_string(), "end".to_string()))
+//!     .add_edge(Edge::new("start", "a0"))
+//!     .add_edge(Edge::new("start", "b0"))
+//!     .add_edge(Edge::new("a1", "b3"))
+//!     .add_edge(Edge::new("b2", "a3"))
+//!     .add_edge(Edge::new("a3", "a0"))
+//!     .add_edge(Edge::new("a3", "end"))
+//!     .add_edge(Edge::new("b3", "end"))
 //!     .build();
 //! ```
 //!

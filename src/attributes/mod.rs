@@ -495,7 +495,7 @@ pub trait GraphAttributes<'a> {
     }
 
     /// An escString or an HTML label.
-    fn label(&mut self, label: String) -> &mut Self {
+    fn label<S: Into<String>>(&mut self, label: S) -> &mut Self {
         Attributes::label(self.get_attributes_mut(), label);
         self
     }
@@ -1047,8 +1047,8 @@ impl Attributes {
         )
     }
 
-    pub fn label(attributes: &mut IndexMap<String, AttributeText>, text: String) {
-        Self::add_attribute(attributes, "label", AttributeText::quoted(text));
+    pub fn label<S: Into<String>>(attributes: &mut IndexMap<String, AttributeText>, text: S) {
+        Self::add_attribute(attributes, "label", AttributeText::quoted(text.into()));
     }
 
     pub fn label_location(

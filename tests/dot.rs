@@ -23,7 +23,7 @@ fn test_input(g: Graph) -> io::Result<String> {
 
 #[test]
 fn empty_digraph_without_id() {
-    let g = GraphBuilder::new_directed(None).build().unwrap();
+    let g = GraphBuilder::new_directed().build().unwrap();
     let r = test_input(g);
     assert_eq!(
         r.unwrap(),
@@ -35,7 +35,7 @@ fn empty_digraph_without_id() {
 
 #[test]
 fn support_display() {
-    let g = GraphBuilder::new_directed(None).build().unwrap();
+    let g = GraphBuilder::new_directed().build().unwrap();
     let dot = Dot { graph: g };
 
     assert_eq!(
@@ -48,7 +48,7 @@ fn support_display() {
 
 #[test]
 fn graph_comment() {
-    let g = GraphBuilder::new_directed(None)
+    let g = GraphBuilder::new_directed()
         .comment("Comment goes here")
         .build()
         .unwrap();
@@ -64,7 +64,7 @@ digraph {
 
 #[test]
 fn empty_digraph() {
-    let g = GraphBuilder::new_directed(Some("empty_graph".to_string()))
+    let g = GraphBuilder::new_named_directed("empty_graph")
         .build()
         .unwrap();
     let r = test_input(g);
@@ -78,7 +78,7 @@ fn empty_digraph() {
 
 #[test]
 fn empty_undirected_graph() {
-    let g = GraphBuilder::new_undirected(Some("empty_graph".to_string()))
+    let g = GraphBuilder::new_named_undirected("empty_graph")
         .build()
         .unwrap();
     let r = test_input(g);
@@ -92,8 +92,8 @@ fn empty_undirected_graph() {
 
 #[test]
 fn single_node() {
-    let g = GraphBuilder::new_directed(Some("single_node".to_string()))
-        .add_node(Node::new("N0".to_string()))
+    let g = GraphBuilder::new_named_directed("single_node")
+        .add_node(Node::new("N0"))
         .build()
         .unwrap();
     let r = test_input(g);
@@ -108,12 +108,12 @@ fn single_node() {
 
 #[test]
 fn single_node_with_style() {
-    let node = NodeBuilder::new("N0".to_string())
+    let node = NodeBuilder::new("N0")
         .style(NodeStyle::Dashed)
         .build()
         .unwrap();
 
-    let g = GraphBuilder::new_directed(Some("single_node".to_string()))
+    let g = GraphBuilder::new_named_directed("single_node")
         .add_node(node)
         .build()
         .unwrap();
@@ -130,10 +130,10 @@ fn single_node_with_style() {
 
 #[test]
 fn support_non_inline_builder() {
-    let mut g = GraphBuilder::new_directed(Some("single_node".to_string()));
+    let mut g = GraphBuilder::new_named_directed("single_node");
 
     // TODO: having to split this is stupid. am i doing something wrong?
-    let mut node_builder = NodeBuilder::new("N0".to_string());
+    let mut node_builder = NodeBuilder::new("N0");
     node_builder.style(NodeStyle::Dashed);
 
     if true {
@@ -155,12 +155,12 @@ fn support_non_inline_builder() {
 
 #[test]
 fn builder_support_shape() {
-    let node = NodeBuilder::new("N0".to_string())
+    let node = NodeBuilder::new("N0")
         .shape(Shape::Note)
         .build()
         .unwrap();
 
-    let g = GraphBuilder::new_directed(Some("node_shape".to_string()))
+    let g = GraphBuilder::new_named_directed("node_shape")
         .add_node(node)
         .build()
         .unwrap();
@@ -177,10 +177,10 @@ fn builder_support_shape() {
 
 #[test]
 fn single_edge() {
-    let g = GraphBuilder::new_directed(Some("single_edge".to_string()))
-        .add_node(Node::new("N0".to_string()))
-        .add_node(Node::new("N1".to_string()))
-        .add_edge(Edge::new("N0".to_string(), "N1".to_string()))
+    let g = GraphBuilder::new_named_directed("single_edge")
+        .add_node(Node::new("N0"))
+        .add_node(Node::new("N1"))
+        .add_edge(Edge::new("N0", "N1"))
         .build()
         .unwrap();
 
@@ -199,14 +199,14 @@ fn single_edge() {
 
 #[test]
 fn single_edge_with_style() {
-    let edge = EdgeBuilder::new("N0".to_string(), "N1".to_string())
+    let edge = EdgeBuilder::new("N0", "N1")
         .style(EdgeStyle::Bold)
         .build()
         .unwrap();
 
-    let g = GraphBuilder::new_directed(Some("single_edge".to_string()))
-        .add_node(Node::new("N0".to_string()))
-        .add_node(Node::new("N1".to_string()))
+    let g = GraphBuilder::new_named_directed("single_edge")
+        .add_node(Node::new("N0"))
+        .add_node(Node::new("N1"))
         .add_edge(edge)
         .build()
         .unwrap();
@@ -226,19 +226,19 @@ fn single_edge_with_style() {
 
 #[test]
 fn edge_statement_port_position() {
-    let node_0 = NodeBuilder::new("N0".to_string())
+    let node_0 = NodeBuilder::new("N0")
         .shape(Shape::Record)
         .label("a|<port0>b")
         .build()
         .unwrap();
 
-    let node_1 = NodeBuilder::new("N1".to_string())
+    let node_1 = NodeBuilder::new("N1")
         .shape(Shape::Record)
         .label("e|<port1>f")
         .build()
         .unwrap();
 
-    let edge = EdgeBuilder::new("N0".to_string(), "N1".to_string())
+    let edge = EdgeBuilder::new("N0", "N1")
         .source_port_position(PortPosition::Port {
             port_name: "port0".to_string(),
             compass_point: Some(CompassPoint::SW),
@@ -250,7 +250,7 @@ fn edge_statement_port_position() {
         .build()
         .unwrap();
 
-    let g = GraphBuilder::new_directed(Some("edge_statement_port_position".to_string()))
+    let g = GraphBuilder::new_named_directed("edge_statement_port_position")
         .add_node(node_0)
         .add_node(node_1)
         .add_edge(edge)
@@ -272,19 +272,19 @@ fn edge_statement_port_position() {
 
 #[test]
 fn port_position_attribute() {
-    let node_0 = NodeBuilder::new("N0".to_string())
+    let node_0 = NodeBuilder::new("N0")
         .shape(Shape::Record)
         .label("a|<port0>b")
         .build()
         .unwrap();
 
-    let node_1 = NodeBuilder::new("N1".to_string())
+    let node_1 = NodeBuilder::new("N1")
         .shape(Shape::Record)
         .label("e|<port1>f")
         .build()
         .unwrap();
 
-    let edge = EdgeBuilder::new("N0".to_string(), "N1".to_string())
+    let edge = EdgeBuilder::new("N0", "N1")
         .tail_port(PortPosition::Port {
             port_name: "port0".to_string(),
             compass_point: Some(CompassPoint::SW),
@@ -296,7 +296,7 @@ fn port_position_attribute() {
         .build()
         .unwrap();
 
-    let g = GraphBuilder::new_directed(Some("port_position_attribute".to_string()))
+    let g = GraphBuilder::new_named_directed("port_position_attribute")
         .add_node(node_0)
         .add_node(node_1)
         .add_edge(edge)
@@ -318,20 +318,20 @@ fn port_position_attribute() {
 
 #[test]
 fn graph_attributes() {
-    let g = GraphBuilder::new_directed(Some("graph_attributes".to_string()))
+    let g = GraphBuilder::new_named_directed("graph_attributes")
         .add_attribute(
             AttributeType::Graph,
-            "rankdir".to_string(),
+            "rankdir",
             AttributeText::from(RankDir::LeftRight),
         )
         .add_attribute(
             AttributeType::Node,
-            "style".to_string(),
+            "style",
             AttributeText::from(NodeStyle::Filled),
         )
         .add_attribute(
             AttributeType::Edge,
-            "color".to_string(),
+            "color",
             AttributeText::from(Color::Named("red")),
         )
         .build()
@@ -352,7 +352,7 @@ fn graph_attributes() {
 
 #[test]
 fn graph_attributes_extend() {
-    let g = GraphBuilder::new_directed(Some("graph_attributes".to_string()))
+    let g = GraphBuilder::new_named_directed("graph_attributes")
         .extend_with_attributes(
             AttributeType::Graph,
             [(
@@ -411,7 +411,7 @@ fn graph_attributes_statement_builders() {
         .build()
         .unwrap();
 
-    let g = GraphBuilder::new_directed(Some("graph_attributes".to_string()))
+    let g = GraphBuilder::new_named_directed("graph_attributes")
         .add_graph_attributes(graph_attributes)
         .add_node_attributes(node_attributes)
         .add_edge_attributes(edge_attributes)
@@ -433,10 +433,10 @@ fn graph_attributes_statement_builders() {
 
 #[test]
 fn clusters() {
-    let cluster_0 = SubGraphBuilder::new(Some("cluster_0".to_string()))
+    let cluster_0 = SubGraphBuilder::new_named("cluster_0")
         .add_graph_attributes(
             GraphAttributeStatementBuilder::new()
-                .label("process #1".to_string())
+                .label("process #1")
                 .style(GraphStyle::Filled)
                 .color(Color::Named("lightgrey"))
                 .build()
@@ -449,16 +449,16 @@ fn clusters() {
                 .build()
                 .unwrap(),
         )
-        .add_edge(Edge::new("a0".to_string(), "a1".to_string()))
-        .add_edge(Edge::new("a1".to_string(), "a2".to_string()))
-        .add_edge(Edge::new("a2".to_string(), "a3".to_string()))
+        .add_edge(Edge::new("a0", "a1"))
+        .add_edge(Edge::new("a1", "a2"))
+        .add_edge(Edge::new("a2", "a3"))
         .build()
         .unwrap();
 
-    let cluster_1 = SubGraphBuilder::new(Some("cluster_1".to_string()))
+    let cluster_1 = SubGraphBuilder::new_named("cluster_1")
         .add_graph_attributes(
             GraphAttributeStatementBuilder::new()
-                .label("process #2".to_string())
+                .label("process #2")
                 .style(GraphStyle::Filled)
                 .color(Color::Named("blue"))
                 .build()
@@ -470,34 +470,34 @@ fn clusters() {
                 .build()
                 .unwrap(),
         )
-        .add_edge(Edge::new("b0".to_string(), "b1".to_string()))
-        .add_edge(Edge::new("b1".to_string(), "b2".to_string()))
-        .add_edge(Edge::new("b2".to_string(), "b3".to_string()))
+        .add_edge(Edge::new("b0", "b1"))
+        .add_edge(Edge::new("b1", "b2"))
+        .add_edge(Edge::new("b2", "b3"))
         .build()
         .unwrap();
 
-    let g = GraphBuilder::new_directed(Some("G".to_string()))
+    let g = GraphBuilder::new_named_directed("G")
         .add_node(
-            NodeBuilder::new("start".to_string())
+            NodeBuilder::new("start")
                 .shape(Shape::Mdiamond)
                 .build()
                 .unwrap(),
         )
         .add_node(
-            NodeBuilder::new("end".to_string())
+            NodeBuilder::new("end")
                 .shape(Shape::Msquare)
                 .build()
                 .unwrap(),
         )
         .add_sub_graph(cluster_0)
         .add_sub_graph(cluster_1)
-        .add_edge(Edge::new("start".to_string(), "a0".to_string()))
-        .add_edge(Edge::new("start".to_string(), "b0".to_string()))
-        .add_edge(Edge::new("a1".to_string(), "b3".to_string()))
-        .add_edge(Edge::new("b2".to_string(), "a3".to_string()))
-        .add_edge(Edge::new("a3".to_string(), "a0".to_string()))
-        .add_edge(Edge::new("a3".to_string(), "end".to_string()))
-        .add_edge(Edge::new("b3".to_string(), "end".to_string()))
+        .add_edge(Edge::new("start", "a0"))
+        .add_edge(Edge::new("start", "b0"))
+        .add_edge(Edge::new("a1", "b3"))
+        .add_edge(Edge::new("b2", "a3"))
+        .add_edge(Edge::new("a3", "a0"))
+        .add_edge(Edge::new("a3", "end"))
+        .add_edge(Edge::new("b3", "end"))
         .build()
         .unwrap();
 
@@ -538,7 +538,7 @@ fn clusters() {
 
 #[test]
 fn edge_validation_error() {
-    let edge_builder = EdgeBuilder::new("N0".to_string(), "N1".to_string())
+    let edge_builder = EdgeBuilder::new("N0", "N1")
         .arrow_size(-1.0)
         .build();
 
@@ -555,7 +555,7 @@ fn edge_validation_error() {
 
 #[test]
 fn edge_build_ignore_validation_error() {
-    let edge = EdgeBuilder::new("N0".to_string(), "N1".to_string())
+    let edge = EdgeBuilder::new("N0", "N1")
         .arrow_size(-1.0)
         .build_ignore_validation();
 
@@ -590,7 +590,7 @@ fn edge_attribute_build_ignore_validation_error() {
 
 #[test]
 fn node_validation_error() {
-    let node_builder = NodeBuilder::new("N0".to_string()).height(0.0).build();
+    let node_builder = NodeBuilder::new("N0").height(0.0).build();
 
     assert!(node_builder.is_err());
 
@@ -605,7 +605,7 @@ fn node_validation_error() {
 
 #[test]
 fn node_build_ignore_validation_error() {
-    let node = NodeBuilder::new("N0".to_string())
+    let node = NodeBuilder::new("N0")
         .height(0.0)
         .build_ignore_validation();
 

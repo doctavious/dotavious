@@ -316,26 +316,26 @@ pub struct GraphBuilder<'a> {
 
 // TODO: id should be an escString
 impl<'a> GraphBuilder<'a> {
-    pub fn new_directed(id: Option<String>) -> Self {
-        Self {
-            id,
-            is_directed: true,
-            strict: false,
-            graph_attributes: IndexMap::new(),
-            node_attributes: IndexMap::new(),
-            edge_attributes: IndexMap::new(),
-            sub_graphs: Vec::new(),
-            nodes: Vec::new(),
-            edges: Vec::new(),
-            comment: None,
-            errors: Vec::new(),
-        }
+    pub fn new_directed() -> Self {
+        Self::new(None, true)
     }
 
-    pub fn new_undirected(id: Option<String>) -> Self {
+    pub fn new_named_directed<S: Into<String>>(id: S) -> Self {
+        Self::new(Some(id.into()), true)
+    }
+
+    pub fn new_undirected() -> Self {
+        Self::new(None, false)
+    }
+
+    pub fn new_named_undirected<S: Into<String>>(id: S) -> Self {
+        Self::new(Some(id.into()), false)
+    }
+
+    fn new(id: Option<String>, is_directed: bool) -> Self {
         Self {
             id,
-            is_directed: false,
+            is_directed,
             strict: false,
             graph_attributes: IndexMap::new(),
             node_attributes: IndexMap::new(),
@@ -377,16 +377,16 @@ impl<'a> GraphBuilder<'a> {
         self
     }
 
-    pub fn add_attribute(
+    pub fn add_attribute<S: Into<String>>(
         &mut self,
         attribute_type: AttributeType,
-        key: String,
+        key: S,
         value: AttributeText<'a>,
     ) -> &mut Self {
         match attribute_type {
-            AttributeType::Graph => self.graph_attributes.insert(key, value),
-            AttributeType::Edge => self.edge_attributes.insert(key, value),
-            AttributeType::Node => self.node_attributes.insert(key, value),
+            AttributeType::Graph => self.graph_attributes.insert(key.into(), value),
+            AttributeType::Edge => self.edge_attributes.insert(key.into(), value),
+            AttributeType::Node => self.node_attributes.insert(key.into(), value),
         };
         self
     }
@@ -503,9 +503,16 @@ pub struct SubGraphBuilder<'a> {
     errors: Vec<ValidationError>,
 }
 
-// TODO: id should be an escString
 impl<'a> SubGraphBuilder<'a> {
-    pub fn new(id: Option<String>) -> Self {
+    pub fn new() -> Self {
+        Self::new_inner(None)
+    }
+
+    pub fn new_named<S: Into<String>>(id: S) -> Self {
+        Self::new_inner(Some(id.into()))
+    }
+
+    fn new_inner(id: Option<String>) -> Self {
         Self {
             id,
             graph_attributes: IndexMap::new(),
@@ -620,10 +627,10 @@ pub struct Node<'a> {
 }
 
 impl<'a> Node<'a> {
-    pub fn new(id: String) -> Node<'a> {
+    pub fn new<S: Into<String>>(id: S) -> Node<'a> {
         // TODO: constrain id
         Node {
-            id,
+            id: id.into(),
             attributes: IndexMap::new(),
         }
     }
@@ -676,9 +683,9 @@ impl<'a> NodeAttributes<'a> for NodeBuilder<'a> {
 }
 
 impl<'a> NodeBuilder<'a> {
-    pub fn new(id: String) -> Self {
+    pub fn new<S: Into<String>>(id: S) -> Self {
         Self {
-            id,
+            id: id.into(),
             attributes: IndexMap::new(),
             errors: Vec::new(),
         }
@@ -710,26 +717,34 @@ pub struct Edge<'a> {
 }
 
 impl<'a> Edge<'a> {
-    pub fn new(source: String, target: String) -> Self {
+    pub fn new<S, T>(source: S, target: T) -> Self
+    where
+        S: Into<String>,
+        T: Into<String>
+    {
         Self {
-            source,
+            source: source.into(),
             source_port_position: None,
-            target,
+            target: target.into(),
             target_port_position: None,
             attributes: IndexMap::new(),
         }
     }
 
-    pub fn new_with_position(
-        source: String,
+    pub fn new_with_position<S, T>(
+        source: S,
         source_port_position: PortPosition,
-        target: String,
+        target: T,
         target_port_position: PortPosition,
-    ) -> Self {
+    ) -> Self
+    where
+        S: Into<String>,
+        T: Into<String>
+    {
         Self {
-            source,
+            source: source.into(),
             source_port_position: Some(source_port_position),
-            target,
+            target: target.into(),
             target_port_position: Some(target_port_position),
             attributes: IndexMap::new(),
         }
@@ -768,10 +783,10 @@ impl<'a> EdgeAttributes<'a> for EdgeBuilder<'a> {
 }
 
 impl<'a> EdgeBuilder<'a> {
-    pub fn new(source: String, target: String) -> Self {
+    pub fn new<S: Into<String>, T: Into<String>>(source: S, target: T) -> Self {
         Self {
-            source,
-            target,
+            source: source.into(),
+            target: target.into(),
             source_port_position: None,
             target_port_position: None,
             attributes: IndexMap::new(),
@@ -779,15 +794,15 @@ impl<'a> EdgeBuilder<'a> {
         }
     }
 
-    pub fn new_with_port_position(
-        source: String,
+    pub fn new_with_port_position<S: Into<String>, T: Into<String>>(
+        source: S,
         source_port_position: PortPosition,
-        target: String,
+        target: T,
         target_port_position: PortPosition,
     ) -> Self {
         Self {
-            source,
-            target,
+            source: source.into(),
+            target: target.into(),
             source_port_position: Some(source_port_position),
             target_port_position: Some(target_port_position),
             attributes: IndexMap::new(),
