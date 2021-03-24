@@ -1,0 +1,17 @@
+name: Publish
+
+on: workflow_dispatch
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Publish
+        run: |
+          cargo login ${{ secrets.CARGO_API_KEY }}
+          cargo publish
