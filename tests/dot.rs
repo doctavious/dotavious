@@ -63,6 +63,36 @@ digraph {
 }
 
 #[test]
+fn quotted_id() {
+    let quotted_id = r#"Earvin "Magic" Johnson"#;
+    let g = GraphBuilder::new_named_directed(quotted_id)
+        .build()
+        .unwrap();
+    let r = test_input(g);
+    assert_eq!(
+        r.unwrap(),
+        r#"digraph "Earvin \"Magic\" Johnson" {
+}
+"#
+    );
+}
+
+#[test]
+fn id_with_space() {
+    let id = "A Graph";
+    let g = GraphBuilder::new_named_directed(id)
+        .build()
+        .unwrap();
+    let r = test_input(g);
+    assert_eq!(
+        r.unwrap(),
+        r#"digraph "A Graph" {
+}
+"#
+    );
+}
+
+#[test]
 fn empty_digraph() {
     let g = GraphBuilder::new_named_directed("empty_graph")
         .build()
@@ -192,6 +222,28 @@ fn single_edge() {
     N0;
     N1;
     N0 -> N1;
+}
+"#
+    );
+}
+
+#[test]
+fn format_edges() {
+    let g = GraphBuilder::new_named_directed("format_edges")
+        .add_node(Node::new(r#"Earvin "Magic" Johnson"#))
+        .add_node(Node::new("A Graph"))
+        .add_edge(Edge::new(r#"Earvin "Magic" Johnson"#, "A Graph"))
+        .build()
+        .unwrap();
+
+    let r = test_input(g);
+
+    assert_eq!(
+        r.unwrap(),
+        r#"digraph format_edges {
+    "Earvin \"Magic\" Johnson";
+    "A Graph";
+    "Earvin \"Magic\" Johnson" -> "A Graph";
 }
 "#
     );
