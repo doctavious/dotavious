@@ -53,7 +53,7 @@ impl<'a> Dot<'a> {
         write!(w, "{}{}", strict, &graph.graph_type())?;
 
         if let Some(id) = &graph.id {
-            write!(w, " {}", id)?;
+            write!(w, " {}", format_id(&id))?;
         }
 
         writeln!(w, " {{")?;
@@ -187,9 +187,9 @@ impl<'a> Dot<'a> {
             w,
             "{}{} {} {}",
             get_indentation(indentation_level),
-            edge_source,
+            format_id(&edge_source),
             edge_op,
-            edge_target
+            format_id(&edge_target)
         )?;
         write!(w, "{}", fmt_attributes(&edge.attributes))?;
         writeln!(w, ";")
@@ -638,7 +638,7 @@ impl<'a> Node<'a> {
 
 impl<'a> DotString<'a> for Node<'a> {
     fn dot_string(&self) -> Cow<'a, str> {
-        let mut dot_string = format!("{}", &self.id);
+        let mut dot_string = format!("{}", format_id(&self.id));
         dot_string.push_str(fmt_attributes(&self.attributes).as_str());
         dot_string.push_str(";");
         dot_string.into()
@@ -964,4 +964,16 @@ impl<'a> EdgeAttributeStatementBuilder<'a> {
 
 fn get_indentation(indentation_level: usize) -> String {
     INDENT.repeat(indentation_level)
+}
+
+// According to https://graphviz.org/doc/info/lang.html we should wrap strings with spaces aka
+// double-quoted strings as well as escape double quotes within those strings.
+// This probably needs to be more robust but I think for now it fixes a but around double-quoted
+// strings
+fn format_id(val: &String) -> String {
+    if val.contains(char::is_whitespace) || val.contains("\"") {
+        return format!("\"{}\"", val.escape_default())
+    }
+
+    val.to_string()
 }
