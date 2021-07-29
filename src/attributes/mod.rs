@@ -132,7 +132,7 @@ impl<'a> AttributeText<'a> {
             AttrStr(ref s) => format!("{}", s),
             EscStr(ref s) => format!("\"{}\"", AttributeText::escape_str(&s)),
             HtmlStr(ref s) => format!("<{}>", s),
-            QuotedStr(ref s) => format!("\"{}\"", s.escape_default()),
+            QuotedStr(ref s) => format!("\"{}\"", escape_double_quotes(&s.to_string())),
         }
     }
 }
@@ -322,6 +322,34 @@ impl<'a> From<ViewPort> for AttributeText<'a> {
 impl<'a> From<u32> for AttributeText<'a> {
     fn from(v: u32) -> Self {
         AttributeText::attr(v.to_string())
+    }
+}
+
+impl<'a> From<String> for AttributeText<'a> {
+    fn from(string: String) -> Self {
+        // FIXME Attempt to select the enum type appropriate for the encoding required?
+        if is_alphanum(&string) {
+            AttributeText::attr(string)
+        } else {
+            AttributeText::quoted(string)
+        }
+    }
+}
+
+impl<'a> From<&str> for AttributeText<'a> {
+    fn from(string: &str) -> Self {
+        // FIXME Attempt to select the enum type appropriate for the encoding required?
+        if is_alphanum(&String::from(string)) {
+            AttributeText::attr(String::from(string))
+        } else {
+            AttributeText::quoted(String::from(string))
+        }
+    }
+}
+
+impl<'a> From<AttributeText<'a>> for String {
+    fn from(attribute_text: AttributeText) -> Self {
+        attribute_text.dot_string()
     }
 }
 
@@ -1968,6 +1996,31 @@ pub trait EdgeAttributes<'a> {
     fn add_validation_error(&mut self, field: &'static str, message: &'static str);
 }
 
+// According to https://graphviz.org/doc/info/lang.html we should wrap any strings containing
+// non-alphanumerical characters, as escape double quotes within those strings.
+// This probably needs to be more robust but I think for now it fixes a but around double-quoted
+// strings
+fn escape_double_quotes(val: &String) -> String {
+    format!("{}", val.chars().map(
+        |c| if c == '"' {
+            format!("\\{}", c)
+        } else {
+            format!("{}", c)
+        }).collect::<String>()
+    )
+}
+
+fn is_alphanum(val: &String) -> bool {
+    for byte in val.bytes() {
+        if !((byte >= b'a' && byte <= b'z') || (byte >= b'A' && byte <= b'Z') ||
+            (byte >= b'0' && byte <= b'9') || byte == b'_' || byte >= 128)
+        {
+            return false;
+        }
+    }
+    true
+}
+
 pub(crate) fn fmt_attributes(attributes: &IndexMap<String, AttributeText>) -> String {
     let mut dot_string = String::from("");
     if !attributes.is_empty() {
@@ -2002,7 +2055,7 @@ mod test {
             ])
             .build()
             .unwrap();
-
+        println!("{}", graph_attributes.get("fillcolor").unwrap().dot_string());
         assert_eq!(
             graph_attributes.get("fillcolor").unwrap().dot_string(),
             "\"yellow;0.3:blue\""
