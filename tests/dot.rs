@@ -63,6 +63,88 @@ digraph {
 }
 
 #[test]
+fn nonreadable_ascii_id() {
+    let id = "\u{0}\u{1}\u{2}\u{3}\u{4}\u{5}\u{6}\u{7}\u{8}\u{9}\u{a}\u{b}\u{c}\u{d}\u{e}\u{f}\
+        \u{10}\u{11}\u{12}\u{13}\u{14}\u{15}\u{16}\u{17}\u{18}\u{19}\u{1a}\u{1b}\u{1c}\u{1d}\u{1e}\
+        \u{1f}";
+
+    let g = GraphBuilder::new_named_directed(id)
+        .build()
+        .unwrap();
+    let r = test_input(g);
+    assert_eq!(
+        r.unwrap(),
+        "digraph \"\u{0}\u{1}\u{2}\u{3}\u{4}\u{5}\u{6}\u{7}\u{8}\u{9}\u{a}\u{b}\u{c}\u{d}\u{e}\
+            \u{f}\u{10}\u{11}\u{12}\u{13}\u{14}\u{15}\u{16}\u{17}\u{18}\u{19}\u{1a}\u{1b}\u{1c}\
+            \u{1d}\u{1e}\u{1f}\" {
+}
+"
+    );
+}
+
+#[test]
+fn readable_ascii_no_alphanum_id() {
+    let id = r##" !"#$%&'()*+,-./:;<=>?@[\]^_`{|}~"##;
+
+    let g = GraphBuilder::new_named_directed(id)
+        .build()
+        .unwrap();
+    let r = test_input(g);
+    assert_eq!(
+        r.unwrap(),
+        r##"digraph " !\"#$%&'()*+,-./:;<=>?@[\]^_`{|}~" {
+}
+"##
+    );
+}
+
+#[test]
+fn non_ascii_alphanum_id() {
+    let id = "Identität";
+
+    let g = GraphBuilder::new_named_directed(id)
+        .build()
+        .unwrap();
+    let r = test_input(g);
+    assert_eq!(
+        r.unwrap(),
+        r##"digraph Identität {
+}
+"##
+    );
+}
+
+#[test]
+fn quoted_id() {
+    let quoted_id = r#"Earvin "Magic" Johnson"#;
+    let g = GraphBuilder::new_named_directed(quoted_id)
+        .build()
+        .unwrap();
+    let r = test_input(g);
+    assert_eq!(
+        r.unwrap(),
+        r#"digraph "Earvin \"Magic\" Johnson" {
+}
+"#
+    );
+}
+
+#[test]
+fn id_with_space() {
+    let id = "A Graph";
+    let g = GraphBuilder::new_named_directed(id)
+        .build()
+        .unwrap();
+    let r = test_input(g);
+    assert_eq!(
+        r.unwrap(),
+        r#"digraph "A Graph" {
+}
+"#
+    );
+}
+
+#[test]
 fn empty_digraph() {
     let g = GraphBuilder::new_named_directed("empty_graph")
         .build()
@@ -198,6 +280,31 @@ fn single_edge() {
 }
 
 #[test]
+fn format_edges() {
+    let g = GraphBuilder::new_named_directed("format_edges")
+        .add_node(Node::new(r#"Earvin "Magic" Johnson"#))
+        .add_node(Node::new("A Graph"))
+        .add_edge(Edge::new(r#"Earvin "Magic" Johnson"#, "A Graph"))
+        .build()
+        .unwrap();
+
+    let r = test_input(g);
+
+    let s = r.unwrap();
+    println!("{}", s);
+
+    assert_eq!(
+        s,
+        r#"digraph format_edges {
+    "Earvin \"Magic\" Johnson";
+    "A Graph";
+    "Earvin \"Magic\" Johnson" -> "A Graph";
+}
+"#
+    );
+}
+
+#[test]
 fn single_edge_with_style() {
     let edge = EdgeBuilder::new("N0", "N1")
         .style(EdgeStyle::Bold)
@@ -264,7 +371,7 @@ fn edge_statement_port_position() {
         r#"digraph edge_statement_port_position {
     N0 [shape=record, label="a|<port0>b"];
     N1 [shape=record, label="e|<port1>f"];
-    N0:port0:sw -> N1:port1:ne;
+    "N0:port0:sw" -> "N1:port1:ne";
 }
 "#
     );

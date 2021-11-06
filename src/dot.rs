@@ -53,7 +53,7 @@ impl<'a> Dot<'a> {
         write!(w, "{}{}", strict, &graph.graph_type())?;
 
         if let Some(id) = &graph.id {
-            write!(w, " {}", id)?;
+            write!(w, " {}", &id.dot_string())?;
         }
 
         writeln!(w, " {{")?;
@@ -187,9 +187,9 @@ impl<'a> Dot<'a> {
             w,
             "{}{} {} {}",
             get_indentation(indentation_level),
-            edge_source,
+            AttributeText::from(edge_source).dot_string(),
             edge_op,
-            edge_target
+            AttributeText::from(edge_target).dot_string(),
         )?;
         write!(w, "{}", fmt_attributes(&edge.attributes))?;
         writeln!(w, ";")
@@ -224,7 +224,7 @@ pub enum RenderOption {
 
 #[derive(Clone, Debug)]
 pub struct Graph<'a> {
-    pub id: Option<String>,
+    pub id: Option<AttributeText<'a>>,
 
     pub is_directed: bool,
 
@@ -248,7 +248,7 @@ pub struct Graph<'a> {
 
 impl<'a> Graph<'a> {
     pub fn new(
-        id: Option<String>,
+        id: Option<AttributeText<'a>>,
         is_directed: bool,
         strict: bool,
         comment: Option<String>,
@@ -291,7 +291,7 @@ impl<'a> Graph<'a> {
 }
 
 pub struct GraphBuilder<'a> {
-    id: Option<String>,
+    id: Option<AttributeText<'a>>,
 
     is_directed: bool,
 
@@ -314,13 +314,12 @@ pub struct GraphBuilder<'a> {
     errors: Vec<ValidationError>,
 }
 
-// TODO: id should be an escString
 impl<'a> GraphBuilder<'a> {
     pub fn new_directed() -> Self {
         Self::new(None, true)
     }
 
-    pub fn new_named_directed<S: Into<String>>(id: S) -> Self {
+    pub fn new_named_directed<S: Into<AttributeText<'a>>>(id: S) -> Self {
         Self::new(Some(id.into()), true)
     }
 
@@ -328,11 +327,11 @@ impl<'a> GraphBuilder<'a> {
         Self::new(None, false)
     }
 
-    pub fn new_named_undirected<S: Into<String>>(id: S) -> Self {
+    pub fn new_named_undirected<S: Into<AttributeText<'a>>>(id: S) -> Self {
         Self::new(Some(id.into()), false)
     }
 
-    fn new(id: Option<String>, is_directed: bool) -> Self {
+    fn new(id: Option<AttributeText<'a>>, is_directed: bool) -> Self {
         Self {
             id,
             is_directed,
@@ -433,7 +432,7 @@ impl<'a> GraphBuilder<'a> {
 
     pub fn build_ignore_validation(&self) -> Graph<'a> {
         Graph {
-            id: self.id.to_owned(),
+            id: self.id.to_owned().into(),
             is_directed: self.is_directed,
             strict: self.strict,
             comment: self.comment.clone(), // TODO: is clone the only option here?
@@ -622,12 +621,12 @@ impl<'a> SubGraphBuilder<'a> {
 
 #[derive(Clone, Debug)]
 pub struct Node<'a> {
-    pub id: String,
+    pub id: AttributeText<'a>,
     pub attributes: IndexMap<String, AttributeText<'a>>,
 }
 
 impl<'a> Node<'a> {
-    pub fn new<S: Into<String>>(id: S) -> Node<'a> {
+    pub fn new<S: Into<AttributeText<'a>>>(id: S) -> Node<'a> {
         // TODO: constrain id
         Node {
             id: id.into(),
@@ -638,7 +637,7 @@ impl<'a> Node<'a> {
 
 impl<'a> DotString<'a> for Node<'a> {
     fn dot_string(&self) -> Cow<'a, str> {
-        let mut dot_string = format!("{}", &self.id);
+        let mut dot_string = format!("{}", &self.id.dot_string());
         dot_string.push_str(fmt_attributes(&self.attributes).as_str());
         dot_string.push_str(";");
         dot_string.into()
@@ -701,7 +700,7 @@ impl<'a> NodeBuilder<'a> {
     pub fn build_ignore_validation(&self) -> Node<'a> {
         Node {
             // TODO: are these to_owned and clones necessary?
-            id: self.id.to_owned(),
+            id: self.id.to_owned().into(),
             attributes: self.attributes.clone(),
         }
     }
