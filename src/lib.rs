@@ -1,4 +1,5 @@
 #![doc(html_root_url = "https://docs.rs/dotavious")]
+#![doc(issue_tracker_base_url = "https://github.com/doctavious/dotavious/issues/")]
 #![cfg_attr(docsrs, deny(broken_intra_doc_links))]
 
 //! Dotavious provides bindings to generate [DOT](https://graphviz.org/doc/info/lang.html)
