@@ -1,5 +1,5 @@
 # Dotavious
-![crates.io](https://img.shields.io/crates/v/dotavious.svg)](https://crates.io/crates/dotavious)
+[![crates.io](https://img.shields.io/crates/v/dotavious.svg)](https://crates.io/crates/dotavious)
 [![Released API docs](https://docs.rs/dotavious/badge.svg)](https://docs.rs/dotavious)
 [![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 [![CI](https://github.com/doctavious/dotavious/workflows/CI/badge.svg)](https://github.com/doctavious/dotavious/actions?query=workflow%3ACI)
